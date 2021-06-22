@@ -65,14 +65,15 @@ dat_shed <- dat_long %>%
 fig1 <- dat_shed %>%
   # filter for first watershed
   filter(watershed == "Canada De Santa Anita") %>%
-  # round all dates to the appropriate month 
-  mutate(month_date = floor_date(timestamp_local, unit = "month")) %>%
-  # create paneled boxplot
-  ggplot(aes(x = month_date, y = value, group = month_date)) +
+  # round all dates to the appropriate month & create new column for year
+  mutate(month_date = floor_date(timestamp_local, unit = "month"),
+         year = year(timestamp_local)) %>%
+  # create paneled boxplot - change to yearly
+  ggplot(aes(x = year, y = value, group = year)) +
   geom_boxplot(aes(color = analyte)) +
-  geom_vline(xintercept = as.POSIXct(as.Date("2004-6-04")), 
+  geom_vline(xintercept = 2004, 
              color = "red") + # Gaviota fire date
-  xlim(as.POSIXct(as.Date(c("2004-1-01", "2010-2-01")))) + # set date limits so as to include the fire date
+  xlim(2003, 2010) + # set date limits so as to include the fire date
   scale_color_viridis(discrete = TRUE) + # color by analyte
   facet_grid(rows = vars(analyte), scales = "free") + # facet by analyte
   theme_bw() + # remove background
@@ -83,9 +84,9 @@ fig1 <- dat_shed %>%
        subtitle = "San Onofre Creek")
 
 # Export figure
-# ggsave("figures/crass_watershed1.png", 
+# ggsave("figures/crass_watershed1_yr.png",
 #        fig1,
-#        height = 8, width = 10, 
+#        height = 8, width = 10,
 #        units = "in")
 
 #### Canada De La Gaviota ####
@@ -93,11 +94,12 @@ fig2 <- dat_shed %>%
   # filter for next watershed
   filter(watershed == "Canada De La Gaviota") %>%
   # round all dates to the appropriate month 
-  mutate(month_date = floor_date(timestamp_local, unit = "month")) %>%
+  mutate(month_date = floor_date(timestamp_local, unit = "month"),
+         year = year(timestamp_local)) %>%
   # create paneled boxplot
-  ggplot(aes(x = month_date, y = value, group = month_date)) +
+  ggplot(aes(x = year, y = value, group = year)) +
   geom_boxplot(aes(color = analyte)) +
-  geom_vline(xintercept = as.POSIXct(as.Date("2004-6-04")), 
+  geom_vline(xintercept = 2004, 
              color = "red") + # Gaviota fire date
   scale_color_viridis(discrete = TRUE) + # color by analyte
   facet_grid(rows = vars(analyte), scales = "free") + # facet by analyte
@@ -109,7 +111,7 @@ fig2 <- dat_shed %>%
        subtitle = "Gaviota Creek")
 
 # Export figure
-# ggsave("figures/crass_watershed2.png",
+# ggsave("figures/crass_watershed2_yr.png",
 #        fig2,
 #        height = 8, width = 10,
 #        units = "in")
@@ -118,15 +120,16 @@ fig2 <- dat_shed %>%
 fig3 <- dat_shed %>%
   # filter for next watershed
   filter(watershed == "Tajiguas Creek") %>%
-  mutate(month_date = floor_date(timestamp_local, unit = "month")) %>%
+  mutate(month_date = floor_date(timestamp_local, unit = "month"),
+         year = year(timestamp_local)) %>%
   # create paneled boxplot
-  ggplot(aes(x = month_date, y = value, group = month_date)) +
+  ggplot(aes(x = year, y = value, group = year)) +
   geom_boxplot(aes(color = analyte)) +
-  geom_vline(xintercept = as.POSIXct(as.Date("2004-6-04")), 
+  geom_vline(xintercept = 2004, 
              color = "red") + # Gaviota fire date
-  geom_vline(xintercept = as.POSIXct(as.Date("2016-6-15")), 
+  geom_vline(xintercept = 2016, 
              color = "red") + # Sherpa fire date
-  geom_vline(xintercept = as.POSIXct(as.Date("2017-7-07")), 
+  geom_vline(xintercept = 2017, 
              color = "red") + # Whittier fire date
   scale_color_viridis(discrete = TRUE) + # color by analyte
   facet_grid(rows = vars(analyte), scales = "free") + # facet by analyte
@@ -138,7 +141,7 @@ fig3 <- dat_shed %>%
        subtitle = "Arroyo Hondo and Refugio Creeks")
 
 # Export figure
-# ggsave("figures/crass_watershed3.png",
+# ggsave("figures/crass_watershed3_yr.png",
 #        fig3,
 #        height = 8, width = 10,
 #        units = "in")
@@ -147,15 +150,16 @@ fig3 <- dat_shed %>%
 fig4 <- dat_shed %>%
   # filter for next watershed
   filter(watershed == "Dos Pueblos Canyon") %>%
-  mutate(month_date = floor_date(timestamp_local, unit = "month")) %>%
+  mutate(month_date = floor_date(timestamp_local, unit = "month"),
+         year = year(timestamp_local)) %>%
   # create paneled boxplot
-  ggplot(aes(x = month_date, y = value, group = month_date)) +
+  ggplot(aes(x = year, y = value, group = year)) +
   geom_boxplot(aes(color = analyte)) +
-  geom_vline(xintercept = as.POSIXct(as.Date("2008-7-01")), 
+  geom_vline(xintercept = 2008, 
              color = "red") + # Gap fire date
-  geom_vline(xintercept = as.POSIXct(as.Date("2016-6-15")), 
+  geom_vline(xintercept = 2016, 
              color = "red") + # Sherpa fire date
-  geom_vline(xintercept = as.POSIXct(as.Date("2017-7-07")), 
+  geom_vline(xintercept = 2017, 
              color = "red") + # Whittier fire date
   scale_color_viridis(discrete = TRUE) + # color by analyte
   facet_grid(rows = vars(analyte), scales = "free") + # facet by analyte
@@ -167,7 +171,7 @@ fig4 <- dat_shed %>%
        subtitle = "Tecolote, Bell Canyon, and Devereaux Creeks")
 
 # Export figure
-# ggsave("figures/crass_watershed4.png",
+# ggsave("figures/crass_watershed4_yr.png",
 #        fig4,
 #        height = 8, width = 10,
 #        units = "in")
@@ -176,11 +180,12 @@ fig4 <- dat_shed %>%
 fig5 <- dat_shed %>%
   # filter for next watershed
   filter(watershed == "San Pedro Creek") %>%
-  mutate(month_date = floor_date(timestamp_local, unit = "month")) %>%
+  mutate(month_date = floor_date(timestamp_local, unit = "month"),
+         year = year(timestamp_local)) %>%
   # create paneled boxplot
-  ggplot(aes(x = month_date, y = value, group = month_date)) +
+  ggplot(aes(x = year, y = value, group = year)) +
   geom_boxplot(aes(color = analyte)) +
-  geom_vline(xintercept = as.POSIXct(as.Date("2008-7-01")), 
+  geom_vline(xintercept = 2008, 
              color = "red") + # Gap fire date
   scale_color_viridis(discrete = TRUE) + # color by analyte
   facet_grid(rows = vars(analyte), scales = "free") + # facet by analyte
@@ -192,7 +197,7 @@ fig5 <- dat_shed %>%
        subtitle = "San Pedro Creek")
 
 # Export figure
-# ggsave("figures/crass_watershed5.png",
+# ggsave("figures/crass_watershed5_yr.png",
 #        fig5,
 #        height = 8, width = 10,
 #        units = "in")
@@ -201,13 +206,14 @@ fig5 <- dat_shed %>%
 fig6 <- dat_shed %>%
   # filter for next watershed
   filter(watershed == "Atascadero Creek") %>%
-  mutate(month_date = floor_date(timestamp_local, unit = "month")) %>%
+  mutate(month_date = floor_date(timestamp_local, unit = "month"),
+         year = year(timestamp_local)) %>%
   # create paneled boxplot
-  ggplot(aes(x = month_date, y = value, group = month_date)) +
+  ggplot(aes(x = year, y = value, group = year)) +
   geom_boxplot(aes(color = analyte)) +
-  geom_vline(xintercept = as.POSIXct(as.Date("2009-5-05")), 
+  geom_vline(xintercept = 2009, 
              color = "red") + # Jesusita fire date
-  geom_vline(xintercept = as.POSIXct(as.Date("2019-11-25")), 
+  geom_vline(xintercept = 2019, 
              color = "red") + # Cave fire date
   scale_color_viridis(discrete = TRUE) + # color by analyte
   facet_grid(rows = vars(analyte), scales = "free") + # facet by analyte
@@ -219,7 +225,7 @@ fig6 <- dat_shed %>%
        subtitle = "Atascadero Creek")
 
 # Export figure
-# ggsave("figures/crass_watershed6.png",
+# ggsave("figures/crass_watershed6_yr.png",
 #        fig6,
 #        height = 8, width = 10,
 #        units = "in")
@@ -228,15 +234,16 @@ fig6 <- dat_shed %>%
 fig7 <- dat_shed %>%
   # filter for next watershed
   filter(watershed == "Mission Creek") %>%
-  mutate(month_date = floor_date(timestamp_local, unit = "month")) %>%
+  mutate(month_date = floor_date(timestamp_local, unit = "month"),
+         year = year(timestamp_local)) %>%
   # create paneled boxplot
-  ggplot(aes(x = month_date, y = value, group = month_date)) +
+  ggplot(aes(x = year, y = value, group = year)) +
   geom_boxplot(aes(color = analyte)) +
-  geom_vline(xintercept = as.POSIXct(as.Date("2009-5-05")), 
+  geom_vline(xintercept = 2009, 
              color = "red") + # Jesusita fire date
-  geom_vline(xintercept = as.POSIXct(as.Date("2008-11-13")), 
+  geom_vline(xintercept = 2008, 
              color = "red") + # Tea fire date
-  geom_vline(xintercept = as.POSIXct(as.Date("2017-12-04")), 
+  geom_vline(xintercept = 2017, 
              color = "red") + # Thomas fire date
   scale_color_viridis(discrete = TRUE) + # color by analyte
   facet_grid(rows = vars(analyte), scales = "free") + # facet by analyte
@@ -248,7 +255,7 @@ fig7 <- dat_shed %>%
        subtitle = "Arroyo Burro, Rattlesnake, and Mission Creeks")
 
 # Export figure
-# ggsave("figures/crass_watershed7.png",
+# ggsave("figures/crass_watershed7_yr.png",
 #        fig7,
 #        height = 8, width = 10,
 #        units = "in")
