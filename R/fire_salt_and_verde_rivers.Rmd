@@ -1,0 +1,335 @@
+---
+title: "analysis of fire effects on lotic systems: Taste and Odor Project"
+author: "SRE"
+date: "2021-07-20"
+output: github_document
+---
+
+# overview
+
+Assessment of fire effects on water quality in the Salt and Verde Rivers, AZ. Data are from from long-term monitoring by the CAP LTER of water quality in rivers and canals that contribute to the drinking water supply of the greater Phoenix metropolitan area. Refer to the dataset in the Environmental Data Initiative data repository for more project details (https://portal.edirepository.org/nis/mapbrowse?scope=knb-lter-cap&identifier=617).
+
+The workflow relies extensively on the R package [firearea](https://gitlab.com/srearl/firearea).
+
+
+# harvest the data
+
+Harvest the data from the EDI.
+
+```{r data-harvest, eval=TRUE}
+
+algae     <- readr::read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/617/3/83973dbd774560d0d9f59bc1569033b9")
+arsenic   <- readr::read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/617/3/6e01c81d4b6e51da01c1adb16ff193ab")
+carbon    <- readr::read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/617/3/10a1b29110c0d0674096d14ccf1903c1")
+nutrients <- readr::read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/617/3/a2a3bf6e3711dd4822a99f385ecc0cfb")
+locations <- readr::read_csv("https://pasta.lternet.edu/package/data/eml/knb-lter-cap/617/3/9d4364f1d2a3911a7edcf4ed802d4de6")
+
+```
+
+
+# sampling locations
+
+Format the location data as appropriate.
+
+```{r format-location-data, eval=TRUE}
+
+locations <- janitor::clean_names(locations)
+
+locations <- locations |>
+dplyr::mutate(
+  latitude = dplyr::case_when(
+    `site_number` == "R5"  ~ 33.961682,
+    `site_number` == "R20" ~ 34.085,
+    `site_number` == "R25" ~ 33.581,
+    `site_number` == "R7"  ~ 33.808,
+    TRUE ~ latitude
+    ),
+  longitude = dplyr::case_when(
+    `site_number` == "R5"  ~ -111.704705,
+    `site_number` == "R20" ~ -111.710,
+    `site_number` == "R25" ~ -111.671,
+    `site_number` == "R7"  ~ -111.647,
+    TRUE ~ longitude
+  )
+  ) |>
+dplyr::filter(
+  !is.na(latitude) | !is.na(longitude),
+  `site_number` %in% c("R5", "R7", "R8", "R10", "R20", "R25")
+  ) |>
+sf::st_as_sf(
+  coords = c("longitude", "latitude"),
+  crs = 4326
+) |>
+sf::st_transform(crs = 4269)
+
+```
+
+# fire perimeter data
+
+There are only a few, very small fires in the watershed above the R20 sampling point after 2018 so we can build our fire layer from the MTBS fire data, which is preferable since it has the dates of fires.
+
+Data downloaded from the following link provided by the Monitoring Trends in Burn Severity (MTBS). Data layer was accessed from a local file, and the script should be adjusted accordingly since the MTBS data are not (currently) part of the project resources.
+
+https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/MTBS_Fire/data/composite_data/fod_pt_shapefile/mtbs_fod_pts_data.zip
+
+```{r mtbs-fire-perimiters , eval=TRUE}
+
+mtbs_fire_perimiters <- sf::st_read(
+  dsn = "~/Desktop/gis",
+  layer = "mtbs_perims_DD"
+  )
+
+mtbs_fire_perimiters <- firearea::format_fire_perimeters(
+  fire_layer = mtbs_fire_perimiters,
+  state_code = "az"
+)
+
+```
+
+
+# delineate study catchment
+
+Of the seven non-urban sampling locations in the dataset, only one (R20; Verde River at Tangle Creek) is above a major dam or reservoir. We will arbitrarily identify the catchment 100 km above that point.
+
+```{r tangle-creek, eval=TRUE}
+
+r20_catchment <- firearea::delineate_catchment(
+  location_sf = locations[5,],
+  location_identifier = "site_number"
+) 
+
+```
+
+
+# fires in study catchment
+
+With the watershed delineated, crop the fires in that area above the sampling location. The crop_fires_to_watershed function will also calculate the area and per cent of the catchment burned for each fire.
+
+```{r fires-in-r20-watershed, eval=TRUE}
+
+r20_catchment_fires <- firearea::crop_fires_to_watershed(
+  fires_sf = mtbs_fire_perimiters,
+  watershed_sf = r20_catchment
+)
+
+```
+
+# discharge
+
+## sampling location buffer
+
+Generate a buffer up- and down-stream of the sampling point to help identify a suitable source of discharge data.
+
+```{r r20-flowline-buffer, eval=FALSE}
+
+r20_flowline_buffer <- firearea::generate_flowine_buffer(
+  location_sf = locations[5,],
+  location_identifier = "site_number"
+)
+
+```
+
+## USGS sampling locations
+
+```{r usgs-sites, eval=FALSE}
+
+usgs_gages_in_buffer <- identify_usgs_sites(
+  state_code = "az",
+  search_area_sf = r20_flowline_buffer
+)
+
+# mapview::mapview(list(locations, usgs_gages_in_buffer,r20_flowline_buffer, r20_catchment))
+
+```
+
+## discharge data
+
+By querying USGS gages in the buffer around our study system, we identify station 09508500 as a particularly good fit to pair with our chemistry data from a spatial perpsective. The earliest 09508500 data date to 2004, which is much later than our earliest chemistry data (1999). There are not any other suitable USGS gaging stations corresponding to this location. USGS flow data as ft3/sec are converted to L/sec.
+
+```{r discharge, eval=TRUE}
+
+first_sample <- min(nutrients[nutrients$`site number` == "R20",]$date, na.rm = TRUE)
+last_sample <- max(nutrients[nutrients$`site number` == "R20",]$date, na.rm = TRUE)
+
+r20_discharge <- firearea::retrieve_usgs_discharge(
+  station_id = "09508500",
+  start_date = first_sample,
+  end_date = last_sample,
+  time_zone = "America/Phoenix"
+  ) |>
+dplyr::mutate(Flow_Inst = Flow_Inst / 0.028316846592) # cfs to m3/s
+
+```
+
+## daily discharge
+
+There is not a time associated with the chemistry data so we will need to aggregate the discharge data. Here, we calculate average daily discharge and daily max values.
+
+```{r daily-discharge, eval=TRUE}
+
+r20_discharge_daily <- r20_discharge |>
+  tsibble::as_tsibble(key = site_no, index = dateTime) |>
+  tsibble::group_by_key() |>
+  tsibble::index_by(date = ~ as.Date(., tz = "America/Phoenix")) |>
+  dplyr::summarise(
+    q_avg = mean(Flow_Inst),
+    q_max = max(Flow_Inst)
+  )
+
+```
+
+# format chemistry data
+
+Format the chemistry data at R20 so that it is suitable for plotting and analysis.
+
+```{r format-chemistry, eval=TRUE}
+
+r20_nutrients <- nutrients |>
+janitor::clean_names() |>
+dplyr::filter(
+  site_number == "R20"
+  ) |>
+tidyr::pivot_longer(
+  cols = c(dplyr::contains(c("nitrogen", "phosphorus"))),
+  names_to = "analyte",
+  values_to = "concentration"
+  ) |>
+dplyr::filter(!is.na(concentration))
+
+# not certain the phosphorus units are correct so hold  off on converting
+# dplyr::mutate(
+#   concentration = dplyr::case_when(
+#     grepl("phos", analyte, ignore.case = TRUE) ~ concentration / 1000000,
+#     TRUE ~ concentration
+#   )
+# )
+
+```
+
+
+# analysis
+
+Construct a helper function to center-scale values for plotting. 
+
+```{r scale-column-function, eval=TRUE}
+
+scale_column <- function(x) {
+
+  scale(x) |>
+    as.vector()
+
+}
+
+```
+
+## TDN flux
+
+Particularly owing to the limited availability of discharge data (beginning 2004), the only analyte with a reasonable number of samples for analysis is TDN.
+
+```{r TDN-flux, eval=TRUE}
+
+r20_discharge_daily |>
+tibble::as_tibble() |>
+dplyr::left_join(
+  r20_nutrients |>
+  dplyr::filter(grepl("total_dissolved_nitrogen", analyte, ignore.case = TRUE)),
+  by = c("date")
+  ) |>
+dplyr::full_join(
+  r20_catchment_fires |>
+  sf::st_drop_geometry() |>
+  dplyr::select(Event_ID, Ig_Date, fire_area, fire_percent),
+  by = c("date" = "Ig_Date") 
+  ) |>
+dplyr::mutate(
+  flux = q_avg * concentration,
+  flux_scale = scale_column(flux),
+  q_avg_scale = scale_column(q_avg),
+  fire_area_scale = scale_column(fire_area),
+  fire_percent_scale = scale_column(fire_percent)
+  ) |>
+ggplot2::ggplot(ggplot2::aes(x = date)) +
+  ggplot2::geom_bar(ggplot2::aes(y = fire_percent_scale, fill = "per cent burned"), stat = "identity", width = 100) +
+  ggplot2::geom_line(ggplot2::aes(y = q_avg_scale, colour = "average daily Q" )) +
+  ggplot2::geom_point(ggplot2::aes(y = flux_scale, colour = "TDN flux")) +
+  ggplot2::scale_colour_manual(name = NULL, values = c("TDN flux" = "black", "average daily Q" = "#89cff0")) +
+  ggplot2::scale_fill_manual(name = NULL, values = c("per cent burned" = "red")) +
+  ggplot2::labs(
+    title= "(daily) flux of TDN and per cent catchment burned above\nTangle Creek, Verde River, AZ, USA", 
+    x = "date",
+    y = "center-scaled: TDN flux (mg/second), per cent catchment burned,\navg. daily discharge (m3/second)"
+    ) +
+  ggplot2::scale_x_date(
+    limits = as.Date(c("2003-01-01", NA))
+  ) 
+
+# ggplot2::ggsave(filename = "central_arizona_TDN_flux.jpg")
+
+```
+
+## nutrients concentration only
+
+Total phosphorus and total dissolved nitrogen are the only nutrients that have a relatively long record of measure.
+
+```{r nutrient-concentration, eval=TRUE}
+
+patchwork::wrap_plots(
+  r20_nutrients |>
+  dplyr::filter(grepl("total_phosphorus", analyte, ignore.case = TRUE)) |>
+  dplyr::mutate(conc_scale = scale_column(concentration)) |>
+  dplyr::full_join(
+    r20_catchment_fires |>
+    sf::st_drop_geometry() |>
+    dplyr::select(Event_ID, Ig_Date, fire_area, fire_percent),
+    by = c("date" = "Ig_Date") 
+    ) |>
+  dplyr::mutate(
+    fire_area_scale = scale_column(fire_area),
+    fire_percent_scale = scale_column(fire_percent)
+    ) |>
+  ggplot2::ggplot(ggplot2::aes(x = date)) +
+    ggplot2::geom_point(ggplot2::aes(y = conc_scale)) +
+    ggplot2::geom_bar(ggplot2::aes(y = fire_percent_scale), stat = "identity", width = 100, fill = "red") +
+    ggplot2::scale_colour_manual(name = NULL, values = c("TDN flux" = "black")) +
+    ggplot2::scale_fill_manual(name = NULL, values = c("per cent burned" = "red")) +
+    ggplot2::labs(
+      title= "TP concentration (ng/L)", 
+      x = "date",
+      y = "center-scaled TP concentration (ng/L) and per cent burned"
+      ) +
+    ggplot2::scale_x_date(
+      limits = as.Date(c("2003-01-01", NA))
+      ),
+    r20_nutrients |>
+    dplyr::filter(grepl("total_dissolved_nitrogen", analyte, ignore.case = TRUE)) |>
+    dplyr::mutate(conc_scale = scale_column(concentration)) |>
+    dplyr::full_join(
+      r20_catchment_fires |>
+      sf::st_drop_geometry() |>
+      dplyr::select(Event_ID, Ig_Date, fire_area, fire_percent),
+      by = c("date" = "Ig_Date") 
+      ) |>
+    dplyr::mutate(
+      fire_area_scale = scale_column(fire_area),
+      fire_percent_scale = scale_column(fire_percent)
+      ) |>
+    ggplot2::ggplot(ggplot2::aes(x = date)) +
+      ggplot2::geom_point(ggplot2::aes(y = conc_scale)) +
+      ggplot2::geom_bar(ggplot2::aes(y = fire_percent_scale, fill = "per cent burned"), stat = "identity", width = 100) +
+      ggplot2::scale_colour_manual(name = NULL, values = c("TDN flux" = "black")) +
+      ggplot2::scale_fill_manual(name = NULL, values = c("per cent burned" = "red")) +
+      ggplot2::labs(
+        title= "TDN concentration (mg/L)", 
+        x = "date",
+        y = "center-scaled TDN concentration (mg/L) and per cent burned"
+        ) +
+      ggplot2::scale_x_date(
+        limits = as.Date(c("2003-01-01", NA))
+      ) 
+      ) +
+    patchwork::plot_annotation(title = "TDN and TP concentrations, and per cent catchment burned above Tangle Creek, Verde River, AZ, USA")
+
+# ggplot2::ggsave(filename = "central_arizona_TDN_TP_conc.jpg")
+
+```
+
