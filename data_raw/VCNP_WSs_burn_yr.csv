@@ -1,4 +1,4 @@
-FIREYEAR_C,gridcode,WShed_Name,Area_sqmet,FIREAREA_Y
+FIREYEAR_C,gridcode,WShed_Name,TotalArea_sqmet,FireArea_sqkm
 1959,16,Upper Redondo - Flume CZO,943636.54340280,0.5400592
 1960,16,Upper Redondo - Flume CZO,943636.54340280,0.4353143
 2013,16,Upper Redondo - Flume CZO,943636.54340280,0.9436365
