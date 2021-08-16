@@ -35,9 +35,9 @@ CA_data.st <- CA_data %>%
   filter(site_tp_cd == "ST")
 
 #filter to get stream water only. Option to add filters based on count and time span
-phCA.1 <- CA_sites_st %>% 
+phCA.1 <- CA_sites %>% 
   filter(site_tp_cd == "ST") %>% # sampling sites that are streams only
-  filter(dec_lat_va < 38) %>% # sites that are central to southern california
+  filter(dec_lat_va < 38)  # sites that are central to southern california
   # filter(colocated == TRUE) # IF you want sites where all parameters are sampled
   # filter(count_nu > 10) %>% # we need to figure out what is the minimium observations allowed
   # mutate(period = as.Date(end_date) - as.Date(begin_date)) %>%
@@ -65,7 +65,7 @@ usa <- st_as_sf(maps::map("state", fill=TRUE, plot =FALSE),
 sf_ca <- st_as_sf(param_summary_CA,  # sites with ST data only
                   coords = c("dec_long_va", "dec_lat_va"),
                   crs = 4269)
-ggplot() +
+CA.USGS.sites <- ggplot() +
   geom_sf(data = usa[ usa$ID == "california" ,]) +
   geom_sf(data = sf_ca) + 
   xlab(NULL)+
@@ -77,6 +77,7 @@ ggplot() +
   scalebar(usa[ usa$ID == "california" ,],
            dist=100, dist_unit="mi", st.size = 3,
            transform=TRUE, model="WGS84")
+
 
 ###### Repeat for other states
 ## Nevada
@@ -94,8 +95,8 @@ NV_data.st <- NV_data %>%
   filter(site_tp_cd == "ST")
 
 #filter to get stream water only. Option to add filters based on count and time span
-phNV.1 <- NV_data.st # %>% 
-  # filter(site_tp_cd == "ST") %>% # sampling sites that are streams only
+phNV.1 <- NV_sites  %>% 
+   filter(site_tp_cd == "ST") #%>% # sampling sites that are streams only
   # filter(dec_lat_va < XX) %>% # sites that fall within a lat boundary
   # filter(colocated == TRUE) # IF you want sites where all parameters are sampled
   # filter(count_nu > 10) %>% # we need to figure out what is the minimium observations allowed
@@ -124,7 +125,7 @@ usa <- st_as_sf(maps::map("state", fill=TRUE, plot =FALSE),
 sf_nv <- st_as_sf(param_summary_NV,  # sites with ST data only
                   coords = c("dec_long_va", "dec_lat_va"),
                   crs = 4269)
-ggplot() +
+NV.USGS.sites <- ggplot() +
   geom_sf(data = usa[ usa$ID == "nevada" ,]) +
   geom_sf(data = sf_nv) + 
   xlab(NULL)+
@@ -137,3 +138,9 @@ ggplot() +
            dist=100, dist_unit="mi", st.size = 3,
            transform=TRUE, model="WGS84")
 
+
+#### Export USGS sites as metadata for lat/long
+both_states <- full_join(phCA.1, phNV.1)
+
+# As .csv file
+write.csv(both_states, "../data_raw/USGS_sites_metadata.csv") 
