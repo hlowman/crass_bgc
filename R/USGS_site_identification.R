@@ -21,31 +21,34 @@ library(dplyr)
 # Note we can include more 
 pcode<- c("00910","00653","00631","99135")
 
-# CA sites with specified Parameter(s)
+# ID CA sites with specified Parameter(s)
 CA_sites <- whatNWISsites(stateCd = "CA", 
                           parameterCd = pcode) # c("00665","00925"))
 
 nrow(CA_sites)
 
-# get Phosphorus data
+# get data
 CA_data <- whatNWISdata(stateCd = "CA",
                         parameterCd = pcode) 
+nrow(CA_data)
+# strange that this results in more rows than the sites. multiple rows per site for multiple co-located parameters?
 
+#filter to get data of stream water only
 CA_data.st <- CA_data %>% 
   filter(site_tp_cd == "ST")
 
-#filter to get stream water only. Option to add filters based on count and time span
+#filter to get site IDs with stream water only. Option to add filters based on count and time span
 phCA.1 <- CA_sites %>% 
-  filter(site_tp_cd == "ST") %>% # sampling sites that are streams only
-  filter(dec_lat_va < 38)  # sites that are central to southern california
-  # filter(colocated == TRUE) # IF you want sites where all parameters are sampled
+  filter(site_tp_cd == "ST") #%>% # sampling sites that are streams only
+  # filter(dec_lat_va < 38)  # sites that are central to southern california
+  #filter(colocated == TRUE) # IF you want sites where all parameters are sampled
   # filter(count_nu > 10) %>% # we need to figure out what is the minimium observations allowed
   # mutate(period = as.Date(end_date) - as.Date(begin_date)) %>%
   # filter(period > 5*365) # condition of at least 5 years of data available
   
   
   # extract data for these filtered sites
-  # Not sure if we need to do it in batch mode - are we maxing out row lengths allowed in R?    
+  # Not sure if we need to do it in batch mode - are we maxing out row lengths allowed in R?    - AJW note: R can easily handle over 1 mill rows. Individual's computer memory is a more likely limit. See help(Memory-limits)
   param_CA_data <- readNWISqw(siteNumbers = phCA.1$site_no,
                               parameterCd = pcode)
 
@@ -87,7 +90,7 @@ NV_sites <- whatNWISsites(stateCd = "NV",
 
 nrow(NV_sites)
 
-# get Phosphorus data
+# get data
 NV_data <- whatNWISdata(stateCd = "NV",
                         parameterCd = pcode) 
 
@@ -98,7 +101,7 @@ NV_data.st <- NV_data %>%
 phNV.1 <- NV_sites  %>% 
    filter(site_tp_cd == "ST") #%>% # sampling sites that are streams only
   # filter(dec_lat_va < XX) %>% # sites that fall within a lat boundary
-  # filter(colocated == TRUE) # IF you want sites where all parameters are sampled
+  #filter(colocated == TRUE) # IF you want sites where all parameters are sampled
   # filter(count_nu > 10) %>% # we need to figure out what is the minimium observations allowed
   # mutate(period = as.Date(end_date) - as.Date(begin_date)) %>%
   # filter(period > 5*365) # condition of at least 5 years of data available
@@ -141,6 +144,8 @@ NV.USGS.sites <- ggplot() +
 
 #### Export USGS sites as metadata for lat/long
 both_states <- full_join(phCA.1, phNV.1)
+
+gridExtra::grid.arrange(CA.USGS.sites,NV.USGS.sites, nrow=1)
 
 # As .csv file
 write.csv(both_states, "../data_raw/USGS_sites_metadata.csv") 
