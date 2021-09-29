@@ -1,0 +1,73 @@
+ID,name,description,code,unit,value,workspaceID,location_id
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,0.18,NM20210922192104520000,East Fork Jemez River
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,36.3,NM20210922192104520000,East Fork Jemez River
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,9050,NM20210922192104520000,East Fork Jemez River
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,1096,NM20210922192104520000,East Fork Jemez River
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,4.19,NM20210922192104520000,East Fork Jemez River
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,8482,NM20210922192104520000,East Fork Jemez River
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192104520000,East Fork Jemez River
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,12.1,NM20210922192104520000,East Fork Jemez River
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,25.1,NM20210922192104520000,East Fork Jemez River
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,0.29,NM20210922192133893000,Indios Creek
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,7.31,NM20210922192133893000,Indios Creek
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,9570,NM20210922192133893000,Indios Creek
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,1096,NM20210922192133893000,Indios Creek
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,4.42,NM20210922192133893000,Indios Creek
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,8559,NM20210922192133893000,Indios Creek
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192133893000,Indios Creek
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,14.8,NM20210922192133893000,Indios Creek
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,29.1,NM20210922192133893000,Indios Creek
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,NA,NM20210922192159549000,Indios Creek - above burn
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,NA,NM20210922192159549000,Indios Creek - above burn
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,NA,NM20210922192159549000,Indios Creek - above burn
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,NA,NM20210922192159549000,Indios Creek - above burn
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,NA,NM20210922192159549000,Indios Creek - above burn
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,NA,NM20210922192159549000,Indios Creek - above burn
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192159549000,Indios Creek - above burn
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,NA,NM20210922192159549000,Indios Creek - above burn
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,NA,NM20210922192159549000,Indios Creek - above burn
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,0.29,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,7.31,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,9570,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,1096,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,4.42,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,8559,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,14.8,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,29.1,NM20210922192225062000,Indios Creek - Post Fire (Below Burn)
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,0.34,NM20210922192251039000,Redondo Creek
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,5.15,NM20210922192251039000,Redondo Creek
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,9560,NM20210922192251039000,Redondo Creek
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,1096,NM20210922192251039000,Redondo Creek
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,4.25,NM20210922192251039000,Redondo Creek
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,8204,NM20210922192251039000,Redondo Creek
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192251039000,Redondo Creek
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,13.3,NM20210922192251039000,Redondo Creek
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,26.5,NM20210922192251039000,Redondo Creek
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,0.21,NM20210922192320587000,San Antonio Creek - Toledo
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,19,NM20210922192320587000,San Antonio Creek - Toledo
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,9200,NM20210922192320587000,San Antonio Creek - Toledo
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,1096,NM20210922192320587000,San Antonio Creek - Toledo
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,4.29,NM20210922192320587000,San Antonio Creek - Toledo
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,8554,NM20210922192320587000,San Antonio Creek - Toledo
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192320587000,San Antonio Creek - Toledo
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,12.9,NM20210922192320587000,San Antonio Creek - Toledo
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,26.6,NM20210922192320587000,San Antonio Creek - Toledo
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,0.21,NM20210922192350253000,san_antonio_custom
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,56.7,NM20210922192350253000,san_antonio_custom
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,9130,NM20210922192350253000,san_antonio_custom
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,1096,NM20210922192350253000,san_antonio_custom
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,4.29,NM20210922192350253000,san_antonio_custom
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,8367,NM20210922192350253000,san_antonio_custom
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192350253000,san_antonio_custom
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,13.6,NM20210922192350253000,san_antonio_custom
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,27.5,NM20210922192350253000,san_antonio_custom
+0,Mean Basin Slope from 30m DEM ft/ft,Mean basin slope computed from 30 m DEM in feet per foot,BSLDEM30ff,foot per foot,0.25,NM20210922192427872000,Sulfur Creek
+0,Drainage Area,Area that drains to a point on a stream,DRNAREA,square miles,7.75,NM20210922192427872000,Sulfur Creek
+0,Mean Basin Elevation,Mean Basin Elevation,ELEV,feet,9070,NM20210922192427872000,Sulfur Creek
+0,HIGHREG,HIGHREG,HIGHREG,dimensionless,1096,NM20210922192427872000,Sulfur Creek
+0,24 Hour 100 Year Precipitation,Maximum 24-hour precipitation that occurs on average once in 100 years,I24H100Y,inches,4.12,NM20210922192427872000,Sulfur Creek
+0,Elevation of Gage,Elevation of the stream outlet in feet above NAVD88,OUTLETELEV,feet,8435,NM20210922192427872000,Sulfur Creek
+0,Perennial_Stream_Flag_1_if_peren_else_0,Stream characterized as having flow at all times,PERENNIAL,dimensionless,NA,NM20210922192427872000,Sulfur Creek
+0,Mean Oct to Apr Precipitation,Mean precipitation for winter period defined as October to April,PREC10to4,inches,12.5,NM20210922192427872000,Sulfur Creek
+0,Mean Annual Precipitation,Mean Annual Precipitation,PRECIP,inches,25.4,NM20210922192427872000,Sulfur Creek
