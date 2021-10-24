@@ -5,13 +5,15 @@
 # The following script will assemble the precipitation datasets available for the SBC LTER stream sites into a single data file for use in the MARSS analysis for the CRASS project.
 
 # Load packages
-library(tidyverse)
+library(plyr) # needs to be loaded prior to dplyr
+library(tidyverse) # contains dplyr
 library(lubridate)
 library(here)
-library(plyr)
-library(dplyr)
 
 # Load datasets
+# First, precipitation - both at LTER and SBC County sites
+# Data downloaded from: https://sbclter.msi.ucsb.edu/data/catalog/ 
+# with "Watershed" and "Hydrology" selected
 SBprecip <- ldply(
   list.files(here("data_raw", "Precipitation", "SBCLTER_Precip"), 
              pattern = "csv"), 
@@ -21,7 +23,7 @@ SBprecip <- ldply(
   return(d)
 })
 
-# Note: -999 is the "NA" record used by the LTER)
+# Note: -999 is the "NA" record used by the LTER
 # Make edits for data assembly purposes
 SBprecip_ed <- SBprecip %>%
   filter(precipitation_mm >= 0) %>% # remove all negative records
@@ -31,50 +33,59 @@ SBprecip_ed <- SBprecip %>%
 
 # Calculate cumulative monthly precipitation at all sites.
 SBprecip_monthly <- SBprecip_ed %>%
-  dplyr::group_by(site, Year, Month) %>%
-  dplyr::summarize(cumulative_precip_mm = sum(precipitation_mm)) %>%
-  dplyr::ungroup()
+  group_by(site, Year, Month) %>%
+  summarize(cumulative_precip_mm = sum(precipitation_mm)) %>%
+  ungroup()
 
 # Add site abbreviations so easier to filter.
 SBprecip_monthly <- SBprecip_monthly %>%
   mutate(sitecode = case_when(site == "BaronRanch262_precip_allyears_2019-09-16.csv" ~ "BARA",
-                              site == "BotanicGarden321_precip_allyears_2019-09-16.csv" ~ "BOGA", 
-                              site == "BuelltonFS233_precip_allyears_2019-09-16.csv" ~ "BUEL",    
-                              site == "Carpinteria208_precip_allyears_2019-09-16.csv" ~ "CARP208",   
-                              site == "CarpinteriaUSFS383_precip_allyears_2019-09-16.csv" ~ "CARPUSFS",
-                              site == "CaterWTP229_precip_allyears_2019-09-16.csv" ~ "CAWTP",     
-                              site == "ColdSprings210_precip_allyears_2019-09-16.csv" ~ "COSP",   
-                              site == "CP201_precip_allyears_2019-09-11.csv" ~ "CP201",            
-                              site == "DosPueblos226_precip_allyears_2019-09-16.csv" ~ "DOPU",    
-                              site == "DoultonTunnel231_precip_allyears_2019-09-16.csv" ~ "DOTU", 
-                              site == "EdisonTrail252_precip_allyears_2019-09-16.csv" ~ "EDTR",   
-                              site == "EL201_precip_allyears_2019-09-11.csv" ~ "EL201",           
-                              site == "EL202_precip_allyears_2019-09-11.csv" ~ "EL202",           
-                              site == "ElDeseo255_precip_allyears_2019-09-16.csv" ~ "ELDE",       
-                              site == "GaviotaSP301_precip_allyears_2019-09-16.csv" ~ "GASP",     
-                              site == "GB201_precip_allyears_2019-09-11.csv" ~ "GB201",           
-                              site == "GlenAnnieCanyon309_precip_allyears_2019-09-16.csv" ~ "GLAN",
-                              site == "GoletaFireStation440_precip_allyears_2019-09-16.csv" ~ "GOFS",  
-                              site == "GoletaRdYard211_precip_allyears_2019-09-16.csv" ~ "GORY",  
-                              site == "GoletaWaterDistrict334_precip_allyears_2019-09-16.csv" ~ "GOWD",
-                              site == "GV202_precip_allyears_2019-09-11.csv" ~ "GV202",           
-                              site == "HO201_precip_allyears_2019-09-11.csv" ~ "HO201",           
-                              site == "HO202_precip_allyears_2019-09-11.csv" ~ "HO202",           
-                              site == "KTYD227_precip_allyears_2019-09-16.csv" ~ "KTYD",          
-                              site == "Montecito325_precip_allyears_2019-09-16.csv" ~ "MO325",    
-                              site == "Nojoqui236_precip_allyears_2019-09-16.csv" ~ "NO236",      
-                              site == "RanchoSJ389_precip_allyears_2019-09-16.csv" ~ "RASJ",      
-                              site == "RefugioPass429_precip_allyears_2019-09-16.csv" ~ "REPA",   
-                              site == "RG201_precip_allyears_2019-09-11.csv" ~ "RG201",           
-                              site == "RG202_precip_allyears_2019-09-11.csv" ~ "RG202",           
-                              site == "RG203_precip_allyears_2019-09-11.csv" ~ "RG203",           
-                              site == "RG204_precip_allyears_2019-09-11.csv" ~ "RG204",
-                              site == "SanMarcosPass212_precip_allyears_2019-09-16.csv" ~ "SMPA",
-                              site == "SBCaltrans335_precip_allyears_2019-09-16.csv" ~ "SBCT",  
-                              site == "SBEngBldg234_precip_allyears_2019-09-16.csv" ~ "SBEB",
-                              site == "StanwoodFS228_precip_allyears_2019-09-16.csv" ~ "STFS",
-                              site == "TecoloteCanyon280_precip_allyears_2019-09-16.csv" ~ "TECA",
-                              site == "TroutClub242_precip_allyears_2019-09-16.csv" ~ "TRCL",
-                              site == "UCSB200_precip_allyears_2019-09-16.csv" ~ "UCSB"))
+                        site == "BotanicGarden321_precip_allyears_2019-09-16.csv" ~ "BOGA",
+                        site == "BuelltonFS233_precip_allyears_2019-09-16.csv" ~ "BUEL",
+                        site == "Carpinteria208_precip_allyears_2019-09-16.csv" ~ "CARP208",
+                        site == "CarpinteriaUSFS383_precip_allyears_2019-09-16.csv" ~ "CARPUSFS",
+                        site == "CaterWTP229_precip_allyears_2019-09-16.csv" ~ "CAWTP",     
+                        site == "ColdSprings210_precip_allyears_2019-09-16.csv" ~ "COSP",   
+                        site == "CP201_precip_allyears_2019-09-11.csv" ~ "CP201",            
+                        site == "DosPueblos226_precip_allyears_2019-09-16.csv" ~ "DOPU",    
+                        site == "DoultonTunnel231_precip_allyears_2019-09-16.csv" ~ "DOTU", 
+                        site == "EdisonTrail252_precip_allyears_2019-09-16.csv" ~ "EDTR",   
+                        site == "EL201_precip_allyears_2019-09-11.csv" ~ "EL201",           
+                        site == "EL202_precip_allyears_2019-09-11.csv" ~ "EL202",           
+                        site == "ElDeseo255_precip_allyears_2019-09-16.csv" ~ "ELDE",       
+                        site == "GaviotaSP301_precip_allyears_2019-09-16.csv" ~ "GASP",     
+                        site == "GB201_precip_allyears_2019-09-11.csv" ~ "GB201",           
+                        site == "GlenAnnieCanyon309_precip_allyears_2019-09-16.csv" ~ "GLAN",
+                        site == "GoletaFireStation440_precip_allyears_2019-09-16.csv" ~ "GOFS",  
+                        site == "GoletaRdYard211_precip_allyears_2019-09-16.csv" ~ "GORY",  
+                        site == "GoletaWaterDistrict334_precip_allyears_2019-09-16.csv" ~ "GOWD",
+                        site == "GV202_precip_allyears_2019-09-11.csv" ~ "GV202",           
+                        site == "HO201_precip_allyears_2019-09-11.csv" ~ "HO201",           
+                        site == "HO202_precip_allyears_2019-09-11.csv" ~ "HO202",           
+                        site == "KTYD227_precip_allyears_2019-09-16.csv" ~ "KTYD",          
+                        site == "Montecito325_precip_allyears_2019-09-16.csv" ~ "MO325",    
+                        site == "Nojoqui236_precip_allyears_2019-09-16.csv" ~ "NO236",      
+                        site == "RanchoSJ389_precip_allyears_2019-09-16.csv" ~ "RASJ",      
+                        site == "RefugioPass429_precip_allyears_2019-09-16.csv" ~ "REPA",   
+                        site == "RG201_precip_allyears_2019-09-11.csv" ~ "RG201",           
+                        site == "RG202_precip_allyears_2019-09-11.csv" ~ "RG202",           
+                        site == "RG203_precip_allyears_2019-09-11.csv" ~ "RG203",           
+                        site == "RG204_precip_allyears_2019-09-11.csv" ~ "RG204",
+                        site == "SanMarcosPass212_precip_allyears_2019-09-16.csv" ~ "SMPA",
+                        site == "SBCaltrans335_precip_allyears_2019-09-16.csv" ~ "SBCT",  
+                        site == "SBEngBldg234_precip_allyears_2019-09-16.csv" ~ "SBEB",
+                        site == "StanwoodFS228_precip_allyears_2019-09-16.csv" ~ "STFS",
+                        site == "TecoloteCanyon280_precip_allyears_2019-09-16.csv" ~ "TECA",
+                        site == "TroutClub242_precip_allyears_2019-09-16.csv" ~ "TRCL",
+                        site == "UCSB200_precip_allyears_2019-09-16.csv" ~ "UCSB"))
+
+# Filter for sites to be used in the initial MARSS run
+desired <- c("GV202", "HO201", "RG202", "TECA", "GLAN", "SMPA", "GOFS", "GORY", "CAWTP", "SBEB", "ELDE")
+
+SBprecip_filtered <- SBprecip_monthly %>%
+  filter(sitecode %in% desired)
+
+# And export for MARSS script
+saveRDS(SBprecip_filtered, "data_working/SBprecip_edited_102421.rds")
 
 # End of script.
