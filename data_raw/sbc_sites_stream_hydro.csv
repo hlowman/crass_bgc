@@ -57,15 +57,15 @@
 34.4,-119.5166667,Carpinteria Fire Station,CARP208,Precipitation County
 34.48333333,-120.1291667,Baron Ranch,BARA,Precipitation County
 34.40194,-119.49138,Carpinteria Forest Service,CARPUSFS,Precipitation County
-34.40505027,-119.74021,Arroyo Burro Creek,ABUR,Stream Chemistry
-34.43226,-119.78414,Atascadero Creek,ATAS,Stream Chemistry
-34.43854,-119.90563,Bell Canyon Creek,BELL,Stream Chemistry
-34.41761,-119.87406,Devereaux Creek,DEVC,Stream Chemistry
-34.4855,-120.22917,Gaviota Creek,GAV,Stream Chemistry
-34.4752858,-120.14122,Arroyo Hondo Creek,HOND,Stream Chemistry
-34.41307303,-119.69499,Mission Creek,MICR,Stream Chemistry
-34.472,-120.28885,San Onofre Creek,SOCR,Stream Chemistry
-34.46573164,-120.06932,Refugio Creek,REFU,Stream Chemistry
-34.45761111,-119.69222,Rattlesnake Creek,RATT,Stream Chemistry
-34.44861,-119.84028,San Pedro Creek,SANP,Stream Chemistry
-34.440614,-119.917915,Tecolotito Creek,TECO,Stream Chemistry
+34.40505027,-119.74021,Arroyo Burro Creek,AB00,Stream Chemistry
+34.43226,-119.78414,Atascadero Creek,AT07,Stream Chemistry
+34.43854,-119.90563,Bell Canyon Creek,BC02,Stream Chemistry
+34.41761,-119.87406,Devereaux Creek,DV01,Stream Chemistry
+34.4855,-120.22917,Gaviota Creek,GV01,Stream Chemistry
+34.4752858,-120.14122,Arroyo Hondo Creek,HO00,Stream Chemistry
+34.41307303,-119.69499,Mission Creek,MC00,Stream Chemistry
+34.472,-120.28885,San Onofre Creek,ON02,Stream Chemistry
+34.46573164,-120.06932,Refugio Creek,RG01,Stream Chemistry
+34.45761111,-119.69222,Rattlesnake Creek,RS02,Stream Chemistry
+34.44861,-119.84028,San Pedro Creek,SP02,Stream Chemistry
+34.440614,-119.917915,Tecolotito Creek,TO02,Stream Chemistry
