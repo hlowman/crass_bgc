@@ -27,7 +27,7 @@ table(VALL_RSA_W_DP$approval)
 table(VALL_RSA_W_DP$grade)
 table(VALL_RSA_W_DP$qualifiers)
 
-#### DP - format dates and join sites ####
+#### DP - format date/time and join sites ####
 
 VALL_EFJR_HV_DP$datetime_UTC = gsub(pattern = "T", replacement = " ", VALL_EFJR_HV_DP$datetime_UTC)
 VALL_EFJR_HV_DP$datetime_UTC = gsub(pattern = "Z", replacement = "", VALL_EFJR_HV_DP$datetime_UTC)
@@ -61,6 +61,49 @@ for( i in c("VALL_EFJR_HV", "VALL_RSA_VT", "VALL_RSA_W")){
   plot(x=temp$datetime_MT, y=temp$Q_cfs, type="l")
 }
 
-plot(x=Q_DP$datetime_MT[Q_DP$site=="VALL_RSA_VT"], 
-     y=Q_DP$Q_cfs[Q_DP$site=="VALL_RSA_VT"], 
-     type="l")
+# plot(x=Q_DP$datetime_MT[Q_DP$site=="VALL_RSA_VT"], 
+#      y=Q_DP$Q_cfs[Q_DP$site=="VALL_RSA_VT"], 
+#      type="l")
+
+#### BS - load data ####
+
+VALL_EFJR_BS = read.csv("data_raw/Discharge/from_BetsyS/EFJ_2009_2013.csv")
+VALL_EFJR_BS = VALL_EFJR_BS[,1:4]
+
+#### BS - format date/time ####
+
+VALL_EFJR_BS$datetime_MT = as.POSIXct(VALL_EFJR_BS$date_time, format="%m/%d/%y %H:%M", tz="US/Mountain")
+
+
+#### USGS - load data ####
+
+
+
+#### plot all data ####
+
+par(mfrow=c(4,1))
+
+plot(x=VALL_EFJR_BS$datetime_MT, y=VALL_EFJR_BS$Q_cfs, 
+     type="l", xlab="", ylab="Q (csf)", ylim=c(0,420), 
+     xlim=c(as.POSIXct("2008-01-01"),as.POSIXct("2021-01-01")))
+title(main = "VALL_EFJR from PT, Betsy S.")
+
+for( i in c("VALL_EFJR_HV", "VALL_RSA_VT", "VALL_RSA_W")){
+  temp = Q_DP[Q_DP$site==i,]
+  plot(x=temp$datetime_MT, y=temp$Q_cfs, 
+       type="l", xlab="", ylab="Q (csf)", ylim=c(0,420), 
+       xlim=c(as.POSIXct("2008-01-01"),as.POSIXct("2021-01-01")))
+  title(main = paste(i, "from PT, Dave P."))
+}
+
+par(mfrow=c(1,1))
+plot(x=VALL_EFJR_BS$datetime_MT, y=VALL_EFJR_BS$Q_cfs, 
+     type="l", xlab="", ylab="Q (csf)", ylim=c(0,150), 
+     xlim=c(as.POSIXct("2012-08-01"),as.POSIXct("2013-10-01")),
+     col="blue", lwd=3)
+temp = Q_DP[Q_DP$site=="VALL_EFJR_HV",]
+lines(x=temp$datetime_MT, y=temp$Q_cfs, 
+     type="l", xlab="", ylab="Q (csf)", ylim=c(0,150), 
+     xlim=c(as.POSIXct("2012-08-01"),as.POSIXct("2013-10-01")),
+     col="red")
+
