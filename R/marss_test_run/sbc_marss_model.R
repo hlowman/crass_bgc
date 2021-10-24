@@ -106,7 +106,9 @@ dat <- left_join(chem_fire, precip_ed, by = c("Year", "Month", "site_code" = "si
 # Data : Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SpCond)
 # Covariates : Year, Month, Watershed, Precip, Fire
 
-# Not scaling for now, but this should also be added in at a later date.
+# Starting with NH4 for test run.
+
+# Note: Not scaling for now, but this should also be added in at a later date.
 dat_nh4 <- dat %>%
   select(Year:mean_nh4_uM, site, watershed, fire, cumulative_precip_mm) %>%
   pivot_wider(names_from = c(site, watershed), values_from = c(mean_nh4_uM, fire, cumulative_precip_mm)) %>%
@@ -118,7 +120,6 @@ dat_nh4 <- dat %>%
 dat_nh4_ed <- dat_nh4[3:14,]
 
 # Make covariate inputs
-
 dat_cov <- dat_nh4[c(1:2,15:38),]
 
 # Model setup
