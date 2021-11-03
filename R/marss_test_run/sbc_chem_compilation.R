@@ -16,10 +16,24 @@ chem_reg <- read_csv("data_raw/sbclter_stream_chemistry_allyears_registered_stat
 # After reviewing the metadata on the SBC LTER website, chose not to include non-registered sites,
 # because there is no geolocation data available/published for them, like there is for the registered
 # sites.
-#chem_nreg <- read_csv("data_raw/sbclter_stream_chemistry_allyears_non_registered_stations_20190628.csv")
+# Doing quick check of data availability though.
+chem_nreg <- read_csv("data_raw/sbclter_stream_chemistry_allyears_non_registered_stations_20190628.csv")
 
-# Combine datasets
-# chem_full <- rbind(chem_reg, chem_nreg)
+chem_nreg <- chem_nreg %>%
+  mutate(Date = ymd_hms(timestamp_local)) %>%
+  mutate(Year = year(Date))
+
+timespans <- chem_nreg %>%
+  group_by(site_code) %>%
+  summarize(minYear = min(Year), maxYear = max(Year)) %>%
+  ungroup() %>%
+  mutate(Span = maxYear - minYear)
+
+multiYear_sites <- timespans %>%
+  filter(Span > 1)
+
+# Should loop back with John to see if this Ventura River (VR)
+# data would be suitable for the large river analysis?
 
 # Note: -999 is the "NA" record used by the LTER
 # Make edits for data assembly purposes
