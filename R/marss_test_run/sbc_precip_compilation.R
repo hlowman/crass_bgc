@@ -23,10 +23,11 @@ SBprecip <- ldply(
   return(d)
 })
 
-# Note: -999 is the "NA" record used by the LTER
+# Note: -999 is the "NA" record used by the LTER & the county
 # Make edits for data assembly purposes
 SBprecip_ed <- SBprecip %>%
-  filter(precipitation_mm >= 0) %>% # remove all negative records
+  mutate(precip_ed = case_when(precipitation_mm < 0 ~ 0,
+                               TRUE ~ precipitation_mm)) %>% # make all negative records 0
   mutate(DateTime = ymd_hms(timestamp_local)) %>% # format dates
   mutate(Year = year(DateTime), Month = month(DateTime)) %>%
   mutate(site = factor(file))
@@ -34,7 +35,7 @@ SBprecip_ed <- SBprecip %>%
 # Calculate cumulative monthly precipitation at all sites.
 SBprecip_monthly <- SBprecip_ed %>%
   group_by(site, Year, Month) %>%
-  summarize(cumulative_precip_mm = sum(precipitation_mm)) %>%
+  summarize(cumulative_precip_mm = sum(precipitation_mm, na.rm = TRUE)) %>%
   ungroup()
 
 # Add site abbreviations so easier to filter.
@@ -86,6 +87,6 @@ SBprecip_filtered <- SBprecip_monthly %>%
   filter(sitecode %in% desired)
 
 # And export for MARSS script
-saveRDS(SBprecip_filtered, "data_working/SBprecip_edited_102421.rds")
+saveRDS(SBprecip_filtered, "data_working/SBprecip_edited_110321.rds")
 
 # End of script.
