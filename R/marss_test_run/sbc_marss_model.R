@@ -8,6 +8,8 @@
 # S - State
 # S - Space
 
+# Note: As of November 3, I've been encountering issues with missing data so this first go-round, trying to make it work with just 2 sites at which I've verified the precip and fire covariate data is complete.
+
 #### Setup ####
 
 # Load packages
@@ -20,65 +22,15 @@ library(MARSS)
 # Stream Chemistry
 chem <- readRDS("data_working/SBchem_edited_102421.rds")
 # Precipitation
-precip <- readRDS("data_working/SBprecip_edited_102421.rds")
+precip <- readRDS("data_working/SBprecip_edited_110321.rds")
+# Fire Events
+fire <- readRDS("data_working/SBfire_edited_110321.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 
-#### Joining Data ####
+#### Filter & Joining Data ####
 
-# Fire dataset/parameters may change, so including it in the MARSS script for this iteration.
-
-# Add watershed data to location dataframe using delineation at:
-# https://databasin.org/maps/new/#datasets=6ad26ddb04ae4dbc9362303628270daf
-location_streams <- location %>%
-  filter(Data == "Stream Chemistry") %>%
-  mutate(watershed = factor(case_when(
-    sitecode == "ON02" ~ "Canada De Santa Anita",
-    sitecode == "GV01" ~ "Canada De La Gaviota",
-    sitecode == "HO00" ~ "Tajiguas Creek",
-    sitecode == "RG01" ~ "Tajiguas Creek",
-    sitecode == "TO02" ~ "Dos Pueblos Canyon",
-    sitecode == "BC02" ~ "Dos Pueblos Canyon",
-    sitecode == "DV01" ~ "Dos Pueblos Canyon",
-    sitecode == "SP02" ~ "San Pedro Creek",
-    sitecode == "AT07" ~ "Atascadero Creek",
-    sitecode == "AB00" ~ "Mission Creek",
-    sitecode == "MC00" ~ "Mission Creek",
-    sitecode == "RS02" ~ "Mission Creek")))
-
-# Joining watershed info to larger chemistry dataset
-chem_location <- left_join(chem, location_streams, by = c("site_code" = "sitecode"))
-
-# And now to add a fire column based on the following wildfire events:
-# Fire Name (Start Date) - affected watersheds
-# Gaviota (6/4/2004) - Canada De Santa Anita, Canada De La Gaviota, Tajiguas Creek
-# Sherpa (6/15/2016) - Tajiguas Creek, Dos Pueblos Canyon
-# Whittier (7/7/2017) - Tajiguas Creek, Dos Pueblos Canyon
-# Gap (7/1/2008) - Dos Pueblos Canyon, San Pedro Creek
-# Cave (11/25/2019) - Atascadero Creek
-# Jesusita (5/5/2009) - Atascadero Creek, Mission Creek
-# Tea (11/13/2008) - Mission Creek
-# Thomas (12/4/2017) - Mission Creek
-
-chem_fire <- chem_location %>%
-  mutate(fire = case_when(Year == 2004 & Month == 6 & watershed == "Canada De Santa Anita" ~ 1,
-                          Year == 2004 & Month == 6 & watershed == "Canada De La Gaviota" ~ 1,
-                          Year == 2004 & Month == 6 & watershed == "Tajiguas Creek" ~ 1,
-                          Year == 2016 & Month == 6 & watershed == "Tajiguas Creek" ~ 1,
-                          Year == 2016 & Month == 6 & watershed == "Dos Pueblos Canyon" ~ 1,
-                          Year == 2017 & Month == 7 & watershed == "Tajiguas Creek" ~ 1,
-                          Year == 2017 & Month == 7 & watershed == "Dos Pueblos Canyon" ~ 1,
-                          Year == 2008 & Month == 7 & watershed == "Dos Pueblos Canyon" ~ 1,
-                          Year == 2008 & Month == 7 & watershed == "San Pedro Creek" ~ 1,
-                          Year == 2019 & Month == 11 & watershed == "Atascadero Creek" ~ 1,
-                          Year == 2009 & Month == 5 & watershed == "Atascadero Creek" ~ 1,
-                          Year == 2009 & Month == 5 & watershed == "Mission Creek" ~ 1,
-                          Year == 2008 & Month == 11 & watershed == "Mission Creek" ~ 1,
-                          Year == 2017 & Month == 12 & watershed == "Mission Creek" ~ 1,
-                          TRUE ~ 0)) %>%
-  filter(site_code != "MC06") # And remove the USGS site
-
-# And finally, to join the datasets, I need to identify the matching stream sites for the precip data
+# And to join the datasets, I need to identify the matching stream sites for the precip data
 precip_ed <- precip %>%
   mutate(sitecode_match = factor(case_when(
     sitecode == "GV202" ~ "GV01",
@@ -96,31 +48,56 @@ precip_ed <- precip %>%
          site_precip = site)
 
 # Joining together with the stream chemistry and wildfire datasets.
-dat <- left_join(chem_fire, precip_ed, by = c("Year", "Month", "site_code" = "sitecode_match"))
+# left join with precip so as not to lose any data based on fewer chemistry measurements
+precip_chem <- left_join(precip_ed, chem, by = c("Year", "Month", "sitecode_match" = "site_code"))
+# and again left join with the larger dataset so as not to accidentally drop records
+dat <- left_join(precip_chem, fire, by = c("sitecode_match" = "site_code", "Year", "Month")) %>%
+  mutate(Day = 1) %>%
+  mutate(Date = make_date(Year, Month, Day)) # And add dates
 # Yay! :)
-# Note, Tecolotito Creek disappears because available chemistry and precipitation datasets
-# do not match in terms of date.
+
+# And, for this first attempt to try and get the MARSS model working, I'm going to filter down to only HO00 and RG01 sites.
+dat_2 <- dat %>%
+  filter(site %in% c("HO00", "RG01"))
+
+# Now, to check the timeframes of the data available so we can trim down to comparable timespans.
+date_check <- dat_2 %>%
+  group_by(site) %>%
+  summarize(minDate = min(Date), maxDate = max(Date))
+
+# Ok, so need to trim to start date of 9/2002 and end date of 07/2016.
+dat_2_trim <- dat_2 %>%
+  filter(Date >= "2002-09-01") %>%
+  filter(Date <= "2016-07-01")
+
+# And, inspect dataset for missing covariate data.
+sum(is.na(dat_2_trim$fire)) # 0
+sum(is.na(dat_2_trim$cumulative_precip_mm)) # 0
 
 #### Model fit ####
 
 # Data : Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SpCond)
-# Covariates : Year, Month, Watershed, Precip, Fire
+# Covariates : Year, Month, Precip, Fire
 
 # Starting with NH4 for test run.
 
-# Note: Not scaling for now, but this should also be added in at a later date.
-dat_nh4 <- dat %>%
-  select(Year:mean_nh4_uM, site, watershed, fire, cumulative_precip_mm) %>%
-  pivot_wider(names_from = c(site, watershed), values_from = c(mean_nh4_uM, fire, cumulative_precip_mm)) %>%
+# Note: Not scaling for now, but this should also be added in later.
+dat_nh4 <- dat_2_trim %>%
+  select(site, Year, Month, mean_nh4_uM, cumulative_precip_mm, fire) %>%
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire)) %>%
   #log() %>% # takes the log
   #scale(scale = FALSE) %>% # centers columns of a numeric matrix
   t() # transposes data
 
+# STILL getting NAs?!?
+# Ok, so I may need to start with a blank dataframe of the desired date range and then merge everything based on that...
+#### STOPPED HERE NOVEMBER 3 ####
+
 # Pull out only NH4 data
-dat_nh4_ed <- dat_nh4[3:14,]
+dat_nh4_ed <- dat_nh4[3:6,]
 
 # Make covariate inputs
-dat_cov <- dat_nh4[c(1:2,15:38),]
+dat_cov <- dat_nh4[c(1:2,7:14),]
 
 # Model setup
 mod_list <- list(

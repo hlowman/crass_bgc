@@ -35,7 +35,7 @@ SBprecip_ed <- SBprecip %>%
 # Calculate cumulative monthly precipitation at all sites.
 SBprecip_monthly <- SBprecip_ed %>%
   group_by(site, Year, Month) %>%
-  summarize(cumulative_precip_mm = sum(precipitation_mm, na.rm = TRUE)) %>%
+  summarize(cumulative_precip_mm = sum(precip_ed, na.rm = TRUE)) %>%
   ungroup()
 
 # Add site abbreviations so easier to filter.
@@ -80,13 +80,23 @@ SBprecip_monthly <- SBprecip_monthly %>%
                         site == "TroutClub242_precip_allyears_2019-09-16.csv" ~ "TRCL",
                         site == "UCSB200_precip_allyears_2019-09-16.csv" ~ "UCSB"))
 
+# And export for MARSS script
+saveRDS(SBprecip_monthly, "data_working/SBprecip_edited_110321.rds")
+
+#### Added script regarding select sites ####
+
 # Filter for sites to be used in the initial MARSS run
-desired <- c("GV202", "HO201", "RG202", "TECA", "GLAN", "SMPA", "GOFS", "GORY", "CAWTP", "SBEB", "ELDE")
+desired <- c("HO201", "RG202", "CAWTP")
 
 SBprecip_filtered <- SBprecip_monthly %>%
   filter(sitecode %in% desired)
 
-# And export for MARSS script
-saveRDS(SBprecip_filtered, "data_working/SBprecip_edited_110321.rds")
+# Visualize each data record to examine for gaps
+(data_coverage <- SBprecip_filtered %>%
+  mutate(Day = 1) %>%
+  mutate(Date = make_date(Year, Month, Day)) %>%
+  ggplot(aes(x = Date)) +
+  geom_bar() +
+  facet_wrap(.~sitecode)) # ok, so CAWTP is out until we can deal with that gap
 
 # End of script.

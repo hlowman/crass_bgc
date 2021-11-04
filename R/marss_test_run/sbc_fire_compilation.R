@@ -4,7 +4,7 @@
 
 # The following script will assemble the fire datasets available for the SBC LTER stream sites into a single data file for use in the MARSS analysis for the CRASS project.
 
-# NOTE: This only contains fire info for 4 sites currently, that are being included in the initial MARSS analysis.
+# NOTE: This only contains fire info for 2 sites currently, that are being included in the initial MARSS analysis.
 
 # Load packages
 library(plyr) # needs to be loaded prior to dplyr
@@ -12,17 +12,19 @@ library(tidyverse) # contains dplyr
 library(lubridate)
 library(here)
 
-# Load chemistry dataset from which dates will be pulled.
-# Stream Chemistry
-chem <- readRDS("data_working/SBchem_edited_102421.rds")
+# Load precipitation dataset from which dates will be pulled.
+precip <- readRDS("data_working/SBprecip_edited_110321.rds")
 
-# Filter for 4 sites used in initial MARSS analysis
-chem_filter <- chem %>%
-  filter(site_code %in% c("AB00", "HO00", "MC06", "RG01"))
+# Filter for 2 sites used in initial MARSS analysis
+precip_filter <- precip %>%
+  filter(sitecode %in% c("HO201", "RG202")) %>%
+  mutate(sitecode_match = factor(case_when(
+    sitecode == "HO201" ~ "HO00",
+    sitecode == "RG202" ~ "RG01")))
 
 # And pull out only the site and date columns
-dates_only <- chem_filter %>%
-  select(site_code, Year, Month) %>%
+dates_only <- precip_filter %>%
+  select(sitecode_match, Year, Month) %>%
   mutate(Day = 1) %>% # adding a day to create a full date
   mutate(Date = make_date(Year, Month, Day))
 
@@ -30,18 +32,19 @@ dates_only <- chem_filter %>%
 # https://databasin.org/maps/new/#datasets=6ad26ddb04ae4dbc9362303628270daf
 dates_watersheds <- dates_only %>%
   mutate(watershed = factor(case_when(
-    site_code == "ON02" ~ "Canada De Santa Anita",
-    site_code == "GV01" ~ "Canada De La Gaviota",
-    site_code == "HO00" ~ "Tajiguas Creek",
-    site_code == "RG01" ~ "Tajiguas Creek",
-    site_code == "TO02" ~ "Dos Pueblos Canyon",
-    site_code == "BC02" ~ "Dos Pueblos Canyon",
-    site_code == "DV01" ~ "Dos Pueblos Canyon",
-    site_code == "SP02" ~ "San Pedro Creek",
-    site_code == "AT07" ~ "Atascadero Creek",
-    site_code == "AB00" ~ "Mission Creek",
-    site_code == "MC06" ~ "Mission Creek",
-    site_code == "RS02" ~ "Mission Creek")))
+    sitecode_match == "ON02" ~ "Canada De Santa Anita",
+    sitecode_match == "GV01" ~ "Canada De La Gaviota",
+    sitecode_match == "HO00" ~ "Tajiguas Creek",
+    sitecode_match == "RG01" ~ "Tajiguas Creek",
+    sitecode_match == "TO02" ~ "Dos Pueblos Canyon",
+    sitecode_match == "BC02" ~ "Dos Pueblos Canyon",
+    sitecode_match == "DV01" ~ "Dos Pueblos Canyon",
+    sitecode_match == "SP02" ~ "San Pedro Creek",
+    sitecode_match == "AT07" ~ "Atascadero Creek",
+    sitecode_match == "AB00" ~ "Mission Creek",
+    sitecode_match == "MC06" ~ "Mission Creek",
+    sitecode_match == "RS02" ~ "Mission Creek"))) %>%
+  rename(site_code = sitecode_match)
 
 # And here is a list of the wildfire events in the SBC:
 # Fire Name (Start Date) - affected watersheds
@@ -61,17 +64,9 @@ dates_watersheds <- dates_only %>%
 
 dates_fire <- dates_watersheds %>%
   mutate(fire = case_when(
-    # Arroyo Burro - Mission Creek Watershed
-    site_code == "AB00" & Date >= "2008-11-01" & Date < "2009-05-01" ~ 1, # Tea Fire
-    site_code == "AB00" & Date >= "2009-05-01" & Date < "2017-12-01" ~ 2, # Jesusita Fire
-    site_code == "AB00" & Date >= "2017-12-01" ~ 3, # Thomas Fire
     # Arroyo Hondo - Tajiguas Creek Watershed
     site_code == "HO00" & Date >= "2016-06-01" & Date < "2017-07-01" ~ 1, # Sherpa Fire
     site_code == "HO00" & Date >= "2017-07-01" ~ 2, # Whittier Fire
-    # Mission Creek - also Mission Creek Watershed
-    site_code == "MC06" & Date >= "2008-11-01" & Date < "2009-05-01" ~ 1, # Tea Fire
-    site_code == "MC06" & Date >= "2009-05-01" & Date < "2017-12-01" ~ 2, # Jesusita Fire
-    site_code == "MC06" & Date >= "2017-12-01" ~ 3, # Thomas Fire
     # Refugio - also Tajiguas Creek Watershed
     site_code == "RG01" & Date >= "2016-06-01" & Date < "2017-07-01"~ 1, # Sherpa Fire
     site_code == "RG01" & Date >= "2017-07-01" ~ 2, # Whittier Fire
