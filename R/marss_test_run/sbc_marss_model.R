@@ -19,12 +19,12 @@ library(here)
 library(MARSS)
 
 # Load datasets
-# Stream Chemistry
-chem <- readRDS("data_working/SBchem_edited_102421.rds")
-# Precipitation
-precip <- readRDS("data_working/SBprecip_edited_110321.rds")
-# Fire Events
-fire <- readRDS("data_working/SBfire_edited_110321.rds")
+# Stream Chemistry - all sites
+chem <- readRDS("data_working/SBchem_edited_110721.rds")
+# Precipitation - all sites
+precip <- readRDS("data_working/SBprecip_edited_110721.rds")
+# Fire Events - HO00 and RG01 sites only so far
+fire <- readRDS("data_working/SBfire_edited_110721.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 
@@ -32,6 +32,7 @@ location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 
 # First, to avoid strange gaps in data, I'm creating a dummy column with the dates of interest.
 # And I need to do this for each site, since otherwise it'll allow gaps.
+# Just being really careful since this was causing issues previously.
 dates1 <- data.frame(seq(as.Date("2002/9/1"), by = "month", length.out = 166)) %>%
   rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
   mutate(site = "HO00")
@@ -62,13 +63,12 @@ precip_ed <- precip %>%
   mutate(Day = 1) %>% # new column of "days"
   mutate(Date = make_date(Year, Month, Day))
 
-# Joining together with the stream chemistry and wildfire datasets.
 # First, join precip with the dates.
 dates_precip <- left_join(dates, precip_ed, by = c("Date", "site" = "sitecode_match"))
-# left join with precip so as not to lose any data based on fewer chemistry measurements
-precip_chem <- left_join(dates_precip, chem, by = c("Year", "Month", "site" = "site_code"))
-# and again left join with the larger dataset so as not to accidentally drop records
-dat <- left_join(precip_chem, fire, by = c("Year", "Month", "site" = "site_code"))
+# Then, left join precip with chemistry so as not to lose any data.
+precip_chem <- left_join(dates_precip, chem, by = c("Year", "Month", "site"))
+# And again left join with fire so as not to accidentally drop data.
+dat <- left_join(precip_chem, fire, by = c("Date", "site"))
 
 # And, for this first attempt to try and get the MARSS model working, I'm going to filter down to only HO00 and RG01 sites.
 dat_2 <- dat %>%
@@ -90,7 +90,7 @@ sum(is.na(dat_2$fire)) # 0
 sum(is.na(dat_2$cumulative_precip_mm)) # 0
 # Great!
 
-# Note for future me - be VERY careful with the joining above. Something weird was happening previously where precip data that is present was simply dropping off.
+# Note for future me - be VERY careful with the joining above. Something weird was happening previously where precip data that IS present was simply dropping off.
 
 #### Model fit ####
 
