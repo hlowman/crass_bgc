@@ -17,20 +17,20 @@ chem_reg <- read_csv("data_raw/sbclter_stream_chemistry_allyears_registered_stat
 # because there is no geolocation data available/published for them, like there is for the registered
 # sites.
 # Doing quick check of data availability though.
-chem_nreg <- read_csv("data_raw/sbclter_stream_chemistry_allyears_non_registered_stations_20190628.csv")
+# chem_nreg <- read_csv("data_raw/sbclter_stream_chemistry_allyears_non_registered_stations_20190628.csv")
+ 
+# chem_nreg <- chem_nreg %>%
+#   mutate(Date = ymd_hms(timestamp_local)) %>%
+#   mutate(Year = year(Date))
 
-chem_nreg <- chem_nreg %>%
-  mutate(Date = ymd_hms(timestamp_local)) %>%
-  mutate(Year = year(Date))
+# timespans <- chem_nreg %>%
+#   group_by(site_code) %>%
+#   summarize(minYear = min(Year), maxYear = max(Year)) %>%
+#   ungroup() %>%
+#   mutate(Span = maxYear - minYear)
 
-timespans <- chem_nreg %>%
-  group_by(site_code) %>%
-  summarize(minYear = min(Year), maxYear = max(Year)) %>%
-  ungroup() %>%
-  mutate(Span = maxYear - minYear)
-
-multiYear_sites <- timespans %>%
-  filter(Span > 1)
+# multiYear_sites <- timespans %>%
+#   filter(Span > 1)
 
 # Should loop back with John to see if this Ventura River (VR)
 # data would be suitable for the large river analysis?
@@ -60,6 +60,6 @@ chem_full_monthly <- chem_full_ed %>%
   mutate(site = factor(site_code))
 
 # And export for MARSS script
-saveRDS(chem_full_monthly, "data_working/SBchem_edited_102421.rds")
+saveRDS(chem_full_monthly, "data_working/SBchem_edited_110721.rds")
 
 # End of script.
