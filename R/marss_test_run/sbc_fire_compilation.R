@@ -12,39 +12,34 @@ library(tidyverse) # contains dplyr
 library(lubridate)
 library(here)
 
-# Load precipitation dataset from which dates will be pulled.
-precip <- readRDS("data_working/SBprecip_edited_110321.rds")
+# Create base dataframe of dates and sites.
+dates1 <- data.frame(seq(as.Date("2002/9/1"), by = "month", length.out = 166)) %>%
+  rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
+  mutate(site = "HO00")
 
-# Filter for 2 sites used in initial MARSS analysis
-precip_filter <- precip %>%
-  filter(sitecode %in% c("HO201", "RG202")) %>%
-  mutate(sitecode_match = factor(case_when(
-    sitecode == "HO201" ~ "HO00",
-    sitecode == "RG202" ~ "RG01")))
+dates2 <- data.frame(seq(as.Date("2002/9/1"), by = "month", length.out = 166)) %>%
+  rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
+  mutate(site = "RG01")
+## by month from 9/1/2002 to 7/1/2016
 
-# And pull out only the site and date columns
-dates_only <- precip_filter %>%
-  select(sitecode_match, Year, Month) %>%
-  mutate(Day = 1) %>% # adding a day to create a full date
-  mutate(Date = make_date(Year, Month, Day))
+dates <- rbind(dates1, dates2)
 
 # Add watershed data to location dataframe using delineation at:
 # https://databasin.org/maps/new/#datasets=6ad26ddb04ae4dbc9362303628270daf
-dates_watersheds <- dates_only %>%
+dates_watersheds <- dates %>%
   mutate(watershed = factor(case_when(
-    sitecode_match == "ON02" ~ "Canada De Santa Anita",
-    sitecode_match == "GV01" ~ "Canada De La Gaviota",
-    sitecode_match == "HO00" ~ "Tajiguas Creek",
-    sitecode_match == "RG01" ~ "Tajiguas Creek",
-    sitecode_match == "TO02" ~ "Dos Pueblos Canyon",
-    sitecode_match == "BC02" ~ "Dos Pueblos Canyon",
-    sitecode_match == "DV01" ~ "Dos Pueblos Canyon",
-    sitecode_match == "SP02" ~ "San Pedro Creek",
-    sitecode_match == "AT07" ~ "Atascadero Creek",
-    sitecode_match == "AB00" ~ "Mission Creek",
-    sitecode_match == "MC06" ~ "Mission Creek",
-    sitecode_match == "RS02" ~ "Mission Creek"))) %>%
-  rename(site_code = sitecode_match)
+    site == "ON02" ~ "Canada De Santa Anita",
+    site == "GV01" ~ "Canada De La Gaviota",
+    site == "HO00" ~ "Tajiguas Creek",
+    site == "RG01" ~ "Tajiguas Creek",
+    site == "TO02" ~ "Dos Pueblos Canyon",
+    site == "BC02" ~ "Dos Pueblos Canyon",
+    site == "DV01" ~ "Dos Pueblos Canyon",
+    site == "SP02" ~ "San Pedro Creek",
+    site == "AT07" ~ "Atascadero Creek",
+    site == "AB00" ~ "Mission Creek",
+    site == "MC06" ~ "Mission Creek",
+    site == "RS02" ~ "Mission Creek")))
 
 # And here is a list of the wildfire events in the SBC:
 # Fire Name (Start Date) - affected watersheds
@@ -60,24 +55,22 @@ dates_watersheds <- dates_only %>%
 # Now, add in a column for the fire variable
 # 0 - denotes pre-fire months
 # 1 - denotes post-fire months, beginning during the month of ignition
-# 2+ - refers to additional post-fire event months
+# 2+ - refers to additional post-fire events
 
 dates_fire <- dates_watersheds %>%
   mutate(fire = case_when(
     # Arroyo Hondo - Tajiguas Creek Watershed
-    site_code == "HO00" & Date >= "2016-06-01" & Date < "2017-07-01" ~ 1, # Sherpa Fire
-    site_code == "HO00" & Date >= "2017-07-01" ~ 2, # Whittier Fire
+    site == "HO00" & Date >= "2004-06-01" & Date < "2016-06-01" ~ 1, # Gaviota
+    site == "HO00" & Date >= "2016-06-01" & Date < "2017-07-01" ~ 2, # Sherpa
+    site == "HO00" & Date >= "2017-07-01" ~ 2, # Whittier
     # Refugio - also Tajiguas Creek Watershed
-    site_code == "RG01" & Date >= "2016-06-01" & Date < "2017-07-01"~ 1, # Sherpa Fire
-    site_code == "RG01" & Date >= "2017-07-01" ~ 2, # Whittier Fire
+    site == "RG01" & Date >= "2004-06-01" & Date < "2016-06-01" ~ 1, # Gaviota
+    site == "RG01" & Date >= "2016-06-01" & Date < "2017-07-01"~ 2, # Sherpa
+    site == "RG01" & Date >= "2017-07-01" ~ 3, # Whittier
     TRUE ~ 0
   ))
 
-# Trim it down for export
-fire_trim <- dates_fire %>%
-  select(site_code, Year, Month, watershed, fire)
-
 # And export for MARSS script
-saveRDS(fire_trim, "data_working/SBfire_edited_110321.rds")
+saveRDS(dates_fire, "data_working/SBfire_edited_110721.rds")
 
 # End of script.
