@@ -81,9 +81,9 @@ SBprecip_monthly <- SBprecip_monthly %>%
                         site == "UCSB200_precip_allyears_2019-09-16.csv" ~ "UCSB"))
 
 # And export for MARSS script
-saveRDS(SBprecip_monthly, "data_working/SBprecip_edited_110321.rds")
+saveRDS(SBprecip_monthly, "data_working/SBprecip_edited_110721.rds")
 
-#### Added script regarding select sites ####
+#### Additional data exploration regarding select sites ####
 
 # Filter for sites to be used in the initial MARSS run
 desired <- c("HO201", "RG202", "CAWTP")
