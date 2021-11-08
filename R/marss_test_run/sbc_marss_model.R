@@ -135,6 +135,7 @@ mod_list <- list(
 # Fit model
 fit <- MARSS(y = dat_dep, model = mod_list,
                  control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried. 
 
 # Still getting the following message:
 #MARSS: NaNs in data are being replaced with NAs.  There might be a problem if NaNs shouldn't be in the data.
@@ -143,3 +144,62 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 # It worked!!!
 
 # End of script.
+
+#### AJW script for plotting results ####
+
+## check for hidden errors
+fit[["errors"]]
+# no hidden errors
+
+### plot coef and coef estimates ###
+
+## estimates
+
+# non-parametric:
+#est = MARSSparamCIs(fit, method = "innovations", alpha = 0.05, nboot = 70, silent=F) 
+# ^ Errors were caught in MARSSboot :Innovations bootstrapping uses the innovations resampling and can only be done if there are no missing values in the data.
+# Error: Stopped in MARSSboot() due to problem(s) with function arguments.
+
+# parametric:
+est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F) # nboot should be ~ 2000 for final results
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+## save CI table ##
+write.csv(CIs_fit, "R/marss_test_run/CIs_fit.csv", row.names = F)
+
+## plot ##
+CIs_fit$parm_name = c("Year (predicting HO00 NH4)",
+                       "Year (predicting RG01 NH4)",
+                       "Month (predicting HO00 NH4)", 
+                       "Month (predicting RG01 NH4)", 
+                       "** HO00 Precip. (Cumm. Monthly - predicting HO00 NH4) **",
+                       "HO00 Precip. (Cumm. Monthly - predicting RG01 NH4)",
+                       "RG01 Precip. (Cumm. Monthly - predicting HO00 NH4)",
+                       "** RG01 Precip. (Cumm. Monthly - predicting RG01 NH4) **",
+                       "** HO00 Fire (predicting HO00 NH4) **",
+                       "HO00 Fire (predicting RG01 NH4)",
+                       "RG01 Fire (predicting HO00 NH4)",
+                       "** RG01 Fire (predicting RG01 NH4) **")
+# plot
+RESULTS = 
+  ggplot(CIs_fit, aes(parm_name, Est.)) + 
+  geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+  geom_point(position=position_dodge(width=0.3), size=2) + 
+  theme_bw()+
+  theme(plot.title = element_text(size = 8)) +
+  theme(axis.text = element_text(size = 8)) +
+  geom_hline(aes(yintercept=0), linetype="dashed")+
+  coord_flip()+ ggtitle("NH4+")+ 
+  theme(plot.margin=unit(c(.2,-.2,.05,.01),"cm"))
+RESULTS
+
+
+#### AJW script for diagnoses ####
