@@ -18,6 +18,10 @@ library(lubridate)
 library(here)
 library(MARSS)
 
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x)
+  do.call(cbind, lapply(x, is.nan))
+
 # Load datasets
 # Stream Chemistry - all sites
 chem <- readRDS("data_working/SBchem_edited_110721.rds")
@@ -84,6 +88,9 @@ dat_2 <- dat %>%
 # dat_2_trim <- dat_2 %>%
 #   filter(Date >= "2002-09-01") %>%
 #   filter(Date <= "2016-07-01")
+
+# AJW: replace NaNs with NAs
+dat_2[is.nan(dat_2)]=NA
 
 # And, inspect dataset for missing covariate data.
 sum(is.na(dat_2$fire)) # 0
