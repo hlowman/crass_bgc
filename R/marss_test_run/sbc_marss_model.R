@@ -122,14 +122,14 @@ dat_cov <- dat_nh4[c(1:2,5:8),]
 
 # Model setup
 mod_list <- list(
-  B = "identity",
-  U = "zero",
-  C = "unconstrained",
-  c = dat_cov,
-  Q = "diagonal and unequal",
-  Z = "identity",
+  B = "identity", # identity: does NOT allow for mean reversion in process model
+  U = "zero", # zero: does NOT allow a drift to term in process model to be estimated
+  C = "unconstrained", # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
+  c = dat_cov, # we should probably de-mean and scale covariates to units of sd 
+  Q = "diagonal and unequal", # diagonal and equal: allows for and estimates the covariance matrix of process errors
+  Z = "identity", # identity: estimated state processes are unique to each site
   A = "zero",
-  R = "diagonal and equal"
+  R = "diagonal and equal" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible)
 )
 
 # Fit model
