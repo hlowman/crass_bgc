@@ -109,22 +109,28 @@ sum(is.na(dat_2$cumulative_precip_mm)) # 0
 # Note: Not scaling for now, but this should also be added in later.
 dat_nh4 <- dat_2 %>%
   select(site, Year, Month, mean_nh4_uM, cumulative_precip_mm, fire) %>%
-  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire)) %>%
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire))
   #log() %>% # takes the log
   #scale(scale = FALSE) %>% # centers columns of a numeric matrix
-  t() # transposes data
+  #t() # transposes data
 
 # Pull out only NH4 data
-dat_dep <- dat_nh4[3:4,]
+dat_dep <- t(dat_nh4[,3:4])
 
 # Make covariate inputs
-dat_cov <- dat_nh4[c(1:2,5:8),]
+dat_cov <- dat_nh4[,c(1:2,5:8)]
+dat_cov <- t(scale(dat_cov))
+
+# make C matrix
+CC <- matrix(list("HO00_Year", "RG01_Year", "HO00_Month", "RG01_Month", "HO00_precip", 0, 0, "RG01_precip", "HO00_fire", 0, 0, "RG01_fire"),2,6)
+# this matrix controls what covars predict what response vars; in contrast to...
+# unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
 
 # Model setup
 mod_list <- list(
   B = "identity", # identity: does NOT allow for mean reversion in process model
   U = "zero", # zero: does NOT allow a drift to term in process model to be estimated
-  C = "unconstrained", # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
+  C = CC, 
   c = dat_cov, # we should probably de-mean and scale covariates to units of sd 
   Q = "diagonal and unequal", # diagonal and equal: allows for and estimates the covariance matrix of process errors
   Z = "identity", # identity: estimated state processes are unique to each site
@@ -175,31 +181,139 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 ## save CI table ##
 write.csv(CIs_fit, "R/marss_test_run/CIs_fit.csv", row.names = F)
 
-## plot ##
-CIs_fit$parm_name = c("Year (predicting HO00 NH4)",
-                       "Year (predicting RG01 NH4)",
-                       "Month (predicting HO00 NH4)", 
-                       "Month (predicting RG01 NH4)", 
-                       "** HO00 Precip. (Cumm. Monthly - predicting HO00 NH4) **",
-                       "HO00 Precip. (Cumm. Monthly - predicting RG01 NH4)",
-                       "RG01 Precip. (Cumm. Monthly - predicting HO00 NH4)",
-                       "** RG01 Precip. (Cumm. Monthly - predicting RG01 NH4) **",
-                       "** HO00 Fire (predicting HO00 NH4) **",
-                       "HO00 Fire (predicting RG01 NH4)",
-                       "RG01 Fire (predicting HO00 NH4)",
-                       "** RG01 Fire (predicting RG01 NH4) **")
+### PLOT HO00 ###
+CIs_HO00 = CIs_fit[grepl("HO00", CIs_fit$parm),]
+CIs_HO00$parm_name = c("Year","Month","Precip. (monthly cumm.)", "Fire")
 # plot
-RESULTS = 
-  ggplot(CIs_fit, aes(parm_name, Est.)) + 
+RESULTS_HO00 = 
+  ggplot(CIs_HO00, aes(parm_name, Est.)) + 
   geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
   geom_point(position=position_dodge(width=0.3), size=2) + 
   theme_bw()+
   theme(plot.title = element_text(size = 8)) +
   theme(axis.text = element_text(size = 8)) +
   geom_hline(aes(yintercept=0), linetype="dashed")+
-  coord_flip()+ ggtitle("NH4+")+ 
+  coord_flip()+ ggtitle("HO00 NH4+")+ 
+  ylab("") +
   theme(plot.margin=unit(c(.2,-.2,.05,.01),"cm"))
-RESULTS
+RESULTS_HO00
+
+### PLOT RG01 ###
+CIs_RG01 = CIs_fit[grepl("RG01", CIs_fit$parm),]
+CIs_RG01$parm_name = c("Year","Month","Precip. (monthly cumm.)", "Fire")
+# plot
+RESULTS_RG01 = 
+  ggplot(CIs_RG01, aes(parm_name, Est.)) + 
+  geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+  geom_point(position=position_dodge(width=0.3), size=2) + 
+  theme_bw()+
+  theme(plot.title = element_text(size = 8)) +
+  theme(axis.text = element_text(size = 8)) +
+  geom_hline(aes(yintercept=0), linetype="dashed")+
+  coord_flip()+ ggtitle("RG01 NH4+")+ 
+  ylab("") +
+  theme(plot.margin=unit(c(.2,-.2,.05,.01),"cm"))
+RESULTS_RG01
+
+grid.arrange(RESULTS_HO00, RESULTS_RG01, nrow=1)
+ggsave("figures/MARSS_NH4_HO00_RG01.pdf")
 
 
 #### AJW script for diagnoses ####
+
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "identity",
+  U = "zero", 
+  Q = "diagonal and unequal",
+  Z = "identity", 
+  A = "zero",
+  R = "diagonal and equal" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# mod.null  0.0 5 
+# fit       5.6 13
+# RESULT: covariate model is worst than null model - suggests covars do not add much information
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+forecast::Acf(resids$model.residuals[1,], main="HO00 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[1,], main="HO00 state residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$model.residuals[2,], main="RC01 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[2,], main="RC01 state residuals", na.action=na.pass, lag.max = 24)
+mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+# RESULT: yes, at lag 1 for RC01 and in multiple locations for HO00
+
+### Do resids have temporal trend? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+plot(resids$model.residuals[1,], ylab="model residual", xlab="", main="HO00 model residuals")
+abline(h=0)
+plot(resids$state.residuals[1,], ylab="state residual", xlab="", main="HO00 state residuals")
+abline(h=0)
+plot(resids$model.residuals[2,], ylab="model residual", xlab="", main="RC01 model residuals")
+abline(h=0)
+plot(resids$state.residuals[2,], ylab="state residual", xlab="", main="RC01 state residuals")
+abline(h=0)
+mtext("Do resids have temporal trend?", outer = TRUE, cex = 1.5)
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+qqnorm(resids$model.residuals[1,], main="HO00 model residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[1,])[1]))
+qqline(resids$model.residuals[1,])
+qqnorm(resids$state.residuals[1,], main="HO00 state residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
+qqline(resids$state.residuals[1,])
+qqnorm(resids$model.residuals[2,], main="RC01 model residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+qqline(resids$model.residuals[2,])
+qqnorm(resids$state.residuals[2,], main="RC01 state residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+qqline(resids$state.residuals[2,])
+mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+
+### residuals vs fitted ###
+par(mfrow=c(2,2),oma = c(2, 0, 2, 0))
+scatter.smooth(as.vector(kf$xtT[1,]) ~ resids$model.residuals[1,],
+               main = "HO00 model resids vs fitted (y conditioned)")
+abline(lm(as.vector(kf$xtT[1,]) ~ resids$model.residuals[1,]), col="blue")
+scatter.smooth(as.vector(kf$xtT[1,]) ~ resids$state.residuals[1,],
+               main = "HO00 state resids vs fitted (y conditioned)")
+abline(lm(as.vector(kf$xtT[1,]) ~ resids$state.residuals[1,]), col="blue")
+scatter.smooth(as.vector(kf$xtT[2,]) ~ resids$model.residuals[2,],
+               main = "RC01 model resids vs fitted (y conditioned)")
+abline(lm(as.vector(kf$xtT[2,]) ~ resids$model.residuals[2,]), col="blue")
+scatter.smooth(as.vector(kf$xtT[2,]) ~ resids$state.residuals[2,],
+               main = "RC01 state resids vs fitted (y conditioned)")
+abline(lm(as.vector(kf$xtT[2,]) ~ resids$state.residuals[2,]), col="blue")
+mtext("Trends in fitted values vs residuals?", outer = TRUE, cex = 1.5)
+
+### residuals vs observed ###
+par(mfrow=c(2,2),oma = c(2, 0, 2, 0))
+scatter.smooth(as.vector(dat[1,]) ~ resids$model.residuals[1,],
+               main = "HO00 model resids vs observed")
+abline(lm(as.vector(kf$xtT[1,]) ~ resids$model.residuals[1,]))
+scatter.smooth(as.vector(dat[1,]) ~ resids$state.residuals[1,], 
+               main = "HO00 state resids vs observed") 
+abline(lm(as.vector(kf$xtT[1,]) ~ resids$state.residuals[1,]))
+scatter.smooth(as.vector(dat[2,]) ~ resids$model.residuals[2,],
+               main = "RC01 model resids vs observed")
+abline(lm(as.vector(kf$xtT[2,]) ~ resids$model.residuals[2,]))
+scatter.smooth(as.vector(dat[2,]) ~ resids$state.residuals[2,], 
+               main = "RC01 state resids vs observed") 
+abline(lm(as.vector(kf$xtT[2,]) ~ resids$state.residuals[2,]))
+mtext("Trends in observed values vs residuals?", outer = TRUE, cex = 1.5)
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
