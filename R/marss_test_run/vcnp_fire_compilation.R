@@ -18,3 +18,4 @@ library(here)
 
 # May not need chem data but was thinking to merge with fire data
 chem_reg_vcnp <- read_rds("data_working/VCNPchem_edited_110821.rds")
+
