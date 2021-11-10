@@ -52,25 +52,21 @@ dates_watersheds <- dates %>%
 # Tea (11/13/2008) - Mission Creek
 # Thomas (12/4/2017) - Mission Creek
 
-# Now, add in a column for the fire variable
+# Now, add in columns for the fires
 # 0 - denotes pre-fire months
-# 1 - denotes post-fire months, beginning during the month of ignition
-# 2+ - refers to additional post-fire events
+# 1 - denotes post-fire months
+# Each fire will get its own column, so that effects can potentially be additive
+# Or so we can combine decay functions later
 
 dates_fire <- dates_watersheds %>%
-  mutate(fire = case_when(
-    # Arroyo Hondo - Tajiguas Creek Watershed
-    site == "HO00" & Date >= "2004-06-01" & Date < "2016-06-01" ~ 1, # Gaviota
-    site == "HO00" & Date >= "2016-06-01" & Date < "2017-07-01" ~ 2, # Sherpa
-    site == "HO00" & Date >= "2017-07-01" ~ 2, # Whittier
-    # Refugio - also Tajiguas Creek Watershed
-    site == "RG01" & Date >= "2004-06-01" & Date < "2016-06-01" ~ 1, # Gaviota
-    site == "RG01" & Date >= "2016-06-01" & Date < "2017-07-01"~ 2, # Sherpa
-    site == "RG01" & Date >= "2017-07-01" ~ 3, # Whittier
-    TRUE ~ 0
-  ))
+  mutate(HO00_Gaviota = ifelse(site == "HO00" & Date >= "2004-06-01", 1, 0),
+         HO00_Sherpa = ifelse(site == "HO00" & Date >= "2016-06-01", 1, 0),
+         HO00_Whittier = ifelse(site == "HO00" & Date >= "2017-07-01", 1, 0),
+         RG01_Gaviota = ifelse(site == "RG01" & Date >= "2004-06-01", 1, 0),
+         RG01_Sherpa = ifelse(site == "RG01" & Date >= "2016-06-01", 1, 0),
+         RG01_Whittier = ifelse(site == "RG01" & Date >= "2017-07-01", 1, 0))
 
 # And export for MARSS script
-saveRDS(dates_fire, "data_working/SBfire_edited_110721.rds")
+saveRDS(dates_fire, "data_working/SBfire_edited_111021.rds")
 
 # End of script.
