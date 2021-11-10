@@ -77,19 +77,8 @@ dat <- left_join(precip_chem, fire, by = c("Date", "site"))
 dat_2 <- dat %>%
   filter(site %in% c("HO00", "RG01"))
 
-# The trimming below is no longer necessary since we created a primary column with this same date range at the beginning of this script.
-# Now, to check the timeframes of the data available so we can trim down to comparable timespans.
-# date_check <- dat_2 %>%
-#   group_by(site) %>%
-#   summarize(minDate = min(Date), maxDate = max(Date))
-
-# Ok, so need to trim to start date of 9/2002 and end date of 07/2016.
-# dat_2_trim <- dat_2 %>%
-#   filter(Date >= "2002-09-01") %>%
-#   filter(Date <= "2016-07-01")
-
 # AJW: replace NaNs with NAs
-dat_2[is.nan(dat_2)]=NA
+dat_2[is.nan(dat_2)] = NA
 
 # And, inspect dataset for missing covariate data.
 sum(is.na(dat_2$fire)) # 0
@@ -101,34 +90,35 @@ sum(is.na(dat_2$cumulative_precip_mm)) # 0
 #### Model fit ####
 
 # Data: Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SCond)
-# Covariates: Year, Month, Precip, Fire
+# Covariates: Month, Precip, Fire
 
 # Starting with NH4 for test run.
 
 # Note: Not scaling for now, but this should also be added in later.
 dat_nh4 <- dat_2 %>%
   select(site, Year, Month, mean_nh4_uM, cumulative_precip_mm, fire) %>%
-  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire))
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire)) %>%
+  mutate(Month_HO00 = Month) %>% # adding extra month columns
+  rename(Month_RG01 = Month)
   #log() %>% # takes the log
-  #scale(scale = FALSE) %>% # centers columns of a numeric matrix
-  #t() # transposes data
+  #scale(scale = FALSE) # centers columns of a numeric matrix
 
 # Pull out only NH4 data
 dat_dep <- t(dat_nh4[,3:4])
 
 # Make covariate inputs
-dat_cov <- dat_nh4[,c(1:2,5:8)]
+dat_cov <- dat_nh4[,c(9,2,5:8)]
 dat_cov <- t(scale(dat_cov))
 
 # make C matrix
-CC <- matrix(list("HO00_Year", "RG01_Year", "HO00_Month", "RG01_Month", "HO00_precip", 0, 0, "RG01_precip", "HO00_fire", 0, 0, "RG01_fire"),2,6)
+CC <- matrix(list("HO00_Month", 0, 0, "RG01_Month", "HO00_precip", 0, 0, "RG01_precip", "HO00_fire", 0, 0, "RG01_fire"),2,6)
 # this matrix controls what covars predict what response vars; in contrast to...
 # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
 
 # Model setup
 mod_list <- list(
   B = "identity", # identity: does NOT allow for mean reversion in process model
-  U = "zero", # zero: does NOT allow a drift to term in process model to be estimated
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated
   C = CC, # see Alex's matrix above
   c = dat_cov, # we should probably de-mean and scale covariates to units of sd 
   Q = "diagonal and unequal", # diagonal and equal: allows for and estimates the covariance matrix of process errors
@@ -141,8 +131,6 @@ mod_list <- list(
 fit <- MARSS(y = dat_dep, model = mod_list,
                  control = list(maxit = 5000), method = "BFGS")
 # see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
-
-# It worked!!!
 
 #### Plotting Results ####
 
