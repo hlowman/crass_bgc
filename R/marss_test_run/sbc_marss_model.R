@@ -73,6 +73,17 @@ precip_chem <- left_join(dates_precip, chem, by = c("Year", "Month", "site"))
 # And again left join with fire so as not to accidentally drop data.
 dat <- left_join(precip_chem, fire, by = c("Date", "site"))
 
+# Adding in dummy covariates by season
+n_months <- dat$Date %>%
+  unique() %>%
+  length()
+seas_1 <- sin(2 * pi * seq(n_months) / 12)
+seas_2 <- cos(2 * pi * seq(n_months) / 12)
+
+dat <- dat %>%
+  mutate(Season1 = rep(seas_1, 2),
+         Season2 = rep(seas_2, 2))
+
 # And, for this first attempt to try and get the MARSS model working, I'm going to filter down to only HO00 and RG01 sites.
 dat_2 <- dat %>%
   filter(site %in% c("HO00", "RG01"))
@@ -96,29 +107,27 @@ sum(is.na(dat_2$cumulative_precip_mm)) # 0
 
 # Note: Not scaling for now, but this should also be added in later.
 dat_nh4 <- dat_2 %>%
-  select(site, Year, Month, mean_nh4_uM, cumulative_precip_mm, fire) %>%
-  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire)) %>%
-  mutate(Month_HO00 = Month) %>% # adding extra month columns
-  rename(Month_RG01 = Month)
+  select(site, Year, Month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, fire) %>% # keeping year and month in so I don't get the "duplicates arise" error
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire))
   #log() %>% # takes the log
   #scale(scale = FALSE) # centers columns of a numeric matrix
 
 # Pull out only NH4 data
-dat_dep <- t(dat_nh4[,3:4])
+dat_dep <- t(dat_nh4[,5:6])
 
 # Make covariate inputs
-dat_cov <- dat_nh4[,c(9,2,5:8)]
+dat_cov <- dat_nh4[,c(3:4,7:10)]
 dat_cov <- t(scale(dat_cov))
 
 # make C matrix
-CC <- matrix(list("HO00_Month", 0, 0, "RG01_Month", "HO00_precip", 0, 0, "RG01_precip", "HO00_fire", 0, 0, "RG01_fire"),2,6)
+CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_fire", 0, 0, "RG01_fire"),2,6)
 # this matrix controls what covars predict what response vars; in contrast to...
 # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
 
 # Model setup
 mod_list <- list(
-  B = "identity", # identity: does NOT allow for mean reversion in process model
-  U = "zero", # zero: does NOT allow a drift term in process model to be estimated
+  B = "unconstrained",
+  # U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
   C = CC, # see Alex's matrix above
   c = dat_cov, # we should probably de-mean and scale covariates to units of sd 
   Q = "diagonal and unequal", # diagonal and equal: allows for and estimates the covariance matrix of process errors
