@@ -19,8 +19,7 @@ library(here)
 library(MARSS)
 
 # load fxn to replace NaNs with NAs
-is.nan.data.frame <- function(x)
-  do.call(cbind, lapply(x, is.nan))
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
 # Load datasets
 # Stream Chemistry - all sites
@@ -101,8 +100,8 @@ sum(is.na(dat_2$cumulative_precip_mm)) # 0
 
 #### Model fit ####
 
-# Data : Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SpCond)
-# Covariates : Year, Month, Precip, Fire
+# Data: Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SCond)
+# Covariates: Year, Month, Precip, Fire
 
 # Starting with NH4 for test run.
 
@@ -130,7 +129,7 @@ CC <- matrix(list("HO00_Year", "RG01_Year", "HO00_Month", "RG01_Month", "HO00_pr
 mod_list <- list(
   B = "identity", # identity: does NOT allow for mean reversion in process model
   U = "zero", # zero: does NOT allow a drift to term in process model to be estimated
-  C = CC, 
+  C = CC, # see Alex's matrix above
   c = dat_cov, # we should probably de-mean and scale covariates to units of sd 
   Q = "diagonal and unequal", # diagonal and equal: allows for and estimates the covariance matrix of process errors
   Z = "identity", # identity: estimated state processes are unique to each site
@@ -141,23 +140,17 @@ mod_list <- list(
 # Fit model
 fit <- MARSS(y = dat_dep, model = mod_list,
                  control = list(maxit = 5000), method = "BFGS")
-# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried. 
-
-# Still getting the following message:
-#MARSS: NaNs in data are being replaced with NAs.  There might be a problem if NaNs shouldn't be in the data.
-#NA is the normal missing value designation.
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
 
 # It worked!!!
 
-# End of script.
-
-#### AJW script for plotting results ####
+#### Plotting Results ####
 
 ## check for hidden errors
 fit[["errors"]]
 # no hidden errors
 
-### plot coef and coef estimates ###
+### Plot coef and coef estimates ###
 
 ## estimates
 
@@ -168,6 +161,8 @@ fit[["errors"]]
 
 # parametric:
 est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F) # nboot should be ~ 2000 for final results
+# note - this code takes a while to run, so can import "CIs_fit.csv" from the
+# data_working/marss_test_run folder to bypass this and the next few steps
 
 CIs_fit = cbind(
   est_fit$par$U,
@@ -179,7 +174,7 @@ CIs_fit$parm = rownames(CIs_fit)
 CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 
 ## save CI table ##
-write.csv(CIs_fit, "R/marss_test_run/CIs_fit.csv", row.names = F)
+# write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit.csv")
 
 ### PLOT HO00 ###
 CIs_HO00 = CIs_fit[grepl("HO00", CIs_fit$parm),]
@@ -219,8 +214,7 @@ grid.arrange(RESULTS_HO00, RESULTS_RG01, nrow=1)
 ggsave("figures/MARSS_NH4_HO00_RG01.pdf")
 
 
-#### AJW script for diagnoses ####
-
+#### Script for diagnoses ####
 
 dat = dat_dep
 time = c(1:ncol(dat_dep))
@@ -250,10 +244,10 @@ bbmle::AICtab(fit, mod.null)
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 forecast::Acf(resids$model.residuals[1,], main="HO00 model residuals", na.action=na.pass, lag.max = 24)
 forecast::Acf(resids$state.residuals[1,], main="HO00 state residuals", na.action=na.pass, lag.max = 24)
-forecast::Acf(resids$model.residuals[2,], main="RC01 model residuals", na.action=na.pass, lag.max = 24)
-forecast::Acf(resids$state.residuals[2,], main="RC01 state residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$model.residuals[2,], main="RG01 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[2,], main="RG01 state residuals", na.action=na.pass, lag.max = 24)
 mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
-# RESULT: yes, at lag 1 for RC01 and in multiple locations for HO00
+# RESULT: yes, at lag 1 for RG01 and in multiple locations for HO00
 
 ### Do resids have temporal trend? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
@@ -275,10 +269,10 @@ qqline(resids$model.residuals[1,])
 qqnorm(resids$state.residuals[1,], main="HO00 state residuals", pch=16, 
        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
 qqline(resids$state.residuals[1,])
-qqnorm(resids$model.residuals[2,], main="RC01 model residuals", pch=16, 
+qqnorm(resids$model.residuals[2,], main="RG01 model residuals", pch=16, 
        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
 qqline(resids$model.residuals[2,])
-qqnorm(resids$state.residuals[2,], main="RC01 state residuals", pch=16, 
+qqnorm(resids$state.residuals[2,], main="RG01 state residuals", pch=16, 
        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
 qqline(resids$state.residuals[2,])
 mtext("Are resids normal?", outer = TRUE, cex = 1.5)
@@ -317,3 +311,6 @@ mtext("Trends in observed values vs residuals?", outer = TRUE, cex = 1.5)
 
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+# End of script.
+
