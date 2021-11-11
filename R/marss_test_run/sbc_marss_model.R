@@ -27,7 +27,7 @@ chem <- readRDS("data_working/SBchem_edited_110721.rds")
 # Precipitation - all sites
 precip <- readRDS("data_working/SBprecip_edited_110721.rds")
 # Fire Events - HO00 and RG01 sites only so far
-fire <- readRDS("data_working/SBfire_edited_110721.rds")
+fire <- readRDS("data_working/SBfire_edited_111021.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 
@@ -37,11 +37,11 @@ location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 # And I need to do this for each site, since otherwise it'll allow gaps.
 # Just being really careful since this was causing issues previously.
 dates1 <- data.frame(seq(as.Date("2002/9/1"), by = "month", length.out = 166)) %>%
-  rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
+  dplyr::rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
   mutate(site = "HO00")
 
 dates2 <- data.frame(seq(as.Date("2002/9/1"), by = "month", length.out = 166)) %>%
-  rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
+  dplyr::rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
   mutate(site = "RG01")
 ## by month from 9/1/2002 to 7/1/2016
 
@@ -61,8 +61,8 @@ precip_ed <- precip %>%
     sitecode == "CAWTP" ~ "AB00",
     sitecode == "SBEB" ~ "MC00",
     sitecode == "ELDE" ~ "RS02"))) %>%
-  rename(sitecode_precip = sitecode,
-         site_precip = site) %>%
+  dplyr::rename(site_precip = site,
+         sitecode_precip = sitecode) %>%
   mutate(Day = 1) %>% # new column of "days"
   mutate(Date = make_date(Year, Month, Day))
 
@@ -107,20 +107,22 @@ sum(is.na(dat_2$cumulative_precip_mm)) # 0
 
 # Note: Not scaling for now, but this should also be added in later.
 dat_nh4 <- dat_2 %>%
-  select(site, Year, Month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, fire) %>% # keeping year and month in so I don't get the "duplicates arise" error
-  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, fire))
-  #log() %>% # takes the log
-  #scale(scale = FALSE) # centers columns of a numeric matrix
-
+  select(site, Year, Month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, HO00_Gaviota, HO00_Sherpa, HO00_Whittier, RG01_Gaviota, RG01_Sherpa, RG01_Whittier) %>% # keeping year and month in so I don't get the "duplicates arise" error
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, HO00_Gaviota, HO00_Sherpa, HO00_Whittier, RG01_Gaviota, RG01_Sherpa, RG01_Whittier)) %>%
+  select(-c(HO00_Gaviota_RG01, HO00_Sherpa_RG01, HO00_Whittier_RG01, RG01_Gaviota_HO00, RG01_Sherpa_HO00, RG01_Whittier_HO00))
+  
 # Pull out only NH4 data
 dat_dep <- t(dat_nh4[,5:6])
 
 # Make covariate inputs
-dat_cov <- dat_nh4[,c(3:4,7:10)]
+dat_cov <- dat_nh4[,c(3:4,7:14)]
 dat_cov <- t(scale(dat_cov))
 
+# Replace NaNs with 0, which don't play nice with the scale()
+dat_cov[is.nan(dat_cov)] <- 0
+
 # make C matrix
-CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_fire", 0, 0, "RG01_fire"),2,6)
+CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_Gaviota_fire", 0, "HO00_Sherpa_fire", 0,"HO00_Whittier_fire", 0, 0, "RG01_Gaviota_fire", 0, "RG01_Sherpa_fire", 0,"RG01_Whittier_fire"),2,10)
 # this matrix controls what covars predict what response vars; in contrast to...
 # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
 
