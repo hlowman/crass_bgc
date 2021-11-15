@@ -20,7 +20,7 @@ library(here)
 chem_reg_vcnp <- read_rds("data_working/VCNPchem_edited_110821.rds")
 
 str(chem_reg_vcnp)
-list(chem_reg_vcnp$site_code)
+#list(chem_reg_vcnp$site_code)
 
 chem_reg_vcnp <- chem_reg_vcnp %>% rename(site = "site_code") # rename to site to match sbc variable name
 
