@@ -56,7 +56,7 @@ dates_fire_vcnp <- chem_reg_vcnp %>%
 
 
 # And export for MARSS script
-saveRDS(dates_fire, "data_working/VCNPfire_edited_11151021.rds")
+saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_11151021.rds")
 
 # End of script.
 
