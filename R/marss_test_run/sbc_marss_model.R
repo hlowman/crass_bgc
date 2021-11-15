@@ -110,38 +110,52 @@ dat_nh4 <- dat_2 %>%
   select(site, Year, Month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, HO00_Gaviota, HO00_Sherpa, HO00_Whittier, RG01_Gaviota, RG01_Sherpa, RG01_Whittier) %>% # keeping year and month in so I don't get the "duplicates arise" error
   pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, HO00_Gaviota, HO00_Sherpa, HO00_Whittier, RG01_Gaviota, RG01_Sherpa, RG01_Whittier)) %>%
   select(-c(HO00_Gaviota_RG01, HO00_Sherpa_RG01, HO00_Whittier_RG01, RG01_Gaviota_HO00, RG01_Sherpa_HO00, RG01_Whittier_HO00))
+
+par(mfrow=c(2,1))
+plot(dat_nh4$mean_nh4_uM_HO00, type="b")
+plot(dat_nh4$mean_nh4_uM_RG01, type="b")
+par(mfrow=c(1,1))
   
 # Pull out only NH4 data
 dat_dep <- t(dat_nh4[,5:6])
 
 # Make covariate inputs
-dat_cov <- dat_nh4[,c(3:4,7:14)]
+# dat_cov <- dat_nh4[,c(3:4,7:14)]
+# dat_cov <- t(scale(dat_cov))
+# removed Whittier fire because it is all zeros and identical covars messes MARSS up!
+dat_cov <- dat_nh4[,c(3:4,7:10,12:13)]
 dat_cov <- t(scale(dat_cov))
 
 # Replace NaNs with 0, which don't play nice with the scale()
-dat_cov[is.nan(dat_cov)] <- 0
+# dat_cov[is.nan(dat_cov)] <- 0
 
 # make C matrix
-CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_Gaviota_fire", 0, "HO00_Sherpa_fire", 0,"HO00_Whittier_fire", 0, 0, "RG01_Gaviota_fire", 0, "RG01_Sherpa_fire", 0,"RG01_Whittier_fire"),2,10)
+# CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_Gaviota_fire", 0, "HO00_Sherpa_fire", 0,"HO00_Whittier_fire", 0, 0, "RG01_Gaviota_fire", 0, "RG01_Sherpa_fire", 0,"RG01_Whittier_fire"),2,10)
 # this matrix controls what covars predict what response vars; in contrast to...
 # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
+# removed Whittier fire because it is all zeros and identical covars messes MARSS up!
+CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_Gaviota_fire", 0, "HO00_Sherpa_fire", 0, 0, "RG01_Gaviota_fire", 0, "RG01_Sherpa_fire"),2,8)
+
 
 # Model setup
 mod_list <- list(
-  B = "unconstrained",
-  # U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
+  B = "diagonal and unequal",
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
   C = CC, # see Alex's matrix above
   c = dat_cov, # we should probably de-mean and scale covariates to units of sd 
-  Q = "diagonal and unequal", # diagonal and equal: allows for and estimates the covariance matrix of process errors
+  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
   Z = "identity", # identity: estimated state processes are unique to each site
   A = "zero",
   R = "diagonal and equal" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible)
 )
 
 # Fit model
-fit <- MARSS(y = dat_dep, model = mod_list,
-                 control = list(maxit = 5000), method = "BFGS")
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#                 control = list(maxit = 5000), method = "BFGS")
 # see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
 
 #### Plotting Results ####
 
@@ -159,9 +173,12 @@ fit[["errors"]]
 # Error: Stopped in MARSSboot() due to problem(s) with function arguments.
 
 # parametric:
-est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F) # nboot should be ~ 2000 for final results
+# est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F) # nboot should be ~ 2000 for final results
 # note - this code takes a while to run, so can import "CIs_fit.csv" from the
 # data_working/marss_test_run folder to bypass this and the next few steps
+
+# hessian method is much fast but not ideal for final results
+est_fit = MARSSparamCIs(fit)
 
 CIs_fit = cbind(
   est_fit$par$U,
@@ -176,8 +193,8 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 # write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit.csv")
 
 ### PLOT HO00 ###
-CIs_HO00 = CIs_fit[grepl("HO00", CIs_fit$parm),]
-CIs_HO00$parm_name = c("Year","Month","Precip. (monthly cumm.)", "Fire")
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+CIs_HO00$parm_name = c("Season1","Season2","Precip. (monthly cumm.)", "Gaviota Fire", "Sherpa Fire")
 # plot
 RESULTS_HO00 = 
   ggplot(CIs_HO00, aes(parm_name, Est.)) + 
@@ -193,8 +210,8 @@ RESULTS_HO00 =
 RESULTS_HO00
 
 ### PLOT RG01 ###
-CIs_RG01 = CIs_fit[grepl("RG01", CIs_fit$parm),]
-CIs_RG01$parm_name = c("Year","Month","Precip. (monthly cumm.)", "Fire")
+CIs_RG01 = rbind(CIs_fit[1:2,], CIs_fit[grepl("RG01", CIs_fit$parm),])
+CIs_RG01$parm_name = c("Season1","Season2","Precip. (monthly cumm.)", "Gaviota Fire", "Sherpa Fire")
 # plot
 RESULTS_RG01 = 
   ggplot(CIs_RG01, aes(parm_name, Est.)) + 
@@ -209,8 +226,9 @@ RESULTS_RG01 =
   theme(plot.margin=unit(c(.2,-.2,.05,.01),"cm"))
 RESULTS_RG01
 
-grid.arrange(RESULTS_HO00, RESULTS_RG01, nrow=1)
-ggsave("figures/MARSS_NH4_HO00_RG01.pdf")
+gridExtra::grid.arrange(RESULTS_HO00, RESULTS_RG01, nrow=1)
+g <- gridExtra::arrangeGrob(RESULTS_HO00, RESULTS_RG01, nrow=1)
+ggsave("figures/MARSS_NH4_HO00_RG01.pdf", g)
 
 
 #### Script for diagnoses ####
@@ -222,22 +240,22 @@ kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
 mod_list_null <- list(
-  B = "identity",
+  B = "diagonal and unequal",
   U = "zero", 
-  Q = "diagonal and unequal",
+  Q = "diagonal and unequal", 
   Z = "identity", 
   A = "zero",
   R = "diagonal and equal" 
 )
 mod.null <- MARSS(y = dat_dep, model = mod_list_null,
-                  control = list(maxit = 5000), method = "BFGS")
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
 
 bbmle::AICtab(fit, mod.null)
 
 #           dAIC df
-# mod.null  0.0 5 
-# fit       5.6 13
-# RESULT: covariate model is worst than null model - suggests covars do not add much information
+# fit       0   15
+# mod.null 11   7 
+# RESULT: covariate model is better than null model - suggests covars add information
 
 ### Do resids have temporal autocorrelation? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
