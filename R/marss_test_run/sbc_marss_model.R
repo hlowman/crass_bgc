@@ -1,6 +1,6 @@
 # MARSS model @ Santa Barbara Coastal LTER Sites
 # October 24, 2021
-# Heili Lowman
+# Heili Lowman, Alex Webster
 
 # The following script will run a MARSS analysis at SBC LTER sites for the CRASS project.
 # M - Multi-variate
@@ -8,7 +8,21 @@
 # S - State
 # S - Space
 
-# Note: As of November 3, I've been encountering issues with missing data so this first go-round, trying to make it work with just a few sites at which I've verified the precip and fire covariate data is complete.
+# Note: Following a discussion with John Melack, the following sites have both enough chemistry
+# and precip data, as well as fires that occurred within that timeframe to be included in the
+# MARSS analysis performed below.
+
+# Arroyo Burro - AB00
+# Atascadero - AT07
+# Gaviota - GV01
+# Arroyo Hondo - HO00
+# Mission Creek (at Rocky Nook) - MC06
+# Refugio - RG01
+# Rattlesnake - RS02
+# San Pedro - SP02
+
+# The following site may be added later, but a longer precipitation record needs to be
+# identified for them - Bell Canyon (BC02).
 
 #### Setup ####
 
@@ -65,6 +79,18 @@ precip_ed <- precip %>%
          sitecode_precip = sitecode) %>%
   mutate(Day = 1) %>% # new column of "days"
   mutate(Date = make_date(Year, Month, Day))
+
+## Timeframe Selection
+
+# Examine precip data coverage for MARSS timescale delineation
+precip_ed %>%
+  drop_na(sitecode_match) %>%
+  ggplot(aes(x = Year, y = sitecode_match, color = sitecode_match)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+# So, covariate data, which cannot be missing, can run from a maximum of 9/2002 to 7/2016.
 
 # First, join precip with the dates.
 dates_precip <- left_join(dates, precip_ed, by = c("Date", "site" = "sitecode_match"))
