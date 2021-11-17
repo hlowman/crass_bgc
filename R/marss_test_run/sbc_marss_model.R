@@ -40,40 +40,23 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 chem <- readRDS("data_working/SBchem_edited_110721.rds")
 # Precipitation - all sites
 precip <- readRDS("data_working/SBprecip_edited_110721.rds")
-# Fire Events - HO00 and RG01 sites only so far
-fire <- readRDS("data_working/SBfire_edited_111021.rds")
+# Fire Events - all sites
+fire <- readRDS("data_working/SBfire_edited_111721.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 
 #### Filter & Joining Data ####
 
-# First, to avoid strange gaps in data, I'm creating a dummy column with the dates of interest.
-# And I need to do this for each site, since otherwise it'll allow gaps.
-# Just being really careful since this was causing issues previously.
-dates1 <- data.frame(seq(as.Date("2002/9/1"), by = "month", length.out = 166)) %>%
-  dplyr::rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
-  mutate(site = "HO00")
-
-dates2 <- data.frame(seq(as.Date("2002/9/1"), by = "month", length.out = 166)) %>%
-  dplyr::rename(Date = 'seq.as.Date..2002.9.1....by....month...length.out...166.') %>%
-  mutate(site = "RG01")
-## by month from 9/1/2002 to 7/1/2016
-
-dates <- rbind(dates1, dates2)
-
-# And to join the datasets, I need to identify the matching stream sites for the precip data
+# I first need to identify the matching stream sites for the precip data
 precip_ed <- precip %>%
   mutate(sitecode_match = factor(case_when(
     sitecode == "GV202" ~ "GV01",
-    sitecode == "HO201" ~ "HO00",
+    sitecode == "BARA" ~ "HO00", # HO201 doesn't start until 2002
     sitecode == "RG202" ~ "RG01",
-    sitecode == "TECA" ~ "TO02",
-    sitecode == "GLAN" ~ "BC02",
     sitecode == "SMPA" ~ "SP02",
-    sitecode == "GOFS" ~ "DV01",
     sitecode == "GORY" ~ "AT07",
     sitecode == "CAWTP" ~ "AB00",
-    sitecode == "SBEB" ~ "MC00",
+    sitecode == "STFS" ~ "MC06", # BOGA doesn't start until 2005
     sitecode == "ELDE" ~ "RS02"))) %>%
   dplyr::rename(site_precip = site,
          sitecode_precip = sitecode) %>%
@@ -92,12 +75,21 @@ precip_ed %>%
 
 # So, covariate data, which cannot be missing, can run from a maximum of 9/2002 to 7/2016.
 
-# First, join precip with the dates.
-dates_precip <- left_join(dates, precip_ed, by = c("Date", "site" = "sitecode_match"))
-# Then, left join precip with chemistry so as not to lose any data.
-precip_chem <- left_join(dates_precip, chem, by = c("Year", "Month", "site"))
-# And again left join with fire so as not to accidentally drop data.
-dat <- left_join(precip_chem, fire, by = c("Date", "site"))
+# To avoid strange gaps in data, I'm going to start with the fire data,
+# since I know it extends from 9/1/2002 to 7/1/2016. This will ensure all other datasets are 
+# joined to these dates in full (which was causing problems earlier).
+fire_precip <- left_join(fire, precip_ed, by = c("site" = "sitecode_match", "date" = "Date"))
+
+# So, for some reason we're missing 1 years data (11/2013-9/2014) for the AB00, MC06, and RS02 
+# precip sites, so I'm going to fill them in as zeros for now. Eventually, I will go back to the 
+# county website and fill them in by hand. (https://www.countyofsb.org/pwd/dailyrain.sbc)
+fire_precip <- fire_precip %>%
+  mutate_at(vars(cumulative_precip_mm), ~replace(., is.na(.), 0)) %>%
+  mutate(year = year(date),
+         month = month(date)) # and the Year/Month didn't populate, so adding in new columns
+
+# Then, left join with chemistry so as not to lose any data.
+dat <- left_join(fire_precip, chem, by = c("site", "year" = "Year", "month" = "Month"))
 
 # Adding in dummy covariates by season
 n_months <- dat$Date %>%
@@ -110,16 +102,12 @@ dat <- dat %>%
   mutate(Season1 = rep(seas_1, 2),
          Season2 = rep(seas_2, 2))
 
-# And, for this first attempt to try and get the MARSS model working, I'm going to filter down to only HO00 and RG01 sites.
-dat_2 <- dat %>%
-  filter(site %in% c("HO00", "RG01"))
-
 # AJW: replace NaNs with NAs
-dat_2[is.nan(dat_2)] = NA
+dat[is.nan(dat)] = NA
 
 # And, inspect dataset for missing covariate data.
-sum(is.na(dat_2$fire)) # 0
-sum(is.na(dat_2$cumulative_precip_mm)) # 0
+sum(is.na(dat$fire)) # 0
+sum(is.na(dat$cumulative_precip_mm)) # 0
 # Great!
 
 # Note for future me - be VERY careful with the joining above. Something weird was happening previously where precip data that IS present was simply dropping off.
@@ -132,10 +120,13 @@ sum(is.na(dat_2$cumulative_precip_mm)) # 0
 # Starting with NH4 for test run.
 
 # Note: Not scaling for now, but this should also be added in later.
-dat_nh4 <- dat_2 %>%
-  select(site, Year, Month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, HO00_Gaviota, HO00_Sherpa, HO00_Whittier, RG01_Gaviota, RG01_Sherpa, RG01_Whittier) %>% # keeping year and month in so I don't get the "duplicates arise" error
-  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, HO00_Gaviota, HO00_Sherpa, HO00_Whittier, RG01_Gaviota, RG01_Sherpa, RG01_Whittier)) %>%
-  select(-c(HO00_Gaviota_RG01, HO00_Sherpa_RG01, HO00_Whittier_RG01, RG01_Gaviota_HO00, RG01_Sherpa_HO00, RG01_Whittier_HO00))
+dat_nh4 <- dat %>%
+  select(site, year, month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap) %>% # keeping year and month in so I don't get the "duplicates arise" error
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap)) %>%
+  select(year, month, Season1, Season2, 
+         mean_nh4_uM_AB00, mean_nh4_uM_AT07, mean_nh4_uM_GV01, mean_nh4_uM_HO00, mean_nh4_uM_MC06, mean_nh4_uM_RG01, mean_nh4_uM_RS02, mean_nh4_uM_SP02,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02,
+         AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, SP02_Gap_SP02)
 
 par(mfrow=c(2,1))
 plot(dat_nh4$mean_nh4_uM_HO00, type="b")
@@ -143,24 +134,41 @@ plot(dat_nh4$mean_nh4_uM_RG01, type="b")
 par(mfrow=c(1,1))
   
 # Pull out only NH4 data
-dat_dep <- t(dat_nh4[,5:6])
+dat_dep <- t(dat_nh4[,5:12])
 
 # Make covariate inputs
-# dat_cov <- dat_nh4[,c(3:4,7:14)]
-# dat_cov <- t(scale(dat_cov))
-# removed Whittier fire because it is all zeros and identical covars messes MARSS up!
-dat_cov <- dat_nh4[,c(3:4,7:10,12:13)]
+dat_cov <- dat_nh4[,c(3:4,13:33)]
 dat_cov <- t(scale(dat_cov))
 
 # Replace NaNs with 0, which don't play nice with the scale()
 # dat_cov[is.nan(dat_cov)] <- 0
 
 # make C matrix
-# CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_Gaviota_fire", 0, "HO00_Sherpa_fire", 0,"HO00_Whittier_fire", 0, 0, "RG01_Gaviota_fire", 0, "RG01_Sherpa_fire", 0,"RG01_Whittier_fire"),2,10)
 # this matrix controls what covars predict what response vars; in contrast to...
 # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
-# removed Whittier fire because it is all zeros and identical covars messes MARSS up!
-CC <- matrix(list("Season1", "Season1", "Season2", "Season2", "HO00_precip", 0, 0, "RG01_precip", "HO00_Gaviota_fire", 0, "HO00_Sherpa_fire", 0, 0, "RG01_Gaviota_fire", 0, "RG01_Sherpa_fire"),2,8)
+CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1",
+                  "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", 
+                  "AB00_precip", 0, 0, 0, 0, 0, 0, 0,
+                  0, "AT07_precip", 0, 0, 0, 0, 0, 0,
+                  0, 0, "GV01_precip", 0, 0, 0, 0, 0,
+                  0, 0, 0, "HO00_precip", 0, 0, 0, 0,
+                  0, 0, 0, 0, "MC06_precip", 0, 0, 0,
+                  0, 0, 0, 0, 0, "RG01_precip", 0, 0,
+                  0, 0, 0, 0, 0, 0, "RS02_precip", 0,
+                  0, 0, 0, 0, 0, 0, 0, "SP02_precip",
+                  "AB00_Tea_fire", 0, 0, 0, 0, 0, 0, 0,
+                  "AB00_Jesusita_fire", 0, 0, 0, 0, 0, 0, 0,
+                  0, "AT07_Jesusita_fire", 0, 0, 0, 0, 0, 0,
+                  0, 0, "GV01_Gaviota_fire", 0, 0, 0, 0, 0,
+                  0, 0, 0, "HO00_Gaviota_fire", 0, 0, 0, 0,
+                  0, 0, 0, "HO00_Sherpa_fire", 0, 0, 0, 0,
+                  0, 0, 0, 0, "MC06_Tea_fire", 0, 0, 0,
+                  0, 0, 0, 0, "MC06_Jesusita_fire", 0, 0, 0,
+                  0, 0, 0, 0, 0, "RG01_Gaviota_fire", 0, 0,
+                  0, 0, 0, 0, 0, "RG01_Sherpa_fire", 0, 0,
+                  0, 0, 0, 0, 0, 0, "RS01_Tea_fire", 0,
+                  0, 0, 0, 0, 0, 0, "RS01_Jesusita_fire", 0,
+                  0, 0, 0, 0, 0, 0, 0, "SP02_Gap_fire"),8,23)
 
 
 # Model setup
@@ -182,6 +190,13 @@ mod_list <- list(
 
 fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+
+# As of 11/17/2021, getting the following error:
+# Stopped at iter=2 in MARSSkem at U update. denom is not invertible.
+# This means some of the U (+ C) terms cannot be estimated.
+# Type MARSSinfo('denominv') for more info. 
+# par, kf, states, iter, loglike are the last values before the error.
+# Try control$safe=TRUE which uses a slower but slightly more robust algorithm.
 
 #### Plotting Results ####
 
