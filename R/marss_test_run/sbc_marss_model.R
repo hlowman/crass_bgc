@@ -92,15 +92,16 @@ fire_precip <- fire_precip %>%
 dat <- left_join(fire_precip, chem, by = c("site", "year" = "Year", "month" = "Month"))
 
 # Adding in dummy covariates by season
-n_months <- dat$Date %>%
+n_months <- dat$date %>%
   unique() %>%
   length()
+
 seas_1 <- sin(2 * pi * seq(n_months) / 12)
 seas_2 <- cos(2 * pi * seq(n_months) / 12)
 
 dat <- dat %>%
-  mutate(Season1 = rep(seas_1, 2),
-         Season2 = rep(seas_2, 2))
+  mutate(Season1 = rep(seas_1, 8),
+         Season2 = rep(seas_2, 8))
 
 # AJW: replace NaNs with NAs
 dat[is.nan(dat)] = NA
@@ -189,14 +190,9 @@ mod_list <- list(
 # see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
 
 fit <- MARSS(y = dat_dep, model = mod_list,
-             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
-# As of 11/17/2021, getting the following error:
-# Stopped at iter=2 in MARSSkem at U update. denom is not invertible.
-# This means some of the U (+ C) terms cannot be estimated.
-# Type MARSSinfo('denominv') for more info. 
-# par, kf, states, iter, loglike are the last values before the error.
-# Try control$safe=TRUE which uses a slower but slightly more robust algorithm.
+saveRDS(fit, file = "data_working/marss_test_run/fit_112221.rds")
 
 #### Plotting Results ####
 
