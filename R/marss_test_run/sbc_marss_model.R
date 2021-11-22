@@ -174,6 +174,7 @@ CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season
 
 # Model setup
 mod_list <- list(
+  # tinitx = "zero", # setting initial state value to time = 0
   B = "diagonal and unequal",
   U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
   C = CC, # see Alex's matrix above
@@ -181,7 +182,7 @@ mod_list <- list(
   Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
   Z = "identity", # identity: estimated state processes are unique to each site
   A = "zero",
-  R = "diagonal and equal" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible)
+  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
 )
 
 # Fit model
@@ -192,7 +193,8 @@ mod_list <- list(
 fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
-saveRDS(fit, file = "data_working/marss_test_run/fit_112221.rds")
+# export model fit
+saveRDS(fit, file = "data_working/marss_test_run/fit_112221_R0.rds")
 
 #### Plotting Results ####
 
@@ -210,12 +212,13 @@ fit[["errors"]]
 # Error: Stopped in MARSSboot() due to problem(s) with function arguments.
 
 # parametric:
-# est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F) # nboot should be ~ 2000 for final results
-# note - this code takes a while to run, so can import "CIs_fit.csv" from the
-# data_working/marss_test_run folder to bypass this and the next few steps
+est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 10, silent=F) # nboot should be ~ 2000 for final results
+# note - this code takes a while to run, so can import "CIs_fit_112221_R0.csv"
+# from the data_working/marss_test_run folder to bypass this and the 
+# next few steps
 
 # hessian method is much fast but not ideal for final results
-est_fit = MARSSparamCIs(fit)
+# est_fit = MARSSparamCIs(fit)
 
 CIs_fit = cbind(
   est_fit$par$U,
@@ -227,7 +230,35 @@ CIs_fit$parm = rownames(CIs_fit)
 CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 
 ## save CI table ##
-# write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit.csv")
+write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit_112221_R0.csv")
+
+# Creating quick panel plots of covariate data to try and diagnose
+# potential convergence issues:
+(nh4plot <- ggplot(dat, aes(x = date, y = mean_nh4_uM)) +
+  geom_point(aes(color = site)) +
+  labs(x = "Date",
+       y = "NH4+ (uM)") +
+  facet_wrap(.~site) +
+  theme_bw() +
+  theme(legend.position = "none"))
+
+(no3plot <- ggplot(dat, aes(x = date, y = mean_no3_uM)) +
+    geom_point(aes(color = site)) +
+    labs(x = "Date",
+         y = "NO3- (uM)") +
+    facet_wrap(.~site) +
+    theme_bw() +
+    theme(legend.position = "none"))
+
+(tssplot <- ggplot(dat, aes(x = date, y = mean_tss_mgL)) +
+    geom_point(aes(color = site)) +
+    labs(x = "Date",
+         y = "TSS (mg/L)") +
+    facet_wrap(.~site) +
+    theme_bw() +
+    theme(legend.position = "none"))
+
+# Stopped here on 11/22/21, H.L.
 
 ### PLOT HO00 ###
 CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
