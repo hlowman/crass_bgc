@@ -324,7 +324,7 @@ mod_list_null <- list(
   Q = "diagonal and unequal", 
   Z = "identity", 
   A = "zero",
-  R = "diagonal and equal" 
+  R = "zero" 
 )
 mod.null <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
@@ -332,9 +332,9 @@ mod.null <- MARSS(y = dat_dep, model = mod_list_null,
 bbmle::AICtab(fit, mod.null)
 
 #           dAIC df
-# fit       0   15
-# mod.null 11   7 
-# RESULT: covariate model is better than null model - suggests covars add information
+# fit       0.0 47
+# mod.null  0.6 24
+# RESULT: covariate model is not different than null model =- suggests covars add little information
 
 ### Do resids have temporal autocorrelation? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
