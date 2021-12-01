@@ -39,7 +39,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 # Stream Chemistry - all sites
 chem <- readRDS("data_working/SBchem_edited_110721.rds")
 # Precipitation - all sites
-precip <- readRDS("data_working/SBprecip_edited_110721.rds")
+precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 # Fire Events - all sites
 fire <- readRDS("data_working/SBfire_edited_111721.rds")
 # Site Location information
@@ -58,8 +58,8 @@ precip_ed <- precip %>%
     sitecode == "CAWTP" ~ "AB00",
     sitecode == "STFS" ~ "MC06", # BOGA doesn't start until 2005
     sitecode == "ELDE" ~ "RS02"))) %>%
-  dplyr::rename(site_precip = site,
-         sitecode_precip = sitecode) %>%
+  dplyr::rename(cumulative_precip_mm = c_precip_mm,
+                sitecode_precip = sitecode) %>%
   mutate(Day = 1) %>% # new column of "days"
   mutate(Date = make_date(Year, Month, Day))
 
@@ -80,11 +80,7 @@ precip_ed %>%
 # joined to these dates in full (which was causing problems earlier).
 fire_precip <- left_join(fire, precip_ed, by = c("site" = "sitecode_match", "date" = "Date"))
 
-# So, for some reason we're missing 1 years data (11/2013-9/2014) for the AB00, MC06, and RS02 
-# precip sites, so I'm going to fill them in as zeros for now. Eventually, I will go back to the 
-# county website and fill them in by hand. (https://www.countyofsb.org/pwd/dailyrain.sbc)
 fire_precip <- fire_precip %>%
-  mutate_at(vars(cumulative_precip_mm), ~replace(., is.na(.), 0)) %>%
   mutate(year = year(date),
          month = month(date)) # and the Year/Month didn't populate, so adding in new columns
 
@@ -194,7 +190,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
 # export model fit
-saveRDS(fit, file = "data_working/marss_test_run/fit_112221_R0.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120121_R0.rds")
 
 #### Plotting Results ####
 
@@ -213,11 +209,11 @@ fit[["errors"]]
 
 # parametric:
 est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 10, silent=F) # nboot should be ~ 2000 for final results
-# note - this code takes a while to run, so can import "CIs_fit_112221_R0.csv"
+# note - this code takes a while to run, so can import "CIs_fit_120121_R0.csv"
 # from the data_working/marss_test_run folder to bypass this and the 
 # next few steps
 
-# hessian method is much fast but not ideal for final results
+# hessian method is much faster but not ideal for final results
 # est_fit = MARSSparamCIs(fit)
 
 CIs_fit = cbind(
@@ -230,7 +226,7 @@ CIs_fit$parm = rownames(CIs_fit)
 CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 
 ## save CI table ##
-write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit_112221_R0.csv")
+write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit_120121_R0.csv")
 
 # Creating quick panel plots of covariate data to try and diagnose
 # potential convergence issues:
