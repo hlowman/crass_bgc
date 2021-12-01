@@ -118,9 +118,9 @@ sum(is.na(dat$cumulative_precip_mm)) # 0
 # Data: Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SCond)
 # Covariates: Month, Precip, Fire
 
+#### NH4 ####
 # Starting with NH4 for test run.
 
-# Note: Not scaling for now, but this should also be added in later.
 dat_nh4 <- dat %>%
   select(site, year, month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap) %>% # keeping year and month in so I don't get the "duplicates arise" error
   pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap)) %>%
@@ -146,7 +146,7 @@ dat_cov <- t(scale(dat_cov))
 
 # make C matrix
 # this matrix controls what covars predict what response vars; in contrast to...
-# unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars (are year and month used? bc if so, these are shared)
+# unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars
 CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1",
                   "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", 
                   "AB00_precip", 0, 0, 0, 0, 0, 0, 0,
@@ -258,46 +258,57 @@ write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit_112221_R0.csv")
     theme_bw() +
     theme(legend.position = "none"))
 
-# Stopped here on 11/22/21, H.L.
+### Plot Results for All Sites ###
 
-### PLOT HO00 ###
+# First, create dataset of all outputs
+# This works for HO00 alone
 CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
-CIs_HO00$parm_name = c("Season1","Season2","Precip. (monthly cumm.)", "Gaviota Fire", "Sherpa Fire")
-# plot
-RESULTS_HO00 = 
-  ggplot(CIs_HO00, aes(parm_name, Est.)) + 
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", "AB00_Tea_fire", 
+                                             "AB00_Jesusita_fire", "AT07_Jesusita_fire",
+                                             "GV01_Gaviota_fire", "HO00_Gaviota_fire", 
+                                             "HO00_Sherpa_fire", "MC06_Tea_fire", 
+                                             "MC06_Jesusita_fire", "RG01_Gaviota_fire", 
+                                             "RG01_Sherpa_fire", "RS01_Tea_fire", 
+                                             "RS01_Jesusita_fire", "SP02_Gap_fire")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
   geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
   geom_point(position=position_dodge(width=0.3), size=2) + 
   theme_bw()+
   theme(plot.title = element_text(size = 8)) +
   theme(axis.text = element_text(size = 8)) +
   geom_hline(aes(yintercept=0), linetype="dashed")+
-  coord_flip()+ ggtitle("HO00 NH4+")+ 
-  ylab("") +
-  theme(plot.margin=unit(c(.2,-.2,.05,.01),"cm"))
-RESULTS_HO00
+  coord_flip() +
+  labs(y = "",
+       title = "NH4 MARSS modeling results - 12/1/2021") +
+  theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+  facet_wrap(.~Site, scales = "free"))
 
-### PLOT RG01 ###
-CIs_RG01 = rbind(CIs_fit[1:2,], CIs_fit[grepl("RG01", CIs_fit$parm),])
-CIs_RG01$parm_name = c("Season1","Season2","Precip. (monthly cumm.)", "Gaviota Fire", "Sherpa Fire")
-# plot
-RESULTS_RG01 = 
-  ggplot(CIs_RG01, aes(parm_name, Est.)) + 
-  geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
-  geom_point(position=position_dodge(width=0.3), size=2) + 
-  theme_bw()+
-  theme(plot.title = element_text(size = 8)) +
-  theme(axis.text = element_text(size = 8)) +
-  geom_hline(aes(yintercept=0), linetype="dashed")+
-  coord_flip()+ ggtitle("RG01 NH4+")+ 
-  ylab("") +
-  theme(plot.margin=unit(c(.2,-.2,.05,.01),"cm"))
-RESULTS_RG01
-
-gridExtra::grid.arrange(RESULTS_HO00, RESULTS_RG01, nrow=1)
-g <- gridExtra::arrangeGrob(RESULTS_HO00, RESULTS_RG01, nrow=1)
-ggsave("figures/MARSS_NH4_HO00_RG01.pdf", g)
-
+# export figure
+# ggsave(("figures/MARSS_NH4_allsites_120121.png"),
+#        width = 30,
+#        height = 20,
+#        units = "cm"
+# )
 
 #### Script for diagnoses ####
 
