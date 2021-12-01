@@ -23,6 +23,19 @@ SBprecip <- ldply(
   return(d)
 })
 
+# Some data was missing at some sites, so here is the version I
+# compiled from raw pdfs available from the SB County website.
+SBbyhand <- read_csv(here("data_raw", "Precipitation", "filled_in_sbcounty_precip_2013_2014.csv"))
+
+SBbyhand_ed <- SBbyhand %>%
+  select(date, precipitation_in, precipitation_gauge) %>%
+  mutate(precipitation_mm = precipitation_in * 25.4) %>% # convert to metric
+  mutate(site = case_when(precipitation_gauge == "CaterWTP229" ~ "CAWTP",
+                          precipitation_gauge == "StanwoodFS228" ~ "STFS",
+                          precipitation_gauge == "ElDeseo255" ~ "ELDE")) %>%
+  mutate(DateTime = mdy(date)) %>% # format dates
+  mutate(Year = year(DateTime), Month = month(DateTime))
+
 # Note: -999 is the "NA" record used by the LTER & the county
 # Make edits for data assembly purposes
 SBprecip_ed <- SBprecip %>%
@@ -36,6 +49,11 @@ SBprecip_ed <- SBprecip %>%
 SBprecip_monthly <- SBprecip_ed %>%
   group_by(site, Year, Month) %>%
   summarize(cumulative_precip_mm = sum(precip_ed, na.rm = TRUE)) %>%
+  ungroup()
+# and for data inputted by hand
+SBprecip_monthly_byhand <- SBbyhand_ed %>%
+  group_by(site, Year, Month) %>%
+  summarize(cumulative_precip_mm = sum(precipitation_mm, na.rm = TRUE)) %>%
   ungroup()
 
 # Add site abbreviations so easier to filter.
@@ -78,10 +96,19 @@ SBprecip_monthly <- SBprecip_monthly %>%
                         site == "StanwoodFS228_precip_allyears_2019-09-16.csv" ~ "STFS",
                         site == "TecoloteCanyon280_precip_allyears_2019-09-16.csv" ~ "TECA",
                         site == "TroutClub242_precip_allyears_2019-09-16.csv" ~ "TRCL",
-                        site == "UCSB200_precip_allyears_2019-09-16.csv" ~ "UCSB"))
+                        site == "UCSB200_precip_allyears_2019-09-16.csv" ~ "UCSB")) %>%
+  select(Year, Month, sitecode, cumulative_precip_mm)
+
+SBprecip_monthly_all <- full_join(SBprecip_monthly, SBprecip_monthly_byhand, by = c("Year", "Month", "sitecode" = "site")) %>%
+  mutate(c_precip_mm = case_when(is.na(cumulative_precip_mm.x) == TRUE ~ cumulative_precip_mm.y,
+                                 TRUE ~ cumulative_precip_mm.x))
+
+# trim down to needed data
+SBprecip_monthly_all_ed <- SBprecip_monthly_all %>%
+  select(Year, Month, sitecode, c_precip_mm)
 
 # And export for MARSS script
-saveRDS(SBprecip_monthly, "data_working/SBprecip_edited_110721.rds")
+saveRDS(SBprecip_monthly_all_ed, "data_working/SBprecip_edited_120121.rds")
 
 #### Additional data exploration regarding select sites ####
 
