@@ -2,7 +2,7 @@
 # October 24, 2021
 # Heili Lowman, Alex Webster
 
-# The following script will run a MARSS analysis at SBC LTER sites for the CRASS project.
+# The following script will run a MARSS analysis at SBC LTER & NM Valles Caldera sites for the CRASS project.
 # M - Multi-variate
 # AR - Auto-regressive
 # S - State
@@ -24,6 +24,8 @@
 # The following site may be added later, but a longer precipitation record needs to be
 # identified for them - Bell Canyon (BC02).
 
+# Add info for Valles Caldera sites here...
+
 #### Setup ####
 
 # Load packages
@@ -38,10 +40,13 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 # Load datasets
 # Stream Chemistry - all sites
 chem <- readRDS("data_working/SBchem_edited_110721.rds")
+chem_nm <- readRDS("data_working/VCNPchem_edited_110821.rds")
 # Precipitation - all sites
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
+precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_110321.rds")
 # Fire Events - all sites
 fire <- readRDS("data_working/SBfire_edited_111721.rds")
+#fire_nm <- readRDS("data_working/VCNPfire_edited_11151021.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 
@@ -191,6 +196,35 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, file = "data_working/marss_test_run/fit_120121_R0.rds")
+
+#### Scenario 2 : catchments in two ecoregions #### 
+# not using fire for now to simplify
+
+CC2 <- matrix(list("Season1", "Season1",
+                   "Season2", "Season2",
+                   "c_precip_SB", 0,
+                   0, "c_precip_NM"),2,4)
+
+# Model setup
+mod_list2 <- list(
+  # tinitx = "zero", # setting initial state value to time = 0
+  B = "diagonal and unequal",
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
+  C = CC2, # see new matrix above
+  c = dat_cov2, # we should probably de-mean and scale covariates to units of sd 
+  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
+  Z = factor(c("SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera", "VallesCaldera")),
+  A = "zero",
+  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
+)
+
 
 #### Scenario 3 : all catchments in a single state #### 
 # not using fire for now to simplify
