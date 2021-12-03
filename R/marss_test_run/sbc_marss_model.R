@@ -33,6 +33,7 @@ library(tidyverse)
 library(lubridate)
 library(here)
 library(MARSS)
+library(naniar)
 
 # load fxn to replace NaNs with NAs
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
@@ -40,16 +41,17 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 # Load datasets
 # Stream Chemistry - all sites
 chem <- readRDS("data_working/SBchem_edited_110721.rds")
-chem_nm <- readRDS("data_working/VCNPchem_edited_110821.rds")
+# chem_nm <- readRDS("data_working/VCNPchem_edited_110821.rds") - use firechem below
 # Precipitation - all sites
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_110321.rds")
 # Fire Events - all sites
 fire <- readRDS("data_working/SBfire_edited_111721.rds")
-#fire_nm <- readRDS("data_working/VCNPfire_edited_11151021.rds")
+firechem_nm <- readRDS("data_working/VCNPfire_edited_11151021.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
-
+location_nm <- read_csv("data_raw/VCNP_sonde_site_codes_names.csv")
+  
 #### Filter & Joining Data ####
 
 # I first need to identify the matching stream sites for the precip data
@@ -112,7 +114,111 @@ sum(is.na(dat$fire)) # 0
 sum(is.na(dat$cumulative_precip_mm)) # 0
 # Great!
 
+# Now to do the same for NM data
+# Beginning with the firechem dataset because it will be easier to join
+
+namelist <- c("San Antonio Creek - Toledo", "San Antonio Creek- Toledo", "San Antonio Creek -Toledo")
+
+firechem_nm_ed <- firechem_nm %>%
+  mutate(sitecode_match = factor(case_when(
+    site == "Redondo Creek" ~ "RED",
+    site == "East Fork Jemez River" ~ "EFJ",
+    site == "San Antonio - West" ~ "RSAW",
+    site %in% namelist ~ "RSA",
+    site == "Indios Creek" ~ "IND",
+    site == "Indios Creek - Post Fire (Below Burn)" ~ "IND_BB",
+    site == "Indios Creek - above burn" ~ "IND_AB",
+    site == "Sulfur Creek" ~ "SULF",
+    TRUE ~ NA_character_))) %>%
+  mutate(NH4_mgL = gsub("<", "", nh4_mgL),
+         NO3_mgL = gsub("<", "", nO2_nO3_mgL),
+         PO4_mgL = gsub("<", "", po4_mgL)) # remove all "<" symbols
+
+# need to also add in LODs and convert analytes appropriately
+mylist <- c("Contaminated")
+
+firechem_nm_ed2 <- firechem_nm_ed %>%
+  replace_with_na_at(.vars = c("NH4_mgL", "NO3_mgL", "PO4_mgL"),
+                     condition = ~.x %in% mylist) %>% # Remove "contaminated" and replace with NA
+  mutate(NH4_mgL_lod = as.numeric(ifelse(NH4_mgL <= 0.1, 0.05, NH4_mgL)),
+         NO3_mgL_lod = as.numeric(ifelse(NO3_mgL <= 0.1, 0.05, NO3_mgL)),
+         PO4_mgL_lod = as.numeric(ifelse(PO4_mgL <= 0.1, 0.05, PO4_mgL))) # Report low values at 1/2 LOD
+
+# convert to uM and summarize by month
+firechem_nm_monthly <- firechem_nm_ed2 %>%
+  mutate(nh4_uM = (NH4_mgL_lod/80.043)*1000, # convert to uM
+         no3_uM = (NO3_mgL_lod/62.0049)*1000,
+         po4_uM = (PO4_mgL_lod/94.9714)*1000) %>%
+  group_by(sitecode_match, Year, Month) %>%
+  summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE),
+            mean_no3_uM = mean(no3_uM, na.rm = TRUE),
+            mean_po4_uM = mean(po4_uM, na.rm = TRUE),
+            LasConchas = mean(LasConchas, na.rm = TRUE),
+            ThompsonRidge = mean(ThompsonRidge, na.rm = TRUE)) %>%
+  ungroup()
+
+# add year and month columns into the precip dataset
+precip_nm_ed <- precip_nm %>%
+  mutate(year = year(datetimeMT),
+         month = month(datetimeMT))
+
+# examine precip data as we did above
+precip_nm_ed %>%
+  drop_na(ID) %>%
+  ggplot(aes(x = year, y = ID, color = ID)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+# So, covariate data, which cannot be missing, can run from a maximum of 2005 to 2021.
+
+dat_nm <- left_join(precip_nm_ed, firechem_nm_monthly, by = c("ID" = "sitecode_match", "year" = "Year", "month" = "Month"))
+
+# need to figure out what the shared timeframe is for these data
+# test <- dat_nm %>%
+#   group_by(ID) %>%
+#   summarize(count = n()) %>%
+#   ungroup()
+# 6/2005 - 11/2021
+
+dat_nm <- dat_nm %>%
+  filter(datetimeMT > "2005-05-01")
+
+# Adding in dummy covariates by season
+n_months_nm <- dat_nm$datetimeMT %>%
+  unique() %>%
+  length()
+
+seas_1_nm <- sin(2 * pi * seq(n_months_nm) / 12)
+seas_2_nm <- cos(2 * pi * seq(n_months_nm) / 12)
+
+dat_nm <- dat_nm %>%
+  mutate(Season1 = rep(seas_1_nm, 8),
+         Season2 = rep(seas_2_nm, 8))
+
+# AJW: replace NaNs with NAs
+dat_nm[is.nan(dat_nm)] = NA
+
 # Note for future me - be VERY careful with the joining above. Something weird was happening previously where precip data that IS present was simply dropping off.
+
+# And finally, join the Santa Barbara and New Mexico datasets
+dat_nm <- dat_nm %>%
+  rename(site = ID,
+         date = datetimeMT)
+
+# For the AGU presentation, I'll be joining a subset of the full dataset, although
+# we'll eventually need to figure out the formatting of the fire data here.
+dat_nm_select <- dat_nm %>%
+  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, Season1, Season2) %>%
+  mutate(region = "VC")
+
+dat_select <- dat %>%
+  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, Season1, Season2) %>%
+  mutate(region = "SB")
+
+dat_agu <- rbind(dat_select, dat_nm_select)
+
+# exporting just to save my progress
+saveRDS(dat_agu, "data_working/marss_data_sb_vc_120321.rds")
 
 #### Model fit ####
 
