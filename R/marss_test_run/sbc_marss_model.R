@@ -167,7 +167,7 @@ CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season
                   0, 0, 0, 0, 0, 0, "RS01_Jesusita_fire", 0,
                   0, 0, 0, 0, 0, 0, 0, "SP02_Gap_fire"),8,23)
 
-
+#### Scenario 1 : all catchments are separate states #### 
 # Model setup
 mod_list <- list(
   # tinitx = "zero", # setting initial state value to time = 0
@@ -191,6 +191,40 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, file = "data_working/marss_test_run/fit_120121_R0.rds")
+
+#### Scenario 3 : all catchments in a single state #### 
+# not using fire for now to simplify
+# Make covariate inputs
+dat_nh4 <- dat_nh4 %>%
+  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02)/8)
+         
+dat_cov3 <- dat_nh4[,c(3:4,34)]
+dat_cov3 <- t(scale(dat_cov3))
+
+CC3 <- matrix(list("Season1", "Season2", "c_precip_avg"),1,3)
+
+# Model setup
+mod_list3 <- list(
+  # tinitx = "zero", # setting initial state value to time = 0
+  B = "diagonal and unequal",
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
+  C = CC3, # see new matrix above
+  c = dat_cov3, # we should probably de-mean and scale covariates to units of sd 
+  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
+  Z = matrix(1, nrow = 8, ncol = 1),
+  A = "zero",
+  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
+)
+
+# Fit model
+fit3 <- MARSS(y = dat_dep, model = mod_list3,
+                control = list(maxit = 5000), method = "BFGS")
+
+# fit3 <- MARSS(y = dat_dep, model = mod_list3,
+#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_test_run/fit_120221_1state.rds")
 
 #### Plotting Results ####
 
