@@ -366,9 +366,9 @@ mod_list2 <- list(
 # not using fire for now to simplify
 # Make covariate inputs
 dat_nh4 <- dat_nh4 %>%
-  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02)/8)
+  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02 + cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/16)
          
-dat_cov3 <- dat_nh4[,c(3:4,34)]
+dat_cov3 <- dat_nh4[,c(2:3,36)]
 dat_cov3 <- t(scale(dat_cov3))
 
 CC3 <- matrix(list("Season1", "Season2", "c_precip_avg"),1,3)
@@ -381,7 +381,7 @@ mod_list3 <- list(
   C = CC3, # see new matrix above
   c = dat_cov3, # we should probably de-mean and scale covariates to units of sd 
   Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
-  Z = matrix(1, nrow = 8, ncol = 1),
+  Z = matrix(1, nrow = 16, ncol = 1),
   A = "zero",
   R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
 )
@@ -394,7 +394,7 @@ fit3 <- MARSS(y = dat_dep, model = mod_list3,
 #              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
 # export model fit
-saveRDS(fit, file = "data_working/marss_test_run/fit_120221_1state.rds")
+saveRDS(fit3, file = "data_working/marss_test_run/fit_120321_1state.rds")
 
 #### Plotting Results ####
 
