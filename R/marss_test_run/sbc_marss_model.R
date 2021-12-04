@@ -335,6 +335,13 @@ saveRDS(fit, file = "data_working/marss_test_run/fit_120321_16states.rds")
 
 #### Scenario 2 : catchments in two ecoregions #### 
 # not using fire for now to simplify
+# Make covariate inputs
+dat_nh4 <- dat_nh4 %>%
+  mutate(c_precip_SB = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02)/8,
+         c_precip_NM = (cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/8)
+
+dat_cov2 <- dat_nh4[,c(2:3,37:38)]
+dat_cov2 <- t(scale(dat_cov2))
 
 CC2 <- matrix(list("Season1", "Season1",
                    "Season2", "Season2",
@@ -361,6 +368,15 @@ mod_list2 <- list(
   R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
 )
 
+# Fit model
+fit2 <- MARSS(y = dat_dep, model = mod_list2,
+              control = list(maxit = 5000), method = "BFGS")
+
+# fit2 <- MARSS(y = dat_dep, model = mod_list2,
+#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+saveRDS(fit2, file = "data_working/marss_test_run/fit_120321_2states.rds")
 
 #### Scenario 3 : all catchments in a single state #### 
 # not using fire for now to simplify
