@@ -24,7 +24,15 @@
 # The following site may be added later, but a longer precipitation record needs to be
 # identified for them - Bell Canyon (BC02).
 
-# Add info for Valles Caldera sites here...
+# See "data_raw/VCNP_sonde_site_codes_names.csv" for other possible site names used across other files (E.g., sonde data, GIS, etc.)
+# "Redondo Creek" ~ "RED",
+# "East Fork Jemez River" ~ "EFJ",
+# "San Antonio - West" ~ "RSAW",
+# "San Antonio Creek - Toledo" ~ "RSA",
+# "Indios Creek" ~ "IND",
+# "Indios Creek - Post Fire (Below Burn)" ~ "IND_BB",
+# "Indios Creek - above burn" ~ "IND_AB",
+# "Sulfur Creek" ~ "SULF",
 
 #### Setup ####
 
@@ -40,14 +48,14 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
 # Load datasets
 # Stream Chemistry - all sites
-chem <- readRDS("data_working/SBchem_edited_110721.rds")
+chem <- readRDS("data_working/SBchem_edited_120321.rds")
 # chem_nm <- readRDS("data_working/VCNPchem_edited_110821.rds") - use firechem below
 # Precipitation - all sites
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_110321.rds")
 # Fire Events - all sites
 fire <- readRDS("data_working/SBfire_edited_111721.rds")
-firechem_nm <- readRDS("data_working/VCNPfire_edited_11151021.rds")
+firechem_nm <- readRDS("data_working/VCNPfire_edited_120521.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 location_nm <- read_csv("data_raw/VCNP_sonde_site_codes_names.csv")
@@ -154,6 +162,7 @@ firechem_nm_monthly <- firechem_nm_ed2 %>%
   summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE),
             mean_no3_uM = mean(no3_uM, na.rm = TRUE),
             mean_po4_uM = mean(po4_uM, na.rm = TRUE),
+            mean_cond_uScm = mean(mean_cond_uScm, na.rm = TRUE),
             LasConchas = mean(LasConchas, na.rm = TRUE),
             ThompsonRidge = mean(ThompsonRidge, na.rm = TRUE)) %>%
   ungroup()
@@ -188,9 +197,15 @@ firechem_nm_monthly %>%
   theme_bw() +
   theme(legend.position = "none")
 
+# remove data with no matching site codes (these are extra samples like:
+  # "Redondo Creek (below Meadow, very low & often running subsurface, not flowing past exclosures, did not sample when too dry in 2014)"
+  # "San Antonio Creek - Flood Water Post Fire"
+  # "San Antonio Creek- Flood Water")
+firechem_nm_monthly = firechem_nm_monthly[!is.na(firechem_nm_monthly$sitecode_match),]
+
 dat_nm_trim <- dat_nm %>%
   filter(datetimeMT > "2005-06-01") %>%
-  filter(datetimeMT < "2019-05-01") %>%
+  filter(datetimeMT < "2019-04-01") %>%
   group_by(ID) %>%
   arrange(datetimeMT, .by_group = TRUE) %>%
   ungroup()
@@ -221,17 +236,18 @@ dat_nm_trim <- dat_nm_trim %>%
 # For the AGU presentation, I'll be joining a subset of the full dataset, although
 # we'll eventually need to figure out the formatting of the fire data here.
 dat_nm_select <- dat_nm_trim %>%
-  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, Season1, Season2, index) %>%
+  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
   mutate(region = "VC")
 
 dat_select <- dat %>%
-  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, Season1, Season2, index) %>%
+  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
   mutate(region = "SB")
 
 dat_agu <- rbind(dat_select, dat_nm_select)
 
 # exporting just to save my progress
-saveRDS(dat_agu, "data_working/marss_data_sb_vc_120321.rds")
+#saveRDS(dat_agu, "data_working/marss_data_sb_vc_120421.rds")
+saveRDS(dat_agu, "data_working/marss_data_sb_vc_120521.rds")
 
 #### Model fit ####
 
@@ -258,42 +274,69 @@ dat_nh4 <- dat_agu %>%
          mean_nh4_uM_AB00, mean_nh4_uM_AT07, mean_nh4_uM_GV01, mean_nh4_uM_HO00, mean_nh4_uM_MC06, mean_nh4_uM_RG01, mean_nh4_uM_RS02, mean_nh4_uM_SP02, mean_nh4_uM_EFJ, mean_nh4_uM_IND, mean_nh4_uM_IND_AB, mean_nh4_uM_IND_BB, mean_nh4_uM_RED, mean_nh4_uM_RSA, mean_nh4_uM_RSAW, mean_nh4_uM_SULF,
          cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF)
 
-par(mfrow=c(2,1))
-plot(dat_nh4$mean_nh4_uM_HO00, type="b")
-plot(dat_nh4$mean_nh4_uM_RG01, type="b")
-par(mfrow=c(1,1))
+dat_nh4[is.nan(dat_nh4)] <- NA
+
+# log transform  response var
+# Note that I cannot scale becasue IND has no variation
+names(dat_nh4)
+dat_nh4_log = dat_nh4
+dat_nh4_log[,4:19] = log10(dat_nh4_log[,4:19])
+#dat_nh4_log_scale[,4:19] = scale(dat_nh4_log_scale[,4:19])
+sum(is.nan(dat_nh4_log[,4:19]))
+sum(is.na(dat_nh4_log[,4:19]))
+range(dat_nh4_log[,4:19], na.rm = T)
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_nh4_log$mean_nh4_uM_AB00, type="o")
+plot(dat_nh4_log$mean_nh4_uM_AT07, type="o")
+plot(dat_nh4_log$mean_nh4_uM_GV01, type="o")
+plot(dat_nh4_log$mean_nh4_uM_HO00, type="o")
+plot(dat_nh4_log$mean_nh4_uM_MC06, type="o")
+plot(dat_nh4_log$mean_nh4_uM_RG01, type="o")
+plot(dat_nh4_log$mean_nh4_uM_RS02, type="o")
+plot(dat_nh4_log$mean_nh4_uM_SP02, type="o")
+plot(dat_nh4_log$mean_nh4_uM_EFJ, type="o")
+plot(dat_nh4_log$mean_nh4_uM_IND, type="o")
+plot(dat_nh4_log$mean_nh4_uM_IND_AB, type="o")
+plot(dat_nh4_log$mean_nh4_uM_IND_BB, type="o")
+plot(dat_nh4_log$mean_nh4_uM_RED, type="o")
+plot(dat_nh4_log$mean_nh4_uM_RSA, type="o")
+plot(dat_nh4_log$mean_nh4_uM_RSAW, type="o")
+plot(dat_nh4_log$mean_nh4_uM_SULF, type="o")
   
 # Pull out only NH4 data
-dat_dep <- t(dat_nh4[,4:19])
+dat_dep <- t(dat_nh4_log[,4:19])
+# w/o IND sites:
+#dat_dep <- t(dat_nh4_log[,c(4:12,16:19)])
 
 # Make covariate inputs
-dat_cov <- dat_nh4[,c(2:3,20:35)]
+dat_cov <- dat_nh4_log[,c(2:3,20:35)]
+# w/o IND sites:
+#dat_cov <- dat_nh4_log[,c(2:3,20:28,32:35)]
 dat_cov <- t(scale(dat_cov))
-
-# Replace NaNs with 0, which don't play nice with the scale()
-# dat_cov[is.nan(dat_cov)] <- 0
 
 # make C matrix
 # this matrix controls what covars predict what response vars; in contrast to...
 # unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars.
-CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1",
-                  "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2",
-                  "AB00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, "AT07_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, "GV01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, "HO00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, "MC06_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, "RG01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, "RS02_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, "SP02_precip", 0, 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, "EFJ_precip", 0, 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_precip", 0, 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_AB_precip", 0, 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_BB_precip", 0, 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RED_precip", 0, 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSA_precip", 0, 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_precip", 0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "SULF_precip"),16,18)
+# CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1",
+#                   "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2",
+#                   "AB00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, "AT07_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, "GV01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, "HO00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, "MC06_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, "RG01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, "RS02_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, "SP02_precip", 0, 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, "EFJ_precip", 0, 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_precip", 0, 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_AB_precip", 0, 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_BB_precip", 0, 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RED_precip", 0, 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSA_precip", 0, 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_precip", 0,
+#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "SULF_precip"),16,18)
                   # "AB00_Tea_fire", 0, 0, 0, 0, 0, 0, 0,
                   # "AB00_Jesusita_fire", 0, 0, 0, 0, 0, 0, 0,
                   # 0, "AT07_Jesusita_fire", 0, 0, 0, 0, 0, 0,
@@ -307,19 +350,45 @@ CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season
                   # 0, 0, 0, 0, 0, 0, "RS01_Tea_fire", 0,
                   # 0, 0, 0, 0, 0, 0, "RS01_Jesusita_fire", 0,
                   # 0, 0, 0, 0, 0, 0, 0, "SP02_Gap_fire"
+
+CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1","Season1","Season1","Season1",
+                 "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2","Season2","Season2","Season2",
+                  "AB00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0, 
+                  0, "AT07_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
+                  0, 0, "GV01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
+                  0, 0, 0, "HO00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
+                  0, 0, 0, 0, "MC06_precip", 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
+                  0, 0, 0, 0, 0, "RG01_precip", 0, 0, 0, 0, 0, 0, 0,0,0,0,
+                  0, 0, 0, 0, 0, 0, "RS02_precip", 0, 0, 0, 0, 0, 0,0,0,0,
+                  0, 0, 0, 0, 0, 0, 0, "SP02_precip", 0, 0, 0, 0, 0,0,0,0,
+                  0, 0, 0, 0, 0, 0, 0, 0, "EFJ_precip" , 0, 0, 0, 0,0,0,0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_precip" , 0, 0, 0,0,0,0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_AB_precip", 0,0,0,0,0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_BB_precip",0,0,0,0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RED_precip",0,0,0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSA_precip",0,0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_precip",0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,"SULF_precip"),16,18)
                   
 #### Scenario 1 : all catchments are separate states #### 
 # Model setup
 mod_list <- list(
-  # tinitx = "zero", # setting initial state value to time = 0
+  ### inputs to process model ###
   B = "diagonal and unequal",
-  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
-  C = CC, # see Alex's matrix above
-  c = dat_cov, # we should probably de-mean and scale covariates to units of sd 
-  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
-  Z = "identity", # identity: estimated state processes are unique to each site
-  A = "zero",
-  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
 )
 
 # Fit model
@@ -327,152 +396,39 @@ fit <- MARSS(y = dat_dep, model = mod_list,
                 control = list(maxit = 5000), method = "BFGS")
 # see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
 
-# fit <- MARSS(y = dat_dep, model = mod_list,
-#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
 # export model fit
-saveRDS(fit, file = "data_working/marss_test_run/fit_120321_16states.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120321_16states.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120421_16states.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120421_13states.rds")
 
-#### Scenario 2 : catchments in two ecoregions #### 
-# not using fire for now to simplify
-# Make covariate inputs
-dat_nh4 <- dat_nh4 %>%
-  mutate(c_precip_SB = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02)/8,
-         c_precip_NM = (cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/8)
 
-dat_cov2 <- dat_nh4[,c(2:3,37:38)]
-dat_cov2 <- t(scale(dat_cov2))
-
-CC2 <- matrix(list("Season1", "Season1",
-                   "Season2", "Season2",
-                   "c_precip_SB", 0,
-                   0, "c_precip_NM"),2,4)
-
-# Model setup
-mod_list2 <- list(
-  # tinitx = "zero", # setting initial state value to time = 0
-  B = "diagonal and unequal",
-  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
-  C = CC2, # see new matrix above
-  c = dat_cov2, # we should probably de-mean and scale covariates to units of sd 
-  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
-  Z = factor(c("SantaBarbara", "SantaBarbara",
-               "SantaBarbara", "SantaBarbara",
-               "SantaBarbara", "SantaBarbara",
-               "SantaBarbara", "SantaBarbara",
-               "VallesCaldera", "VallesCaldera",
-               "VallesCaldera", "VallesCaldera",
-               "VallesCaldera", "VallesCaldera",
-               "VallesCaldera", "VallesCaldera")),
-  A = "zero",
-  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
-)
-
-# Fit model
-fit2 <- MARSS(y = dat_dep, model = mod_list2,
-              control = list(maxit = 5000), method = "BFGS")
-
-# fit2 <- MARSS(y = dat_dep, model = mod_list2,
-#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
-
-# export model fit
-saveRDS(fit2, file = "data_working/marss_test_run/fit_120321_2states.rds")
-
-#### Scenario 3 : all catchments in a single state #### 
-# not using fire for now to simplify
-# Make covariate inputs
-dat_nh4 <- dat_nh4 %>%
-  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02 + cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/16)
-         
-dat_cov3 <- dat_nh4[,c(2:3,36)]
-dat_cov3 <- t(scale(dat_cov3))
-
-CC3 <- matrix(list("Season1", "Season2", "c_precip_avg"),1,3)
-
-# Model setup
-mod_list3 <- list(
-  # tinitx = "zero", # setting initial state value to time = 0
-  B = "diagonal and unequal",
-  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
-  C = CC3, # see new matrix above
-  c = dat_cov3, # we should probably de-mean and scale covariates to units of sd 
-  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
-  Z = matrix(1, nrow = 16, ncol = 1),
-  A = "zero",
-  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
-)
-
-# Fit model
-fit3 <- MARSS(y = dat_dep, model = mod_list3,
-                control = list(maxit = 5000), method = "BFGS")
-
-# fit3 <- MARSS(y = dat_dep, model = mod_list3,
-#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
-
-# export model fit
-saveRDS(fit3, file = "data_working/marss_test_run/fit_120321_1state.rds")
-
-#### Plotting Results ####
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ## check for hidden errors
 fit[["errors"]]
-# no hidden errors
+# lots of errors when IND sites were included, none when these were removed
 
 ### Plot coef and coef estimates ###
-
 ## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
-# non-parametric:
-#est = MARSSparamCIs(fit, method = "innovations", alpha = 0.05, nboot = 70, silent=F) 
-# ^ Errors were caught in MARSSboot :Innovations bootstrapping uses the innovations resampling and can only be done if there are no missing values in the data.
-# Error: Stopped in MARSSboot() due to problem(s) with function arguments.
-
-# parametric:
-est_fit = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 10, silent=F) # nboot should be ~ 2000 for final results
-# note - this code takes a while to run, so can import "CIs_fit_120121_R0.csv"
-# from the data_working/marss_test_run folder to bypass this and the 
-# next few steps
-
-# hessian method is much faster but not ideal for final results
-# est_fit = MARSSparamCIs(fit)
+saveRDS(est, "data_working/marss_test_run/CIs_120421_13states.rds")
 
 CIs_fit = cbind(
-  est_fit$par$U,
-  est_fit$par.lowCI$U,
-  est_fit$par.upCI$U)
+  est$par$U,
+  est$par.lowCI$U,
+  est$par.upCI$U)
 CIs_fit = as.data.frame(CIs_fit)
 names(CIs_fit) = c("Est.", "Lower", "Upper")
 CIs_fit$parm = rownames(CIs_fit)
 CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 
-## save CI table ##
-write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit_120121_R0.csv")
-
-# Creating quick panel plots of covariate data to try and diagnose
-# potential convergence issues:
-(nh4plot <- ggplot(dat, aes(x = date, y = mean_nh4_uM)) +
-  geom_point(aes(color = site)) +
-  labs(x = "Date",
-       y = "NH4+ (uM)") +
-  facet_wrap(.~site) +
-  theme_bw() +
-  theme(legend.position = "none"))
-
-(no3plot <- ggplot(dat, aes(x = date, y = mean_no3_uM)) +
-    geom_point(aes(color = site)) +
-    labs(x = "Date",
-         y = "NO3- (uM)") +
-    facet_wrap(.~site) +
-    theme_bw() +
-    theme(legend.position = "none"))
-
-(tssplot <- ggplot(dat, aes(x = date, y = mean_tss_mgL)) +
-    geom_point(aes(color = site)) +
-    labs(x = "Date",
-         y = "TSS (mg/L)") +
-    facet_wrap(.~site) +
-    theme_bw() +
-    theme(legend.position = "none"))
 
 ### Plot Results for All Sites ###
 
@@ -481,7 +437,7 @@ write_csv(CIs_fit, "data_working/marss_test_run/CIs_fit_120121_R0.csv")
 CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
 
 # Now to iterate over all sites
-my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02")
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -497,36 +453,26 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
   mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
                                              "AB00_precip", "AT07_precip", "GV01_precip",
                                              "HO00_precip", "MC06_precip", "RG01_precip",
-                                             "RS02_precip", "SP02_precip", "AB00_Tea_fire", 
-                                             "AB00_Jesusita_fire", "AT07_Jesusita_fire",
-                                             "GV01_Gaviota_fire", "HO00_Gaviota_fire", 
-                                             "HO00_Sherpa_fire", "MC06_Tea_fire", 
-                                             "MC06_Jesusita_fire", "RG01_Gaviota_fire", 
-                                             "RG01_Sherpa_fire", "RS01_Tea_fire", 
-                                             "RS01_Jesusita_fire", "SP02_Gap_fire")))
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
 
 # plot results
 (RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
-  geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
-  geom_point(position=position_dodge(width=0.3), size=2) + 
-  theme_bw()+
-  theme(plot.title = element_text(size = 8)) +
-  theme(axis.text = element_text(size = 8)) +
-  geom_hline(aes(yintercept=0), linetype="dashed")+
-  coord_flip() +
-  labs(y = "",
-       title = "NH4 MARSS modeling results - 12/1/2021") +
-  theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
-  facet_wrap(.~Site, scales = "free"))
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NH4 MARSS modeling results - 12/4/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
 
-# export figure
-# ggsave(("figures/MARSS_NH4_allsites_120121.png"),
-#        width = 30,
-#        height = 20,
-#        units = "cm"
-# )
 
-#### Script for diagnoses ####
+## Script for diagnoses ###
 
 dat = dat_dep
 time = c(1:ncol(dat_dep))
@@ -538,19 +484,21 @@ mod_list_null <- list(
   B = "diagonal and unequal",
   U = "zero", 
   Q = "diagonal and unequal", 
-  Z = "identity", 
+  Z = "identity",
   A = "zero",
   R = "zero" 
 )
 mod.null <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
 
 bbmle::AICtab(fit, mod.null)
 
 #           dAIC df
-# fit       0.0 47
-# mod.null  0.6 24
-# RESULT: covariate model is not different than null model =- suggests covars add little information
+# mod.null  0.0 39
+# fit       1.1 54
+# RESULT: 
 
 ### Do resids have temporal autocorrelation? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
@@ -624,5 +572,3091 @@ mtext("Trends in observed values vs residuals?", outer = TRUE, cex = 1.5)
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
-# End of script.
 
+#### Scenario 2 : catchments in two ecoregions #### 
+# not using fire for now to simplify
+# Make covariate inputs
+dat_nh4 <- dat_nh4 %>%
+  mutate(c_precip_SB = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02)/8,
+         c_precip_NM = (cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/8)
+
+dat_cov2 <- dat_nh4[,c(2:3,36:37)]
+dat_cov2 <- t(scale(dat_cov2))
+
+CC2 <- matrix(list("Season1", "Season1",
+                   "Season2", "Season2",
+                   "c_precip_SB", 0,
+                   0, "c_precip_NM"),2,4)
+
+# Model setup
+mod_list2 <- list(
+  # tinitx = "zero", # setting initial state value to time = 0
+  B = "diagonal and unequal",
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
+  C = CC2, # see new matrix above
+  c = dat_cov2, # we should probably de-mean and scale covariates to units of sd 
+  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
+  Z = factor(c("SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera", "VallesCaldera")),
+  A = "zero",
+  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
+)
+
+# Fit model
+fit2 <- MARSS(y = dat_dep, model = mod_list2,
+              control = list(maxit = 5000), method = "BFGS")
+
+# fit2 <- MARSS(y = dat_dep, model = mod_list2,
+#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+saveRDS(fit2, file = "data_working/marss_test_run/fit_120321_2states.rds")
+
+#### Scenario 3 : all catchments in a single state #### 
+# not using fire for now to simplify
+# Make covariate inputs
+dat_nh4 <- dat_nh4 %>%
+  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02 + cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/16)
+         
+dat_cov3 <- dat_nh4[,c(2:3,36)]
+dat_cov3 <- t(scale(dat_cov3))
+
+CC3 <- matrix(list("Season1", "Season2", "c_precip_avg"),1,3)
+
+# Model setup
+mod_list3 <- list(
+  # tinitx = "zero", # setting initial state value to time = 0
+  B = "diagonal and unequal",
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
+  C = CC3, # see new matrix above
+  c = dat_cov3, # we should probably de-mean and scale covariates to units of sd 
+  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
+  Z = matrix(1, nrow = 16, ncol = 1),
+  A = "zero",
+  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
+)
+
+# Fit model
+fit3 <- MARSS(y = dat_dep, model = mod_list3,
+                control = list(maxit = 5000), method = "BFGS")
+
+# fit3 <- MARSS(y = dat_dep, model = mod_list3,
+#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+saveRDS(fit3, file = "data_working/marss_test_run/fit_120321_1state.rds")
+
+#### NO3 ####
+# Going to use NO3 to add one catchment at a time to see what's going on with model fit
+# And to simplify, for the AGU talk, taking out the fire variables for now
+
+dat_no3 <- dat_agu %>%
+  select(site, index, Season1, Season2, 
+         mean_no3_uM, cumulative_precip_mm) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_no3_uM, cumulative_precip_mm)) %>%
+  select(index, Season1, Season2, 
+         mean_no3_uM_AB00, mean_no3_uM_AT07, mean_no3_uM_GV01, mean_no3_uM_HO00, mean_no3_uM_MC06, mean_no3_uM_RG01, mean_no3_uM_RS02, mean_no3_uM_SP02, mean_no3_uM_EFJ, mean_no3_uM_IND, mean_no3_uM_IND_AB, mean_no3_uM_IND_BB, mean_no3_uM_RED, mean_no3_uM_RSA, mean_no3_uM_RSAW, mean_no3_uM_SULF,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF)
+
+dat_no3[is.nan(dat_no3)] <- NA
+
+# log and scale transform response var
+names(dat_no3)
+dat_no3_log = dat_no3
+dat_no3_log[,4:19] = log10(dat_no3_log[,4:19])
+dat_no3_log[,4:19] = scale(dat_no3_log[,4:19])
+sum(is.nan(dat_no3_log[,4:19]))
+sum(is.na(dat_no3_log[,4:19]))
+range(dat_no3_log[,4:19], na.rm = T)
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_no3_log$mean_no3_uM_AB00, type="o")
+plot(dat_no3_log$mean_no3_uM_AT07, type="o")
+plot(dat_no3_log$mean_no3_uM_GV01, type="o")
+plot(dat_no3_log$mean_no3_uM_HO00, type="o")
+plot(dat_no3_log$mean_no3_uM_MC06, type="o")
+plot(dat_no3_log$mean_no3_uM_RG01, type="o")
+plot(dat_no3_log$mean_no3_uM_RS02, type="o")
+plot(dat_no3_log$mean_no3_uM_SP02, type="o")
+plot(dat_no3_log$mean_no3_uM_EFJ, type="o")
+plot(dat_no3_log$mean_no3_uM_IND, type="o")
+plot(dat_no3_log$mean_no3_uM_IND_AB, type="o")
+plot(dat_no3_log$mean_no3_uM_IND_BB, type="o")
+plot(dat_no3_log$mean_no3_uM_RED, type="o")
+plot(dat_no3_log$mean_no3_uM_RSA, type="o")
+plot(dat_no3_log$mean_no3_uM_RSAW, type="o")
+plot(dat_no3_log$mean_no3_uM_SULF, type="o")
+
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_no3$mean_no3_uM_AB00, type="o")
+plot(dat_no3$mean_no3_uM_AT07, type="o")
+plot(dat_no3$mean_no3_uM_GV01, type="o")
+plot(dat_no3$mean_no3_uM_HO00, type="o")
+plot(dat_no3$mean_no3_uM_MC06, type="o")
+plot(dat_no3$mean_no3_uM_RG01, type="o")
+plot(dat_no3$mean_no3_uM_RS02, type="o")
+plot(dat_no3$mean_no3_uM_SP02, type="o")
+plot(dat_no3$mean_no3_uM_EFJ, type="o")
+plot(dat_no3$mean_no3_uM_IND, type="o")
+plot(dat_no3$mean_no3_uM_IND_AB, type="o")
+plot(dat_no3$mean_no3_uM_IND_BB, type="o")
+plot(dat_no3$mean_no3_uM_RED, type="o")
+plot(dat_no3$mean_no3_uM_RSA, type="o")
+plot(dat_no3$mean_no3_uM_RSAW, type="o")
+plot(dat_no3$mean_no3_uM_SULF, type="o")
+
+
+#### Scenario 1 : all catchments are separate states - 1 catchment #### 
+
+# Pull out only response var
+#dat_dep <- t(dat_nh4_log[,4:19])
+# w/o IND sites:
+#dat_dep <- t(dat_no3_log[,c(4:12,16:19)])
+# starting with HO00
+dat_dep <- t(dat_no3_log[,c(7)])
+
+# Make covariate inputs
+#dat_cov <- dat_nh4_log[,c(2:3,20:35)]
+# w/o IND sites:
+# dat_cov <- dat_nh4_log[,c(2:3,20:28,32:35)]
+# starting with HO00
+dat_cov <- dat_no3_log[,c(2:3,23)]
+dat_cov <- t(scale(dat_cov))
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", 
+                  "Season2", 
+                  "HO00_precip"),1,3)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_HO00_EM.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_HO00_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit      0.0  6 
+# mod.null 0.1  3 
+# RESULT: models are equivelent 
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+forecast::Acf(resids$model.residuals[1,], main="1 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[1,], main="1 state residuals", na.action=na.pass, lag.max = 24)
+mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+
+### Do resids have temporal trend? ###
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+plot(resids$model.residuals[1,], ylab="model residual", xlab="", main="1 model residuals")
+abline(h=0)
+plot(resids$state.residuals[1,], ylab="state residual", xlab="", main="1 state residuals")
+abline(h=0)
+# plot(resids$model.residuals[2,], ylab="model residual", xlab="", main="RC01 model residuals")
+# abline(h=0)
+# plot(resids$state.residuals[2,], ylab="state residual", xlab="", main="RC01 state residuals")
+# abline(h=0)
+mtext("Do resids have temporal trend?", outer = TRUE, cex = 1.5)
+
+### Are resids normal? ###
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+qqnorm(resids$model.residuals[1,], main="1 model residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[1,])[1]))
+qqline(resids$model.residuals[1,])
+qqnorm(resids$state.residuals[1,], main="1 state residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
+qqline(resids$state.residuals[1,])
+# qqnorm(resids$model.residuals[2,], main="2 model residuals", pch=16, 
+#        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+# qqline(resids$model.residuals[2,])
+# qqnorm(resids$state.residuals[2,], main="3 state residuals", pch=16, 
+#        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+# qqline(resids$state.residuals[2,])
+mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 1 catchment #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00
+dat_dep <- t(dat_no3_log[,c(4)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", 
+                  "Season2", 
+                  "AB00_precip"),1,3)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit      0.0  6 
+# mod.null 4.4  3 
+# RESULT: covar model is better than null
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+forecast::Acf(resids$model.residuals[1,], main="1 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[1,], main="1 state residuals", na.action=na.pass, lag.max = 24)
+mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+
+### Do resids have temporal trend? ###
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+plot(resids$model.residuals[1,], ylab="model residual", xlab="", main="1 model residuals")
+abline(h=0)
+plot(resids$state.residuals[1,], ylab="state residual", xlab="", main="1 state residuals")
+abline(h=0)
+# plot(resids$model.residuals[2,], ylab="model residual", xlab="", main="RC01 model residuals")
+# abline(h=0)
+# plot(resids$state.residuals[2,], ylab="state residual", xlab="", main="RC01 state residuals")
+# abline(h=0)
+mtext("Do resids have temporal trend?", outer = TRUE, cex = 1.5)
+
+### Are resids normal? ###
+par(mfrow=c(1,2),oma = c(0, 0, 2, 0))
+qqnorm(resids$model.residuals[1,], main="1 model residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[1,])[1]))
+qqline(resids$model.residuals[1,])
+qqnorm(resids$state.residuals[1,], main="1 state residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
+qqline(resids$state.residuals[1,])
+# qqnorm(resids$model.residuals[2,], main="2 model residuals", pch=16, 
+#        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+# qqline(resids$model.residuals[2,])
+# qqnorm(resids$state.residuals[2,], main="3 state residuals", pch=16, 
+#        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+# qqline(resids$state.residuals[2,])
+mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 2 catchments #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", 
+                  "Season2", "Season2", 
+                  "AB00_precip",0,
+                  0,"AT07_precip"),2,4)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit       0.0 10
+# mod.null 14.7 6 
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(2,1),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+forecast::Acf(resids$model.residuals[1,], main="1 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[1,], main="1 state residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$model.residuals[2,], main="2 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[2,], main="2 state residuals", na.action=na.pass, lag.max = 24)
+mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+
+### Do resids have temporal trend? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+plot(resids$model.residuals[1,], ylab="model residual", xlab="", main="1 model residuals")
+abline(h=0)
+plot(resids$state.residuals[1,], ylab="state residual", xlab="", main="1 state residuals")
+abline(h=0)
+plot(resids$model.residuals[2,], ylab="model residual", xlab="", main="2 model residuals")
+abline(h=0)
+plot(resids$state.residuals[2,], ylab="state residual", xlab="", main="2 state residuals")
+abline(h=0)
+mtext("Do resids have temporal trend?", outer = TRUE, cex = 1.5)
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+qqnorm(resids$model.residuals[1,], main="1 model residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[1,])[1]))
+qqline(resids$model.residuals[1,])
+qqnorm(resids$state.residuals[1,], main="1 state residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
+qqline(resids$state.residuals[1,])
+qqnorm(resids$model.residuals[2,], main="2 model residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+qqline(resids$model.residuals[2,])
+qqnorm(resids$state.residuals[2,], main="2 state residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+qqline(resids$state.residuals[2,])
+mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 3 catchments #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1", 
+                  "Season2", "Season2", "Season2", 
+                  "AB00_precip",0, 0,
+                  0,"AT07_precip",0,
+                  0,0,"GV01_precip"),3,5)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit       0.0 14
+# mod.null 74.9 9 
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(3,1),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(3,2),oma = c(0, 0, 2, 0))
+forecast::Acf(resids$model.residuals[1,], main="1 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[1,], main="1 state residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$model.residuals[2,], main="2 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[2,], main="2 state residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$model.residuals[2,], main="3 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[2,], main="3 state residuals", na.action=na.pass, lag.max = 24)
+mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+
+### Are resids normal? ###
+par(mfrow=c(3,2),oma = c(0, 0, 2, 0))
+qqnorm(resids$model.residuals[1,], main="1 model residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[1,])[1]))
+qqline(resids$model.residuals[1,])
+qqnorm(resids$state.residuals[1,], main="1 state residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
+qqline(resids$state.residuals[1,])
+#
+qqnorm(resids$model.residuals[2,], main="2 model residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+qqline(resids$model.residuals[2,])
+qqnorm(resids$state.residuals[2,], main="2 state residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+qqline(resids$state.residuals[2,])
+#
+qqnorm(resids$model.residuals[3,], main="2 model residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+qqline(resids$model.residuals[3,])
+qqnorm(resids$state.residuals[3,], main="2 state residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+qqline(resids$state.residuals[3,])
+mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 4 catchments #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", 
+                  "AB00_precip",0, 0, 0,
+                  0,"AT07_precip",0,0,
+                  0,0,"GV01_precip",0,
+                  0,0,0,"HO00_precip"),4,6)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit       0   18
+# mod.null 78   12
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,1),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+forecast::Acf(resids$model.residuals[1,], main="1 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[1,], main="1 state residuals", na.action=na.pass, lag.max = 24)
+#
+forecast::Acf(resids$model.residuals[2,], main="2 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[2,], main="2 state residuals", na.action=na.pass, lag.max = 24)
+#
+forecast::Acf(resids$model.residuals[3,], main="3 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[3,], main="3 state residuals", na.action=na.pass, lag.max = 24)
+#
+forecast::Acf(resids$model.residuals[4,], main="4 model residuals", na.action=na.pass, lag.max = 24)
+forecast::Acf(resids$state.residuals[4,], main="4 state residuals", na.action=na.pass, lag.max = 24)
+#
+mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+
+### Are resids normal? ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+qqnorm(resids$model.residuals[1,], main="1 model residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[1,])[1]))
+qqline(resids$model.residuals[1,])
+qqnorm(resids$state.residuals[1,], main="1 state residuals", pch=16, 
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
+qqline(resids$state.residuals[1,])
+#
+qqnorm(resids$model.residuals[2,], main="2 model residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+qqline(resids$model.residuals[2,])
+qqnorm(resids$state.residuals[2,], main="2 state residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+qqline(resids$state.residuals[2,])
+#
+qqnorm(resids$model.residuals[3,], main="3 model residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+qqline(resids$model.residuals[3,])
+qqnorm(resids$state.residuals[3,], main="3 state residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+qqline(resids$state.residuals[3,])
+#
+qqnorm(resids$model.residuals[4,], main="4 model residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
+qqline(resids$model.residuals[4,])
+qqnorm(resids$state.residuals[4,], main="4 state residuals", pch=16,
+       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
+qqline(resids$state.residuals[4,])
+mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 5 catchments #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", 
+                  "AB00_precip",0, 0, 0,0,
+                  0,"AT07_precip",0,0,0,
+                  0,0,"GV01_precip",0,0,
+                  0,0,0,"HO00_precip",0,
+                  0,0,0,0,"MC06_precip"),5,7)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit       0.0 22
+# mod.null 80.3 15
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(5,1),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:5)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:5)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+         pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 6 catchments #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8,9)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24,25)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", 
+                  "AB00_precip",0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,
+                  0,0,0,"HO00_precip",0,0,
+                  0,0,0,0,"MC06_precip",0,
+                  0,0,0,0,0,"RG01_precip"),6,8)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit        0.0 26
+# mod.null 102.3 18
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(3,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:6)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:6)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+         pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 7 catchments #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8,9,10)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24,25,26)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", 
+                  "AB00_precip",0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,
+                  0,0,0,0,0,"RG01_precip",0,
+                  0,0,0,0,0,0,"RS02_precip"),7,9)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM.rds")
+
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit        0.0 30
+# mod.null 155.3 21
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:7)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:7)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+         pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+
+#### Scenario 1 : all catchments are separate states - 8 catchments ***ADDING SP02 IS WHERE MODEL FIT BREAKS DOWN*** #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8,9,10,11)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24,25,26,27)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", "Season2", 
+                  "AB00_precip",0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,
+                  0,0,0,0,0,0,0,"SP02_precip"),8,10)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM.rds")
+
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+#***************** SP02 IS WHERE THE HESSIAN METHOD BREAKS DOWN!!! *********************
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM_hessian.rds") ****** NOT SAVED *******
+
+
+#### Scenario 1 : all catchments are separate states - 8 catchments ***ADDING EFJ WORKS BUT THE DATA & RESIDS NOT GREAT #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8,9,10,12)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24,25,26,28)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", "Season2", 
+                  "AB00_precip",0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,
+                  0,0,0,0,0,0,0,"EFJ_precip"),8,10)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM.rds")
+
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+#***************** SP02 IS WHERE THE HESSIAN METHOD BREAKS DOWN!!! *********************
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM_hessian.rds") ****** NOT SAVED *******
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit        0.0 34
+# mod.null 154.2 24
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:8)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:8)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+         pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+#************************** EFJ has worst normality in residuals than most - the data has very little variation in it
+
+#### Scenario 1 : all catchments are separate states - 8 catchments ***ADDING RED WORKS BUT THE DATA & RESIDS NOT GREAT #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8,9,10,16)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24,25,26,32)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", "Season2", 
+                  "AB00_precip",0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,
+                  0,0,0,0,0,0,0,"RED_precip"),8,10)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+#***************** SP02 IS WHERE THE HESSIAN METHOD BREAKS DOWN!!! *********************
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM_hessian.rds") ****** NOT SAVED *******
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit        0.0 34
+# mod.null 156.3 24
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:8)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:8)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+         pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+#************************** RED has worst normality in residuals than most - the data has very little variation in it
+
+#### Scenario 1 : all catchments are separate states - 8 catchments ***ADDING SULF WORKS BUT THE DATA & RESIDS NOT GREAT #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00, AT07
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8,9,10,19)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24,25,26,
+                          35)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", "Season2", 
+                  "AB00_precip",0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,
+                  0,0,0,0,0,0,0,"SULF_precip"),8,10)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#              control = list(maxit = 5000), method = "BFGS")
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SULF_EM.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+#***************** SP02 IS WHERE THE HESSIAN METHOD BREAKS DOWN!!! *********************
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM_hessian.rds") ****** NOT SAVED *******
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SULF_EM_hessian.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
+# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
+#                    control = list(maxit = 5000), method = "BFGS")
+
+bbmle::AICtab(fit, mod.null)
+
+#           dAIC df
+# fit        0.0 34
+# mod.null 157.1 24
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:8)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:3,5:8)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+         pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+#************************** SULF has worst normality in residuals than most - the data has very little variation in it
+
+#### Scenario 1 : all catchments are separate states - 12 catchments ***Runs with BFGS+priors, but NM data&resids are shit  #### 
+
+# Pull out only response var
+names(dat_no3_log)
+# AB00,AT07,GV01,HO00,MC06,RG01,RS02,
+#  EFJ, RED, RSA,RSAW,SULF
+dat_dep <- t(dat_no3_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_no3_log[,c(2:3,
+                          20,21,22,23,24,25,26,28,32,33,34,35)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", "Season1", "Season1", "Season1", "Season1", "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", "Season2","Season2","Season2","Season2","Season2", 
+                  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,
+                  0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,
+                  0,0,0,0,0,0,0,0,"RED_precip",0,0,0,
+                  0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,
+                  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,
+                  0,0,0,0,0,0,0,0,0,0,0,"SULF_precip"),12,14)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_12state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_BFGS.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+#***************** SP02 IS WHERE THE HESSIAN METHOD BREAKS DOWN!!! *********************
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM_hessian.rds") ****** NOT SAVED *******
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM_hessian.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_12state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_BFGS.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+             control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#           dAIC df
+# fit        0.0 50
+# null.fit 162.7 36
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+  #        pch=16, 
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  # qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+#************************** all the NM sites have terrible residuals, likely bc there is so little variation in the data and so many below detection values
+
+#### po4 ####
+
+dat_po4 <- dat_agu %>%
+  select(site, index, Season1, Season2, 
+         mean_po4_uM, cumulative_precip_mm) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_po4_uM, cumulative_precip_mm)) %>%
+  select(index, Season1, Season2, 
+         mean_po4_uM_AB00, mean_po4_uM_AT07, mean_po4_uM_GV01, mean_po4_uM_HO00, mean_po4_uM_MC06, mean_po4_uM_RG01, mean_po4_uM_RS02, mean_po4_uM_SP02, mean_po4_uM_EFJ, mean_po4_uM_IND, mean_po4_uM_IND_AB, mean_po4_uM_IND_BB, mean_po4_uM_RED, mean_po4_uM_RSA, mean_po4_uM_RSAW, mean_po4_uM_SULF,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF)
+
+dat_po4[is.nan(dat_po4)] <- NA
+
+# log and scale transform response var
+names(dat_po4)
+dat_po4_log = dat_po4
+dat_po4_log[,4:19] = log10(dat_po4_log[,4:19])
+dat_po4_log[,4:19] = scale(dat_po4_log[,4:19])
+sum(is.nan(dat_po4_log[,4:19]))
+sum(is.na(dat_po4_log[,4:19]))
+range(dat_po4_log[,4:19], na.rm = T)
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_po4_log$mean_po4_uM_AB00, type="o")
+plot(dat_po4_log$mean_po4_uM_AT07, type="o")
+plot(dat_po4_log$mean_po4_uM_GV01, type="o")
+plot(dat_po4_log$mean_po4_uM_HO00, type="o")
+plot(dat_po4_log$mean_po4_uM_MC06, type="o")
+plot(dat_po4_log$mean_po4_uM_RG01, type="o")
+plot(dat_po4_log$mean_po4_uM_RS02, type="o")
+plot(dat_po4_log$mean_po4_uM_SP02, type="o")
+plot(dat_po4_log$mean_po4_uM_EFJ, type="o")
+plot(dat_po4_log$mean_po4_uM_IND, type="o")
+plot(dat_po4_log$mean_po4_uM_IND_AB, type="o")
+plot(dat_po4_log$mean_po4_uM_IND_BB, type="o")
+plot(dat_po4_log$mean_po4_uM_RED, type="o")
+plot(dat_po4_log$mean_po4_uM_RSA, type="o")
+plot(dat_po4_log$mean_po4_uM_RSAW, type="o")
+plot(dat_po4_log$mean_po4_uM_SULF, type="o")
+# there are only a few data points in most of the NM sites
+
+#### mean_cond_uScm ####
+
+dat_cond <- dat_agu %>%
+  select(site, index, Season1, Season2, 
+         mean_cond_uScm, cumulative_precip_mm) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_cond_uScm, cumulative_precip_mm)) %>%
+  select(index, Season1, Season2, 
+         mean_cond_uScm_AB00, mean_cond_uScm_AT07, mean_cond_uScm_GV01, mean_cond_uScm_HO00, mean_cond_uScm_MC06, mean_cond_uScm_RG01, mean_cond_uScm_RS02, mean_cond_uScm_SP02, mean_cond_uScm_EFJ, mean_cond_uScm_IND, mean_cond_uScm_IND_AB, mean_cond_uScm_IND_BB, mean_cond_uScm_RED, mean_cond_uScm_RSA, mean_cond_uScm_RSAW, mean_cond_uScm_SULF,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF)
+
+dat_cond[is.nan(dat_cond)] <- NA
+
+# log and scale transform response var
+names(dat_cond)
+dat_cond_log = dat_cond
+dat_cond_log[,4:19] = log10(dat_cond_log[,4:19])
+dat_cond_log[,4:19] = scale(dat_cond_log[,4:19])
+sum(is.nan(dat_cond_log[,4:19]))
+sum(is.na(dat_cond_log[,4:19]))
+range(dat_cond_log[,4:19], na.rm = T)
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_cond_log$mean_cond_uScm_AB00, type="o")
+plot(dat_cond_log$mean_cond_uScm_AT07, type="o")
+plot(dat_cond_log$mean_cond_uScm_GV01, type="o")
+plot(dat_cond_log$mean_cond_uScm_HO00, type="o")
+plot(dat_cond_log$mean_cond_uScm_MC06, type="o")
+plot(dat_cond_log$mean_cond_uScm_RG01, type="o")
+plot(dat_cond_log$mean_cond_uScm_RS02, type="o")
+plot(dat_cond_log$mean_cond_uScm_SP02, type="o")
+plot(dat_cond_log$mean_cond_uScm_EFJ, type="o")
+plot(dat_cond_log$mean_cond_uScm_IND, type="o")
+plot(dat_cond_log$mean_cond_uScm_IND_AB, type="o")
+plot(dat_cond_log$mean_cond_uScm_IND_BB, type="o")
+plot(dat_cond_log$mean_cond_uScm_RED, type="o")
+plot(dat_cond_log$mean_cond_uScm_RSA, type="o")
+plot(dat_cond_log$mean_cond_uScm_RSAW, type="o")
+plot(dat_cond_log$mean_cond_uScm_SULF, type="o")
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_cond$mean_cond_uScm_AB00, type="o")
+plot(dat_cond$mean_cond_uScm_AT07, type="o")
+plot(dat_cond$mean_cond_uScm_GV01, type="o")
+plot(dat_cond$mean_cond_uScm_HO00, type="o")
+plot(dat_cond$mean_cond_uScm_MC06, type="o")
+plot(dat_cond$mean_cond_uScm_RG01, type="o")
+plot(dat_cond$mean_cond_uScm_RS02, type="o")
+plot(dat_cond$mean_cond_uScm_SP02, type="o")
+plot(dat_cond$mean_cond_uScm_EFJ, type="o")
+plot(dat_cond$mean_cond_uScm_IND, type="o")
+plot(dat_cond$mean_cond_uScm_IND_AB, type="o")
+plot(dat_cond$mean_cond_uScm_IND_BB, type="o")
+plot(dat_cond$mean_cond_uScm_RED, type="o")
+plot(dat_cond$mean_cond_uScm_RSA, type="o")
+plot(dat_cond$mean_cond_uScm_RSAW, type="o")
+plot(dat_cond$mean_cond_uScm_SULF, type="o")
+
+#### Scenario 1 : all catchments are separate states - 12 catchments  #### 
+
+# Pull out only response var
+names(dat_cond_log)
+# AB00,AT07,GV01,HO00,MC06,RG01,RS02,
+#  EFJ, RED, RSA,RSAW,SULF
+dat_dep <- t(dat_cond_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
+row.names(dat_dep)
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(2:3,
+                          20,21,22,23,24,25,26,28,32,33,34,35)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+
+#### make C matrix
+# starting with HO00
+CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", "Season1", "Season1", "Season1", "Season1", "Season1", 
+                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", "Season2","Season2","Season2","Season2","Season2", 
+                  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,
+                  0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,
+                  0,0,0,0,0,0,0,0,"RED_precip",0,0,0,
+                  0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,
+                  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,
+                  0,0,0,0,0,0,0,0,0,0,0,"SULF_precip"),12,14)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# # fit EM by itself
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_1state_AB00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_2state_AB00_AT07_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_3state_AB00_AT07_GV01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_4state_AB00_AT07_GV01_HO00_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_12state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_BFGS.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120521_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
+
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# lots of errors when IND sites were included, none when these were removed
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_1state_AB00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_2state_AB00_AT07_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_3state_AB00_AT07_GV01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_4state_AB00_AT07_GV01_HO00_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_5state_AB00_AT07_GV01_HO00_MC06_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_6state_AB00_AT07_GV01_HO00_MC06_RG01_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_7state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_SP02_EM_hessian.rds") ****** NOT SAVED *******
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM_hessian.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_12state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_BFGS.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip", 
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "SULF_precip")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 12/5/2021") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#           dAIC df
+# fit        0.0 50
+# null.fit 257.4 36
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+  #        pch=16, 
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  # qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+#************************** 
+
+#### Scenario 2 : catchments in two ecoregions #### 
+
+# Pull out only response var
+names(dat_cond_log)
+# AB00,AT07,GV01,HO00,MC06,RG01,RS02,
+#  EFJ, RED, RSA,RSAW,SULF
+dat_dep <- t(dat_cond_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
+row.names(dat_dep)
+
+# not using fire for now to simplify
+# Make covariate inputs
+dat_cond_log <- dat_cond_log %>%
+  mutate(c_precip_SB = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02)/8,
+         c_precip_NM = (cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/8)
+
+names(dat_cond_log)
+dat_cov2 <- dat_cond_log[,c(2:3,
+                            36:37)]
+dat_cov2 <- t(scale(dat_cov2))
+row.names(dat_cov2)
+
+CC2 <- matrix(list("Season1", "Season1",
+                   "Season2", "Season2",
+                   "c_precip_SB", 0,
+                   0, "c_precip_NM"),2,4)
+
+# Model setup
+mod_list2 <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  C = CC2, 
+  c = dat_cov2, 
+  Q = "diagonal and unequal",
+  Z = factor(c("SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "SantaBarbara", "SantaBarbara",
+               "SantaBarbara", 
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera", "VallesCaldera",
+               "VallesCaldera")),
+  A = "zero",
+  R = "zero"
+)
+
+# fit BFGS with priors
+kemfit2 <- MARSS(y = dat_dep, model = mod_list2,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+fit2 <- MARSS(y = dat_dep, model = mod_list2,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# # fit EM by itself
+# fit2 <- MARSS(y = dat_dep, model = mod_list2,
+#                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+
+# export model fit
+#saveRDS(fit2, file = "data_working/marss_test_run/fit_120321_2states.rds")
+
+#### Scenario 3 : all catchments in a single state #### 
+
+# Pull out only response var
+names(dat_cond_log)
+# AB00,AT07,GV01,HO00,MC06,RG01,RS02,
+#  EFJ, RED, RSA,RSAW,SULF
+dat_dep <- t(dat_cond_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
+row.names(dat_dep)
+
+# not using fire for now to simplify
+# Make covariate inputs
+dat_cond_log <- dat_cond_log %>%
+  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02 + cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/16)
+
+dat_cov3 <- dat_cond_log[,c(2:3,38)]
+dat_cov3 <- t(scale(dat_cov3))
+row.names(dat_cov3)
+
+CC3 <- matrix(list("Season1", "Season2", "c_precip_avg"),1,3)
+
+# Model setup
+mod_list3 <- list(
+  # tinitx = "zero", # setting initial state value to time = 0
+  B = "diagonal and unequal",
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
+  C = CC3, # see new matrix above
+  c = dat_cov3, # we should probably de-mean and scale covariates to units of sd 
+  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
+  Z = matrix(1, nrow = 16, ncol = 1),
+  A = "zero",
+  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
+)
+
+# Fit model
+fit3 <- MARSS(y = dat_dep, model = mod_list3,
+              control = list(maxit = 5000), method = "BFGS")
+
+# fit3 <- MARSS(y = dat_dep, model = mod_list3,
+#              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+# export model fit
+#saveRDS(fit3, file = "data_working/marss_test_run/fit_120321_1state.rds")
