@@ -163,8 +163,14 @@ firechem_nm_monthly <- firechem_nm_ed2 %>%
             mean_no3_uM = mean(no3_uM, na.rm = TRUE),
             mean_po4_uM = mean(po4_uM, na.rm = TRUE),
             mean_cond_uScm = mean(mean_cond_uScm, na.rm = TRUE),
-            LasConchas = mean(LasConchas, na.rm = TRUE),
-            ThompsonRidge = mean(ThompsonRidge, na.rm = TRUE)) %>%
+            RED_Thompson = mean(RED_Thompson, na.rm = TRUE),
+            EFJ_Thompson = mean(EFJ_Thompson, na.rm = TRUE),
+            EFJ_Conchas = mean(EFJ_Conchas, na.rm = TRUE),
+            RSAW_Thompson = mean(RSAW_Thompson, na.rm = TRUE),
+            RSAW_Conchas = mean(RSAW_Conchas, na.rm = TRUE),
+            RSA_Conchas = mean(RSA_Conchas, na.rm = TRUE),
+            IN_BB_Conchas = mean(IN_BB_Conchas, na.rm = TRUE),
+            SULF_Thompson = mean(SULF_Thompson, na.rm = TRUE)) %>%
   ungroup()
 
 # add year and month columns into the precip dataset
@@ -233,38 +239,48 @@ dat_nm_trim <- dat_nm_trim %>%
   rename(site = ID,
          date = datetimeMT)
 
-# # For the AGU presentation, I'll be joining a subset of the full dataset, although
-# # we'll eventually need to figure out the formatting of the fire data here.
-# dat_nm_select <- dat_nm_trim %>%
-#   select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
-#   mutate(region = "VC")
-# 
-# dat_select <- dat %>%
-#   select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
-#   mutate(region = "SB")
-# 
-# dat_agu <- rbind(dat_select, dat_nm_select)
-# 
-# # exporting just to save my progress
-# #saveRDS(dat_agu, "data_working/marss_data_sb_vc_120421.rds")
-# saveRDS(dat_agu, "data_working/marss_data_sb_vc_120521.rds")
-
 # Add fire covrs back in for the AGU presentation
 dat_nm_select <- dat_nm_trim %>%
   select(year, month, site, 
-         cumulative_precip_mm, LasConchas, ThompsonRidge, 
+         cumulative_precip_mm, 
+         RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IN_BB_Conchas, SULF_Thompson,
          mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
          Season1, Season2, index) %>%
-  mutate(region = "VC")
+  mutate(region = "VC") %>%
+  mutate(AB00_Tea = 0,
+         AB00_Jesusita = 0,
+         AT07_Jesusita = 0,
+         GV01_Gaviota = 0,
+         HO00_Gaviota = 0,
+         HO00_Sherpa = 0,
+         MC06_Tea = 0,
+         MC06_Jesusita = 0,
+         RG01_Gaviota = 0,
+         RG01_Sherpa = 0,
+         RS02_Tea = 0,
+         RS02_Jesusita = 0,
+         SP02_Gap = 0) # need to add in empty values for SB fire columns so the rbind below works
 
 dat_select <- dat %>%
   select(year, month, site, 
-         cumulative_precip_mm, AB00_Tea,AB00_Jesusita,AT07_Jesusita,GV01_Gaviota,HO00_Gaviota,HO00_Sherpa,MC06_Tea,MC06_Jesusita,RG01_Gaviota,RG01_Sherpa,RS02_Tea,RS02_Jesusita,SP02_Gap,
+         cumulative_precip_mm, 
+         AB00_Tea,AB00_Jesusita,AT07_Jesusita,GV01_Gaviota,HO00_Gaviota,HO00_Sherpa,MC06_Tea,MC06_Jesusita,RG01_Gaviota,RG01_Sherpa,RS02_Tea,RS02_Jesusita,SP02_Gap,
          mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
          Season1, Season2, index) %>%
-  mutate(region = "SB")
+  mutate(region = "SB") %>%
+  mutate(RED_Thompson = 0, 
+         EFJ_Thompson = 0, 
+         EFJ_Conchas = 0, 
+         RSAW_Thompson = 0, 
+         RSAW_Conchas = 0, 
+         RSA_Conchas = 0, 
+         IN_BB_Conchas = 0, 
+         SULF_Thompson = 0) # need to add in empty values for NM fire columns so the rbind below works
 
 dat_agu <- rbind(dat_select, dat_nm_select)
+
+# And export to save progress
+saveRDS(dat_agu, "data_working/marss_data_sb_vc_120621.rds")
 
 #### Model fit ####
 
