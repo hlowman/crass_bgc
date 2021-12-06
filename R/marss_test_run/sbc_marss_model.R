@@ -249,7 +249,7 @@ dat_nm_trim <- dat_nm_trim %>%
 # #saveRDS(dat_agu, "data_working/marss_data_sb_vc_120421.rds")
 # saveRDS(dat_agu, "data_working/marss_data_sb_vc_120521.rds")
 
-# Add fire covrs back in for the AGU presentation - NEED TO EDIT TO HAVE 1s (DUMMY EFFECT) JUST 1 YR AFTER FIRE!!!
+# Add fire covrs back in for the AGU presentation
 dat_nm_select <- dat_nm_trim %>%
   select(year, month, site, 
          cumulative_precip_mm, LasConchas, ThompsonRidge, 
@@ -264,7 +264,7 @@ dat_select <- dat %>%
          Season1, Season2, index) %>%
   mutate(region = "SB")
 
-#dat_agu <- rbind(dat_select, dat_nm_select)
+dat_agu <- rbind(dat_select, dat_nm_select)
 
 #### Model fit ####
 
@@ -3370,21 +3370,50 @@ row.names(dat_cov)
 
 
 #### make C matrix
-# starting with HO00
-CC <- matrix(list("Season1", "Season1", "Season1",  "Season1", "Season1","Season1","Season1", "Season1", "Season1", "Season1", "Season1", "Season1", 
-                  "Season2", "Season2", "Season2",  "Season2", "Season2", "Season2", "Season2", "Season2","Season2","Season2","Season2","Season2", 
-                  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,
-                  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,
-                  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,
-                  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,
-                  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,
-                  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,
-                  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,
-                  0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,
-                  0,0,0,0,0,0,0,0,"RED_precip",0,0,0,
-                  0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,
-                  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,
-                  0,0,0,0,0,0,0,0,0,0,0,"SULF_precip"),12,14)
+CC <- matrix(list( # season 1
+                  "Season1", "Season1", "Season1", "Season1", 
+                  "Season1", "Season1", "Season1", "Season1", 
+                  "Season1", "Season1", "Season1", "Season1",
+                  "Season1", "Season1", "Season1", "Season1", 
+                  "Season1", "Season1", "Season1", "Season1", 
+                  "Season1", "Season1", "Season1", "Season1",
+                  "Season1",
+                  # season 2
+                  "Season2", "Season2", "Season2", "Season2", 
+                  "Season2", "Season2", "Season2", "Season2",
+                  "Season2", "Season2", "Season2", "Season2",
+                  "Season2", "Season2", "Season2", "Season2", 
+                  "Season2", "Season2", "Season2", "Season2",
+                  "Season2", "Season2", "Season2", "Season2",
+                  "Season2",
+                  # precip by site
+                  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,"RED_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,"SULF_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  # fires by site
+                  0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Tea",0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Tea",0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Jesusita",0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Gaviota",0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Sherpa",0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Tea",0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Jesusita",0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SP02_Gap"
+                  ),25,27)
 
 # Model setup
 mod_list <- list(
