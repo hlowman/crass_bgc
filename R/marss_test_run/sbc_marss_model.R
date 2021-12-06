@@ -54,8 +54,8 @@ chem <- readRDS("data_working/SBchem_edited_120321.rds")
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_110321.rds")
 # Fire Events - all sites
-fire <- readRDS("data_working/SBfire_edited_111721.rds")
-firechem_nm <- readRDS("data_working/VCNPfire_edited_120521.rds")
+fire <- readRDS("data_working/SBfire_edited_120621.rds")
+firechem_nm <- readRDS("data_working/VCNPfire_edited_120621.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 location_nm <- read_csv("data_raw/VCNP_sonde_site_codes_names.csv")
@@ -205,10 +205,10 @@ firechem_nm_monthly = firechem_nm_monthly[!is.na(firechem_nm_monthly$sitecode_ma
 
 dat_nm_trim <- dat_nm %>%
   filter(datetimeMT > "2005-06-01") %>%
-  filter(datetimeMT < "2019-04-01") %>%
+  filter(datetimeMT < "2019-05-01") %>%
   group_by(ID) %>%
   arrange(datetimeMT, .by_group = TRUE) %>%
-  ungroup()
+  ungroup() # should be 1328 records to match "dat" above
 
 # Adding in dummy covariates by season
 n_months_nm <- dat_nm_trim$datetimeMT %>%
