@@ -169,7 +169,7 @@ firechem_nm_monthly <- firechem_nm_ed2 %>%
             RSAW_Thompson = mean(RSAW_Thompson, na.rm = TRUE),
             RSAW_Conchas = mean(RSAW_Conchas, na.rm = TRUE),
             RSA_Conchas = mean(RSA_Conchas, na.rm = TRUE),
-            IN_BB_Conchas = mean(IN_BB_Conchas, na.rm = TRUE),
+            IND_BB_Conchas = mean(IND_BB_Conchas, na.rm = TRUE),
             SULF_Thompson = mean(SULF_Thompson, na.rm = TRUE)) %>%
   ungroup()
 
@@ -243,7 +243,7 @@ dat_nm_trim <- dat_nm_trim %>%
 dat_nm_select <- dat_nm_trim %>%
   select(year, month, site, 
          cumulative_precip_mm, 
-         RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IN_BB_Conchas, SULF_Thompson,
+         RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson,
          mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
          Season1, Season2, index) %>%
   mutate(region = "VC") %>%
@@ -274,7 +274,7 @@ dat_select <- dat %>%
          RSAW_Thompson = 0, 
          RSAW_Conchas = 0, 
          RSA_Conchas = 0, 
-         IN_BB_Conchas = 0, 
+         IND_BB_Conchas = 0, 
          SULF_Thompson = 0) # need to add in empty values for NM fire columns so the rbind below works
 
 dat_agu <- rbind(dat_select, dat_nm_select)
@@ -3314,11 +3314,13 @@ plot(dat_po4_log$mean_po4_uM_SULF, type="o")
 
 dat_cond <- dat_agu %>%
   select(site, index, Season1, Season2, 
-         mean_cond_uScm, cumulative_precip_mm) %>% 
-  pivot_wider(names_from = site, values_from = c(mean_cond_uScm, cumulative_precip_mm)) %>%
+         mean_cond_uScm, cumulative_precip_mm,
+         AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_cond_uScm, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson)) %>%
   select(index, Season1, Season2, 
          mean_cond_uScm_AB00, mean_cond_uScm_AT07, mean_cond_uScm_GV01, mean_cond_uScm_HO00, mean_cond_uScm_MC06, mean_cond_uScm_RG01, mean_cond_uScm_RS02, mean_cond_uScm_SP02, mean_cond_uScm_EFJ, mean_cond_uScm_IND, mean_cond_uScm_IND_AB, mean_cond_uScm_IND_BB, mean_cond_uScm_RED, mean_cond_uScm_RSA, mean_cond_uScm_RSAW, mean_cond_uScm_SULF,
-         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF)
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF,
+         AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, SP02_Gap_SP02, RED_Thompson_RED, EFJ_Thompson_EFJ, EFJ_Conchas_EFJ, RSAW_Thompson_RSAW, RSAW_Conchas_RSAW, RSA_Conchas_RSA, IND_BB_Conchas_IND_BB, SULF_Thompson_SULF)
 
 dat_cond[is.nan(dat_cond)] <- NA
 
@@ -3379,11 +3381,9 @@ dat_dep <- t(dat_cond_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
 row.names(dat_dep)
 
 # Make covariate inputs
-dat_cov <- dat_cond_log[,c(2:3,
-                          20,21,22,23,24,25,26,28,32,33,34,35)]
+dat_cov <- dat_cond_log[,c(2:3, 20:56)]
 dat_cov <- t(scale(dat_cov))
 row.names(dat_cov)
-
 
 #### make C matrix
 CC <- matrix(list( # season 1
@@ -3393,6 +3393,9 @@ CC <- matrix(list( # season 1
                   "Season1", "Season1", "Season1", "Season1", 
                   "Season1", "Season1", "Season1", "Season1", 
                   "Season1", "Season1", "Season1", "Season1",
+                  "Season1", "Season1", "Season1", "Season1", 
+                  "Season1", "Season1", "Season1", "Season1",
+                  "Season1", "Season1", "Season1", "Season1",
                   "Season1",
                   # season 2
                   "Season2", "Season2", "Season2", "Season2", 
@@ -3401,35 +3404,50 @@ CC <- matrix(list( # season 1
                   "Season2", "Season2", "Season2", "Season2", 
                   "Season2", "Season2", "Season2", "Season2",
                   "Season2", "Season2", "Season2", "Season2",
+                  "Season2", "Season2", "Season2", "Season2",
+                  "Season2", "Season2", "Season2", "Season2",
+                  "Season2", "Season2", "Season2", "Season2",
                   "Season2",
                   # precip by site
-                  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,"RED_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,"SULF_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  # fires by site
-                  0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Tea",0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Tea",0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Jesusita",0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Gaviota",0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Sherpa",0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Tea",0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Jesusita",0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SP02_Gap"
-                  ),25,27)
+                  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,"SP02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,"IND_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,"IND_AB_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,"IND_BB_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,"RED_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SULF_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  # fires by site -37
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Tea",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Tea",0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Sherpa",0,0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Tea",0,0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Jesusita",0,0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SP02_Gap",0,0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RED_Thompson",0,0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"EFJ_Thompson",0,0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"EFJ_Conchas",0,0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_Thompson",0,0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_Conchas",0,0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSA_Conchas",0,0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"IND_BB_Conchas",0,
+                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SULF_Thompson"
+                  ),37,39)
 
 # Model setup
 mod_list <- list(
