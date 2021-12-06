@@ -22,18 +22,19 @@ str(chem_full_ed_vcnp)
 # Rename and select variables to match with sbc data set. 
 # note that units are mg/L and not uM
 chem_reg_vcnp_names <- chem_reg_vcnp %>%
-  rename(site_code = "Stream",
-         DTG = `Date + Time`, # DateTimeGroup = DTG
-         nh4_mgL = `Ammonia as N`, # units mg/L,
-         nO2_nO3_mgL = `Nitrate + Nitrite as N`, # mg/L
+  dplyr::rename(site_code = "Stream",
+         DTG = "Date + Time", # DateTimeGroup = DTG
+         nh4_mgL = "Ammonia as N", # units mg/L,
+         nO2_nO3_mgL = "Nitrate + Nitrite as N", # mg/L
          po4_mgL = "Phosphate", # mg/L
          tkn_mgL = "TKN",
          tds = "TDS",
+         mean_cond_uScm = "Conductivity"
          )
   
 # Select variables of interest 
 chem_reg_vcnp_names_short <- chem_reg_vcnp_names %>%
-  select(site_code, Date, DTG, nh4_mgL, nO2_nO3_mgL, po4_mgL, tkn_mgL, tds)
+  select(site_code, Date, DTG, nh4_mgL, nO2_nO3_mgL, po4_mgL, tkn_mgL, tds,mean_cond_uScm)
 
 str(chem_reg_vcnp_names_short)
 
@@ -46,6 +47,7 @@ chem_full_ed_vcnp <- chem_reg_vcnp_names_short %>% # can't remove records becaus
 str(chem_full_ed_vcnp)
 
 # And export for MARSS script
-saveRDS(chem_full_ed_vcnp, "data_working/VCNPchem_edited_110821.rds")
+#saveRDS(chem_full_ed_vcnp, "data_working/VCNPchem_edited_110821.rds")
+saveRDS(chem_full_ed_vcnp, "data_working/VCNPchem_edited_120521.rds")
 
 # End of script.

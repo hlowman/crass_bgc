@@ -17,7 +17,8 @@ library(here)
 
 
 ## May not need chem data but was thinking to merge with fire data
-chem_reg_vcnp <- read_rds("data_working/VCNPchem_edited_110821.rds")
+#chem_reg_vcnp <- read_rds("data_working/VCNPchem_edited_110821.rds")
+chem_reg_vcnp <- read_rds("data_working/VCNPchem_edited_120521.rds")
 
 str(chem_reg_vcnp)
 #list(chem_reg_vcnp$site_code)
@@ -56,7 +57,8 @@ dates_fire_vcnp <- chem_reg_vcnp %>%
 
 
 # And export for MARSS script
-saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_11151021.rds")
+#saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_11151021.rds")
+saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_120521.rds")
 
 # End of script.
 
