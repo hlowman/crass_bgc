@@ -48,17 +48,17 @@ chem_reg_vcnp <- chem_reg_vcnp %>%
 # Or so we can combine decay functions later
 
 # currently use Date variable to determine when site is 1 or 0.
+# As of 12/6/2021 - we are adding in dummy variable (1s) only for the year
+# following the fire event
 dates_fire_vcnp <- chem_reg_vcnp %>%
-  mutate(LasConchas = ifelse(Date >= "2011-06-26", 1, 0),
-         ThompsonRidge = ifelse(Date >= "2013-05-31", 1, 0))
+  mutate(LasConchas = ifelse(Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
+         ThompsonRidge = ifelse(Date >= "2013-05-31" & Date < "2014-05-31", 1, 0))
 
 ## Need information on what sites were within the burn area or downstream of burn area to better designate if a site gets a 1 or 0 after fire start date. 
 # Sites not impacted by wildfire just receive a 0. 
 
 
 # And export for MARSS script
-#saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_11151021.rds")
-saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_120521.rds")
+saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_120621.rds")
 
 # End of script.
-
