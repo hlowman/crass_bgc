@@ -3493,6 +3493,23 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
 
+CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
+CIs_fit_ed2$region = c(rep("Coastal California",23),rep("Subalpine New Mexico",15))
+CIs_fit_ed2 = CIs_fit_ed2[CIs_fit_ed2$Site!="SP02",]
+
+(ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+  geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+  geom_point(position=position_dodge(width=0.3), size=2) + 
+  theme_bw()+
+  theme(plot.title = element_text(size = 8)) +
+  theme(axis.text = element_text(size = 8)) +
+  geom_hline(aes(yintercept=0), linetype="dashed")+
+  coord_flip() +
+  labs(y = "",
+       title = "Sp. Conductivity MARSS modeling results - 12/5/2021") +
+  theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+  facet_wrap(vars(region, Site), scales = "free"))
+
 
 ## Script for diagnoses ###
 
