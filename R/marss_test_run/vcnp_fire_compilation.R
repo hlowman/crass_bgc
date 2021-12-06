@@ -34,8 +34,6 @@ chem_reg_vcnp <- chem_reg_vcnp %>%
 
 # 2) Need to fix variable names because inconsistent naming (location of dashes)
 
-
-
 ## Fire names and start dates of burn - sites affected
 # Las Conchas (2011-06-26) - EFJ, RSAW, RSA, IND, IND_BB
 # Thompson Ridge (2013-05-31) - RED, EFJ, RSAW, SULF
@@ -66,7 +64,7 @@ dates_fire_vcnp <- chem_reg_vcnp %>%
          RSAW_Conchas = ifelse(site == "San Antonio - West" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
          RSA_Conchas = ifelse(site %in% namelist & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
          #IND_Conchas = ifelse(site == "Indios Creek" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
-         IN_BB_Conchas = ifelse(site == "Indios Creek - Post Fire (Below Burn)" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
+         IND_BB_Conchas = ifelse(site == "Indios Creek - Post Fire (Below Burn)" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
          SULF_Thompson = ifelse(site == "Sulfur Creek" & Date >= "2013-05-31" & Date < "2014-05-31", 1, 0))
 
 ## Need information on what sites were within the burn area or downstream of burn area to better designate if a site gets a 1 or 0 after fire start date. 
