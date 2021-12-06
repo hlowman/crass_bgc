@@ -233,21 +233,38 @@ dat_nm_trim <- dat_nm_trim %>%
   rename(site = ID,
          date = datetimeMT)
 
-# For the AGU presentation, I'll be joining a subset of the full dataset, although
-# we'll eventually need to figure out the formatting of the fire data here.
+# # For the AGU presentation, I'll be joining a subset of the full dataset, although
+# # we'll eventually need to figure out the formatting of the fire data here.
+# dat_nm_select <- dat_nm_trim %>%
+#   select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
+#   mutate(region = "VC")
+# 
+# dat_select <- dat %>%
+#   select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
+#   mutate(region = "SB")
+# 
+# dat_agu <- rbind(dat_select, dat_nm_select)
+# 
+# # exporting just to save my progress
+# #saveRDS(dat_agu, "data_working/marss_data_sb_vc_120421.rds")
+# saveRDS(dat_agu, "data_working/marss_data_sb_vc_120521.rds")
+
+# Add fire covrs back in for the AGU presentation - NEED TO EDIT TO HAVE 1s (DUMMY EFFECT) JUST 1 YR AFTER FIRE!!!
 dat_nm_select <- dat_nm_trim %>%
-  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
+  select(year, month, site, 
+         cumulative_precip_mm, LasConchas, ThompsonRidge, 
+         mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
+         Season1, Season2, index) %>%
   mutate(region = "VC")
 
 dat_select <- dat %>%
-  select(year, month, site, cumulative_precip_mm, mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, Season1, Season2, index) %>%
+  select(year, month, site, 
+         cumulative_precip_mm, AB00_Tea,AB00_Jesusita,AT07_Jesusita,GV01_Gaviota,HO00_Gaviota,HO00_Sherpa,MC06_Tea,MC06_Jesusita,RG01_Gaviota,RG01_Sherpa,RS02_Tea,RS02_Jesusita,SP02_Gap,
+         mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
+         Season1, Season2, index) %>%
   mutate(region = "SB")
 
-dat_agu <- rbind(dat_select, dat_nm_select)
-
-# exporting just to save my progress
-#saveRDS(dat_agu, "data_working/marss_data_sb_vc_120421.rds")
-saveRDS(dat_agu, "data_working/marss_data_sb_vc_120521.rds")
+#dat_agu <- rbind(dat_select, dat_nm_select)
 
 #### Model fit ####
 
