@@ -55,25 +55,27 @@ dates_watersheds <- dates %>%
 # 1 - denotes post-fire months
 # Each fire will get its own column, so that effects can potentially be additive
 # Or so we can combine decay functions later
+# As of 12/6/2021 - we are adding in dummy variable (1s) only for the year
+# following the fire event
 
 dates_fire <- dates_watersheds %>%
-  mutate(AB00_Tea = ifelse(site == "AB00" & date >= "2008-11-01", 1, 0),
-    AB00_Jesusita = ifelse(site == "AB00" & date >= "2009-05-01", 1, 0),
-    AT07_Jesusita = ifelse(site == "AT07" & date >= "2009-05-01", 1, 0),
-    GV01_Gaviota = ifelse(site == "GV01" & date >= "2004-06-01", 1, 0),
-    HO00_Gaviota = ifelse(site == "HO00" & date >= "2004-06-01", 1, 0),
-    HO00_Sherpa = ifelse(site == "HO00" & date >= "2016-06-01", 1, 0),
+  mutate(AB00_Tea = ifelse(site == "AB00" & date >= "2008-11-01" & date < "2009-11-01", 1, 0),
+    AB00_Jesusita = ifelse(site == "AB00" & date >= "2009-05-01" & date < "2010-05-01", 1, 0),
+    AT07_Jesusita = ifelse(site == "AT07" & date >= "2009-05-01" & date < "2010-05-01", 1, 0),
+    GV01_Gaviota = ifelse(site == "GV01" & date >= "2004-06-01" & date < "2005-06-01", 1, 0),
+    HO00_Gaviota = ifelse(site == "HO00" & date >= "2004-06-01" & date < "2005-06-01", 1, 0),
+    HO00_Sherpa = ifelse(site == "HO00" & date >= "2016-06-01" & date < "2017-06-01", 1, 0),
     #HO00_Whittier = ifelse(site == "HO00" & date >= "2017-07-01", 1, 0),
-    MC06_Tea = ifelse(site == "MC06" & date >= "2008-11-01", 1, 0),
-    MC06_Jesusita = ifelse(site == "MC06" & date >= "2009-05-01", 1, 0),
-    RG01_Gaviota = ifelse(site == "RG01" & date >= "2004-06-01", 1, 0),
-    RG01_Sherpa = ifelse(site == "RG01" & date >= "2016-06-01", 1, 0),
+    MC06_Tea = ifelse(site == "MC06" & date >= "2008-11-01" & date < "2009-11-01", 1, 0),
+    MC06_Jesusita = ifelse(site == "MC06" & date >= "2009-05-01" & date < "2010-05-01", 1, 0),
+    RG01_Gaviota = ifelse(site == "RG01" & date >= "2004-06-01" & date < "2005-06-01", 1, 0),
+    RG01_Sherpa = ifelse(site == "RG01" & date >= "2016-06-01" & date < "2017-06-01", 1, 0),
     #RG01_Whittier = ifelse(site == "RG01" & date >= "2017-07-01", 1, 0),
-    RS02_Tea = ifelse(site == "RS02" & date >= "2008-11-01", 1, 0),
-    RS02_Jesusita = ifelse(site == "RS02" & date >= "2009-05-01", 1, 0),
-    SP02_Gap = ifelse(site == "SP02" & date >= "2008-07-01", 1, 0))
+    RS02_Tea = ifelse(site == "RS02" & date >= "2008-11-01" & date < "2009-11-01", 1, 0),
+    RS02_Jesusita = ifelse(site == "RS02" & date >= "2009-05-01" & date < "2010-05-01", 1, 0),
+    SP02_Gap = ifelse(site == "SP02" & date >= "2008-07-01" & date < "2009-07-01", 1, 0))
 
 # And export for MARSS script
-saveRDS(dates_fire, "data_working/SBfire_edited_111721.rds")
+saveRDS(dates_fire, "data_working/SBfire_edited_120621.rds")
 
 # End of script.
