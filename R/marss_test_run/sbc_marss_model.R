@@ -211,7 +211,7 @@ firechem_nm_monthly = firechem_nm_monthly[!is.na(firechem_nm_monthly$sitecode_ma
 
 dat_nm_trim <- dat_nm %>%
   filter(datetimeMT > "2005-06-01") %>%
-  filter(datetimeMT < "2019-05-01") %>%
+  filter(datetimeMT < "2019-04-01") %>%
   group_by(ID) %>%
   arrange(datetimeMT, .by_group = TRUE) %>%
   ungroup() # should be 1328 records to match "dat" above
@@ -278,6 +278,9 @@ dat_select <- dat %>%
          SULF_Thompson = 0) # need to add in empty values for NM fire columns so the rbind below works
 
 dat_agu <- rbind(dat_select, dat_nm_select)
+
+# replace fire NAs with zeros
+dat_agu[,26:33][is.na(dat_agu[,26:33])] = 0
 
 # And export to save progress
 saveRDS(dat_agu, "data_working/marss_data_sb_vc_120621.rds")
@@ -3381,73 +3384,121 @@ dat_dep <- t(dat_cond_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
 row.names(dat_dep)
 
 # Make covariate inputs
-dat_cov <- dat_cond_log[,c(2:3, 20:56)]
+# dat_cov <- dat_cond_log[,c(2:3, 20:56)]
+# dat_cov <- t(scale(dat_cov))
+# row.names(dat_cov)
+
+# without short ts sites:
+dat_cov <- dat_cond_log[,c(2:3, 
+                           20:26, 28,32,33,34,35,
+                           36:47, 50,51,49,54,52,53,56)]
 dat_cov <- t(scale(dat_cov))
 row.names(dat_cov)
 
 #### make C matrix
+# CC <- matrix(list( # season 1
+#                   "Season1", "Season1", "Season1", "Season1", 
+#                   "Season1", "Season1", "Season1", "Season1", 
+#                   "Season1", "Season1", "Season1", "Season1",
+#                   "Season1", "Season1", "Season1", "Season1", 
+#                   "Season1", "Season1", "Season1", "Season1", 
+#                   "Season1", "Season1", "Season1", "Season1",
+#                   "Season1", "Season1", "Season1", "Season1", 
+#                   "Season1", "Season1", "Season1", "Season1",
+#                   "Season1", "Season1", "Season1", "Season1",
+#                   "Season1",
+#                   # season 2
+#                   "Season2", "Season2", "Season2", "Season2", 
+#                   "Season2", "Season2", "Season2", "Season2",
+#                   "Season2", "Season2", "Season2", "Season2",
+#                   "Season2", "Season2", "Season2", "Season2", 
+#                   "Season2", "Season2", "Season2", "Season2",
+#                   "Season2", "Season2", "Season2", "Season2",
+#                   "Season2", "Season2", "Season2", "Season2",
+#                   "Season2", "Season2", "Season2", "Season2",
+#                   "Season2", "Season2", "Season2", "Season2",
+#                   "Season2",
+#                   # precip by site
+#                   "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,"SP02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,"IND_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,"IND_AB_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,"IND_BB_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,"RED_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SULF_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   # fires by site -37
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Tea",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Tea",0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Sherpa",0,0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Tea",0,0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Jesusita",0,0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SP02_Gap",0,0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RED_Thompson",0,0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"EFJ_Thompson",0,0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"EFJ_Conchas",0,0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_Thompson",0,0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_Conchas",0,0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSA_Conchas",0,0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"IND_BB_Conchas",0,
+#                   0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SULF_Thompson"
+#                   ),37,39)
+
+# without short ts sites:
 CC <- matrix(list( # season 1
-                  "Season1", "Season1", "Season1", "Season1", 
-                  "Season1", "Season1", "Season1", "Season1", 
-                  "Season1", "Season1", "Season1", "Season1",
-                  "Season1", "Season1", "Season1", "Season1", 
-                  "Season1", "Season1", "Season1", "Season1", 
-                  "Season1", "Season1", "Season1", "Season1",
-                  "Season1", "Season1", "Season1", "Season1", 
-                  "Season1", "Season1", "Season1", "Season1",
-                  "Season1", "Season1", "Season1", "Season1",
-                  "Season1",
-                  # season 2
-                  "Season2", "Season2", "Season2", "Season2", 
-                  "Season2", "Season2", "Season2", "Season2",
-                  "Season2", "Season2", "Season2", "Season2",
-                  "Season2", "Season2", "Season2", "Season2", 
-                  "Season2", "Season2", "Season2", "Season2",
-                  "Season2", "Season2", "Season2", "Season2",
-                  "Season2", "Season2", "Season2", "Season2",
-                  "Season2", "Season2", "Season2", "Season2",
-                  "Season2", "Season2", "Season2", "Season2",
-                  "Season2",
-                  # precip by site
-                  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,"SP02_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,"EFJ_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,"IND_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,"IND_AB_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,"IND_BB_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,"RED_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,"RSA_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SULF_precip",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  # fires by site -37
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Tea",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Tea",0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"MC06_Jesusita",0,0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Gaviota",0,0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RG01_Sherpa",0,0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Tea",0,0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RS02_Jesusita",0,0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SP02_Gap",0,0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RED_Thompson",0,0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"EFJ_Thompson",0,0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"EFJ_Conchas",0,0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_Thompson",0,0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSAW_Conchas",0,0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"RSA_Conchas",0,0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"IND_BB_Conchas",0,
-                  0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"SULF_Thompson"
-                  ),37,39)
+  "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1",
+  # season 2
+  "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2","Season2", "Season2", "Season2", "Season2",
+  # precip by site
+  "AB00_precip",0,0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_precip",0,0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_precip",0,0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_precip",0,0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_precip",0,0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_precip",0,0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_precip",0,0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_precip", 0,0,0,0,
+  0,0,0,0,0,0,0,0,"RED_precip", 0,0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_precip", 0,0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",0,
+  0,0,0,0,0,0,0,0,0,0,0,"SULF_precip",
+  # fires by site -33
+  "AB00_Tea",0,0,0,0,0,0,0,0,0,0,0,
+  "AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_Tea",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_Jesusita",0,0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_Gaviota",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_Sherpa",0,0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_Tea",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_Jesusita",0,0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Thompson",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Conchas",0,0,0,0,
+  0,0,0,0,0,0,0,0,"RED_Thompson",0,0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_Conchas",0,0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Thompson",0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Conchas",0,
+  0,0,0,0,0,0,0,0,0,0,0,"SULF_Thompson"
+),12,33)
+
 
 # Model setup
 mod_list <- list(
@@ -3493,7 +3544,8 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 #saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM.rds")
 #saveRDS(fit, file = "data_working/marss_test_run/fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM.rds")
 #saveRDS(fit, file = "data_working/marss_test_run/fit_120521_12state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_BFGS.rds")
-saveRDS(fit, file = "data_working/marss_test_run/fit_120521_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_120521_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_120621_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
 
 
 ### DIAGNOSES ###
@@ -3520,7 +3572,8 @@ est_fit <- MARSSparamCIs(fit)
 #saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_EM_hessian.rds")
 #saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_8state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_RED_EM_hessian.rds")
 #saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_12state_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_BFGS.rds")
-saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120521_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_120621_12state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
 
 CIs_fit = cbind(
   est_fit$par$U,
@@ -3539,7 +3592,7 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
 
 # Now to iterate over all sites
-my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02","EFJ","RED","RSA","RSAW","SULF")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -3551,13 +3604,34 @@ for (i in my_list) { # for every site in the list
 }
 
 CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
-  rename(Site = i) %>% # rename site column
+  rename(Site = i) %>%
+  #rename(Parameter = parm) %>%# rename site column
   mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
                                              "AB00_precip", "AT07_precip", "GV01_precip",
                                              "HO00_precip", "MC06_precip", "RG01_precip",
-                                             "RS02_precip", "SP02_precip", 
+                                             "RS02_precip", "SP02_precip",
                                              "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
-                                             "SULF_precip")))
+                                             "SULF_precip",
+                                             "AB00_Tea",
+                                             "AB00_Jesusita",
+                                             "AT07_Jesusita",
+                                             "GV01_Gaviota",
+                                             "HO00_Gaviota",
+                                             "HO00_Sherpa",
+                                             "MC06_Tea",
+                                             "MC06_Jesusita",
+                                             "RG01_Gaviota",
+                                             "RG01_Sherpa",
+                                             "RS02_Tea",
+                                             "RS02_Jesusita",
+                                             "EFJ_Thompson",
+                                             "EFJ_Conchas",
+                                             "RED_Thompson",
+                                             "RSA_Conchas",
+                                             "RSAW_Thompson",
+                                             "RSAW_Conchas",
+                                             "SULF_Thompson"
+                                             )))
 
 # plot results
 (RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
@@ -3574,22 +3648,25 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     facet_wrap(.~Site, scales = "free"))
 
 CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
-CIs_fit_ed2$region = c(rep("Coastal California",23),rep("Subalpine New Mexico",15))
-CIs_fit_ed2 = CIs_fit_ed2[CIs_fit_ed2$Site!="SP02",]
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Thompson"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Conchas"),] 
+CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",22))
+#CIs_fit_ed2 = CIs_fit_ed2[CIs_fit_ed2$Site!="SP02",]
 
-(ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
-  geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
-  geom_point(position=position_dodge(width=0.3), size=2) + 
+(RESULTS_ALL <-ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+  geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+  geom_point(position=position_dodge(width=0.3), size=5) + 
   theme_bw()+
   theme(plot.title = element_text(size = 8)) +
   theme(axis.text = element_text(size = 8)) +
   geom_hline(aes(yintercept=0), linetype="dashed")+
   coord_flip() +
   labs(y = "",
-       title = "Sp. Conductivity MARSS modeling results - 12/5/2021") +
+       title = "Sp. Conductivity MARSS modeling results - 12/6/2021") +
   theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
   facet_wrap(vars(region, Site), scales = "free"))
 
+ggsave("figures/MARSS_12states_spc_precip_fire_120621.pdf",RESULTS_ALL)
 
 ## Script for diagnoses ###
 
