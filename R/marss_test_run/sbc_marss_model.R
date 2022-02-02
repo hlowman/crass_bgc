@@ -181,12 +181,12 @@ firechem_nm_monthly <- firechem_nm_ed2 %>%
 firechem_nm_monthly[is.nan(firechem_nm_monthly)] = NA
 
 fnm_test <- firechem_nm_monthly %>%
-  select(Year, Month, sitecode_match, mean_nh4_uM) %>%
+  select(Year, Month, sitecode_match, mean_po4_uM) %>%
   group_by(Year, Month, sitecode_match) %>%
-  summarize(nh4_n = n())
+  summarize(po4_n = n())
 
 fnm_test %>%
-  ggplot(aes(x = Month, y = nh4_n, color = sitecode_match)) +
+  ggplot(aes(x = Month, y = po4_n, color = sitecode_match)) +
   geom_point() +
   theme_bw() +
   theme(legend.position = "none") +
@@ -230,10 +230,12 @@ firechem_nm_monthly = firechem_nm_monthly[!is.na(firechem_nm_monthly$sitecode_ma
 
 dat_nm_trim <- dat_nm %>%
   filter(datetimeMT > "2005-06-01") %>%
-  filter(datetimeMT < "2019-04-01") %>%
+  filter(datetimeMT < "2019-05-01") %>%
   group_by(ID) %>%
   arrange(datetimeMT, .by_group = TRUE) %>%
   ungroup() # should be 1328 records to match "dat" above
+# dates between SB and NM datasets don't need to match
+# but lengths of time series do
 
 # Adding in dummy covariates by season
 n_months_nm <- dat_nm_trim$datetimeMT %>%
@@ -246,7 +248,7 @@ seas_2_nm <- cos(2 * pi * seq(n_months_nm) / 12)
 dat_nm_trim <- dat_nm_trim %>%
   mutate(Season1 = rep(seas_1_nm, 8),
          Season2 = rep(seas_2_nm, 8),
-         index = rep(seq(1,165), 8))
+         index = rep(seq(1,166), 8))
 
 # AJW: replace NaNs with NAs
 dat_nm_trim[is.nan(dat_nm_trim)] = NA
@@ -313,38 +315,35 @@ saveRDS(dat_agu, "data_working/marss_data_sb_vc_020222.rds")
 # from the CA sites and TDS data from the NM sites.
 
 #### NH4 ####
-# Starting with NH4 for test run.
-# And to simplify, for the AGU talk, taking out the fire variables for now
+# HL - edited the following script on 2/2/22 to
+# try and match Alex's successful modeling of conductivity.
 
-# dat_nh4 <- dat %>%
-#   select(site, year, month, Season1, Season2, mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap) %>% # keeping year and month in so I don't get the "duplicates arise" error
-#   pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap)) %>%
-#   select(year, month, Season1, Season2, 
-#          mean_nh4_uM_AB00, mean_nh4_uM_AT07, mean_nh4_uM_GV01, mean_nh4_uM_HO00, mean_nh4_uM_MC06, mean_nh4_uM_RG01, mean_nh4_uM_RS02, mean_nh4_uM_SP02,
-#          cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02,
-#          AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, SP02_Gap_SP02)
-
+# first, subset and pivot the NH4 data
 dat_nh4 <- dat_agu %>%
   select(site, index, Season1, Season2, 
-         mean_nh4_uM, cumulative_precip_mm) %>% # keeping year and month in so I don't get the "duplicates arise" error
-  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm)) %>%
+         mean_nh4_uM, cumulative_precip_mm,
+         AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson)) %>%
   select(index, Season1, Season2, 
          mean_nh4_uM_AB00, mean_nh4_uM_AT07, mean_nh4_uM_GV01, mean_nh4_uM_HO00, mean_nh4_uM_MC06, mean_nh4_uM_RG01, mean_nh4_uM_RS02, mean_nh4_uM_SP02, mean_nh4_uM_EFJ, mean_nh4_uM_IND, mean_nh4_uM_IND_AB, mean_nh4_uM_IND_BB, mean_nh4_uM_RED, mean_nh4_uM_RSA, mean_nh4_uM_RSAW, mean_nh4_uM_SULF,
-         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF)
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF,
+         AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, SP02_Gap_SP02, RED_Thompson_RED, EFJ_Thompson_EFJ, EFJ_Conchas_EFJ, RSAW_Thompson_RSAW, RSAW_Conchas_RSAW, RSA_Conchas_RSA, IND_BB_Conchas_IND_BB, SULF_Thompson_SULF)
 
+# Remove the NaNs and replace with NAs.
 dat_nh4[is.nan(dat_nh4)] <- NA
 
-# log transform  response var
-# Note that I cannot scale becasue IND has no variation
+# log and scale transform response var
+# AW - I cannot scale because IND has no variation
 names(dat_nh4)
-dat_nh4_log = dat_nh4
-dat_nh4_log[,4:19] = log10(dat_nh4_log[,4:19])
-#dat_nh4_log_scale[,4:19] = scale(dat_nh4_log_scale[,4:19])
-sum(is.nan(dat_nh4_log[,4:19]))
-sum(is.na(dat_nh4_log[,4:19]))
+dat_nh4_log <- dat_nh4
+dat_nh4_log[,4:19] <- log10(dat_nh4_log[,4:19])
+#dat_nh4_log[,4:19] <- scale(dat_nh4_log[,4:19]) # not scaling
+sum(is.nan(dat_nh4_log[,4:19])) # 0 yay!!
+sum(is.na(dat_nh4_log[,4:19])) # 1390
 range(dat_nh4_log[,4:19], na.rm = T)
 
 ### Plot response vars ###
+# note - this is a HUGE plot
 par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
 plot(dat_nh4_log$mean_nh4_uM_AB00, type="o")
 plot(dat_nh4_log$mean_nh4_uM_AT07, type="o")
@@ -362,73 +361,81 @@ plot(dat_nh4_log$mean_nh4_uM_RED, type="o")
 plot(dat_nh4_log$mean_nh4_uM_RSA, type="o")
 plot(dat_nh4_log$mean_nh4_uM_RSAW, type="o")
 plot(dat_nh4_log$mean_nh4_uM_SULF, type="o")
-  
+# SB sites clearly have better NH4 coverage than VC sites
+
+#### Scenario 1 : all catchments are separate states #### 
+
 # Pull out only NH4 data
-dat_dep <- t(dat_nh4_log[,4:19])
-# w/o IND sites:
-#dat_dep <- t(dat_nh4_log[,c(4:12,16:19)])
+names(dat_nh4_log)
+# Removing shorter timeseries since this worked for conductivity
+# Remaining sites: AB00, AT07, GV01, HO00, MC06, RG01, RS02
+# EFJ, RED, RSA, RSAW, & SULF
+# 12 sites total with 166 observations each
+dat_dep <- t(dat_nh4_log[,c(4:10,12,16:19)])
+row.names(dat_dep)
 
 # Make covariate inputs
-dat_cov <- dat_nh4_log[,c(2:3,20:35)]
-# w/o IND sites:
-#dat_cov <- dat_nh4_log[,c(2:3,20:28,32:35)]
+# Removing shorter timeseries since this worked for conductivity
+# 33 covariates total with 166 observations each
+dat_cov <- dat_nh4_log[,c(2:3, 
+                          20:26, 28,32,33,34,35,
+                          36:47, 50,51,49,54,52,53,56)]
 dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
 
 # make C matrix
-# this matrix controls what covars predict what response vars; in contrast to...
-# unconstrained: seperately estimates ALL correlations of predictor vars with x, i.e. how predictor vars drive ts dynamics. I think this structure is ok given that covars are unique to each site, but it would not be ok if there is a mix of shared and unique covars.
-# CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1",
-#                   "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2",
-#                   "AB00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, "AT07_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, "GV01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, "HO00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, "MC06_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, "RG01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, "RS02_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, "SP02_precip", 0, 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, "EFJ_precip", 0, 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_precip", 0, 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_AB_precip", 0, 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_BB_precip", 0, 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RED_precip", 0, 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSA_precip", 0, 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_precip", 0,
-#                   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "SULF_precip"),16,18)
-                  # "AB00_Tea_fire", 0, 0, 0, 0, 0, 0, 0,
-                  # "AB00_Jesusita_fire", 0, 0, 0, 0, 0, 0, 0,
-                  # 0, "AT07_Jesusita_fire", 0, 0, 0, 0, 0, 0,
-                  # 0, 0, "GV01_Gaviota_fire", 0, 0, 0, 0, 0,
-                  # 0, 0, 0, "HO00_Gaviota_fire", 0, 0, 0, 0,
-                  # 0, 0, 0, "HO00_Sherpa_fire", 0, 0, 0, 0,
-                  # 0, 0, 0, 0, "MC06_Tea_fire", 0, 0, 0,
-                  # 0, 0, 0, 0, "MC06_Jesusita_fire", 0, 0, 0,
-                  # 0, 0, 0, 0, 0, "RG01_Gaviota_fire", 0, 0,
-                  # 0, 0, 0, 0, 0, "RG01_Sherpa_fire", 0, 0,
-                  # 0, 0, 0, 0, 0, 0, "RS01_Tea_fire", 0,
-                  # 0, 0, 0, 0, 0, 0, "RS01_Jesusita_fire", 0,
-                  # 0, 0, 0, 0, 0, 0, 0, "SP02_Gap_fire"
+# this matrix controls what covars predict what response vars; 
+# in contrast to unconstrained: separately estimates ALL correlations of 
+# predictor vars with x, i.e. how predictor vars drive ts dynamics. 
+# This structure is ok given that covars are unique to each site, but it 
+# would not be ok if there is a mix of shared and unique covars.
+# 12 response variables - so 12 rows in the matrix
+# 33 covariates in total - so 33 columns in the matrix
 
-CC <- matrix(list("Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1", "Season1","Season1","Season1","Season1",
-                 "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2", "Season2","Season2","Season2","Season2",
-                  "AB00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0, 
-                  0, "AT07_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
-                  0, 0, "GV01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
-                  0, 0, 0, "HO00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
-                  0, 0, 0, 0, "MC06_precip", 0, 0, 0, 0, 0, 0, 0, 0,0,0,0,
-                  0, 0, 0, 0, 0, "RG01_precip", 0, 0, 0, 0, 0, 0, 0,0,0,0,
-                  0, 0, 0, 0, 0, 0, "RS02_precip", 0, 0, 0, 0, 0, 0,0,0,0,
-                  0, 0, 0, 0, 0, 0, 0, "SP02_precip", 0, 0, 0, 0, 0,0,0,0,
-                  0, 0, 0, 0, 0, 0, 0, 0, "EFJ_precip" , 0, 0, 0, 0,0,0,0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_precip" , 0, 0, 0,0,0,0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_AB_precip", 0,0,0,0,0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "IND_BB_precip",0,0,0,0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RED_precip",0,0,0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSA_precip",0,0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_precip",0,
-                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,"SULF_precip"),16,18)
+# without short ts sites
+CC <- matrix(list(# season 1 covariate
+                  "Season1", "Season1", "Season1", "Season1", 
+                  "Season1", "Season1", "Season1", "Season1", 
+                  "Season1", "Season1", "Season1", "Season1",
+                  # season 2 covariate
+                  "Season2", "Season2", "Season2", "Season2", 
+                  "Season2", "Season2", "Season2", "Season2", 
+                  "Season2", "Season2", "Season2", "Season2",
+                  # precipitation covariates
+                  "AB00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                  0, "AT07_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
+                  0, 0, "GV01_precip", 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, "HO00_precip", 0, 0, 0, 0, 0, 0, 0, 0, 
+                  0, 0, 0, 0, "MC06_precip", 0, 0, 0, 0, 0, 0, 0, 
+                  0, 0, 0, 0, 0, "RG01_precip", 0, 0, 0, 0, 0, 0, 
+                  0, 0, 0, 0, 0, 0, "RS02_precip", 0, 0, 0, 0, 0, 
+                  0, 0, 0, 0, 0, 0, 0, "EFJ_precip", 0, 0, 0, 0, 
+                  0, 0, 0, 0, 0, 0, 0, 0, "RED_precip", 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, "RSA_precip", 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_precip", 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "SULF_precip",
+                  # fire covariates
+                  "AB00_Tea_fire", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  "AB00_Jesusita_fire", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, "AT07_Jesusita_fire", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, "GV01_Gaviota_fire", 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, "HO00_Gaviota_fire", 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, "HO00_Sherpa_fire", 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, "MC06_Tea_fire", 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, "MC06_Jesusita_fire", 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, "RG01_Gaviota_fire", 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, "RG01_Sherpa_fire", 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, "RS01_Tea_fire", 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, "RS01_Jesusita_fire", 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, "EFJ_Thompson_fire", 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, "EFJ_Conchas_fire", 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, "RED_Thompson_fire", 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, "RSA_Conchas_fire", 0, 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_Thompson_fire", 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "RSAW_Conchas_fire", 0,
+                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "SULF_Thompson_fire"),
+             12, 33)
                   
-#### Scenario 1 : all catchments are separate states #### 
 # Model setup
 mod_list <- list(
   ### inputs to process model ###
@@ -437,7 +444,7 @@ mod_list <- list(
   C = CC, 
   c = dat_cov,
   Q = "diagonal and unequal", 
-  ### inputs to observtion model ###
+  ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
@@ -450,21 +457,26 @@ mod_list <- list(
 )
 
 # Fit model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit = 100, allow.degen = TRUE, trace = 1),
+                fit = TRUE) # used to get some priors
+
 fit <- MARSS(y = dat_dep, model = mod_list,
-                control = list(maxit = 5000), method = "BFGS")
+             control = list(maxit = 5000), method = "BFGS", 
+             inits=kemfit$par) # actual BFGS method model
+
+fit_em <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 2000, allow.degen = TRUE, trace = 1),
+             fit = TRUE) # actual EM method model
+
 # see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
 
-fit <- MARSS(y = dat_dep, model = mod_list,
-             control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
-
 # export model fit
-#saveRDS(fit, file = "data_working/marss_test_run/fit_120321_16states.rds")
-saveRDS(fit, file = "data_working/marss_test_run/fit_120421_16states.rds")
-saveRDS(fit, file = "data_working/marss_test_run/fit_120421_13states.rds")
-
+saveRDS(fit, file = "data_working/marss_test_run/fit_020222_12state_nh4_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
 
 ### DIAGNOSES ###
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ## check for hidden errors
 fit[["errors"]]
