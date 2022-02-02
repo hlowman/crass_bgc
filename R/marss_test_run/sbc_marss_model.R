@@ -480,25 +480,31 @@ saveRDS(fit, file = "data_working/marss_test_run/fit_020222_12state_nh4_AB00_AT0
 
 ## check for hidden errors
 fit[["errors"]]
-# lots of errors when IND sites were included, none when these were removed
+# none- Yay!!
 
 ### Plot coef and coef estimates ###
 ## estimates
 # hessian method is much fast but not ideal for final results
 est_fit <- MARSSparamCIs(fit)
-est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
-saveRDS(est, "data_working/marss_test_run/CIs_120421_13states.rds")
+# What does this error message mean?
+# Warning messages:
+# 1: In MARSShessian(MLEobj, method = hessian.fun) :
+#   MARSShessian: Hessian could not be inverted to compute the parameter var-cov matrix. parSigma set to NULL.  See MARSSinfo("HessianNA").
+# 
+# 2: In MARSSparamCIs(fit) :
+#   MARSSparamCIs: No parSigma element returned by Hessian function.  See marssMLE object errors (MLEobj$errors)
+
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_020222_12state_nh4_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_SULF_mBFGS.rds")
 
 CIs_fit = cbind(
-  est$par$U,
-  est$par.lowCI$U,
-  est$par.upCI$U)
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
 CIs_fit = as.data.frame(CIs_fit)
 names(CIs_fit) = c("Est.", "Lower", "Upper")
 CIs_fit$parm = rownames(CIs_fit)
 CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
-
 
 ### Plot Results for All Sites ###
 
@@ -507,7 +513,9 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
 
 # Now to iterate over all sites
-my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02","EFJ","RED","RSA","RSAW","SULF")
+my_list <- c("AB00", "AT07", "GV01", "HO00", 
+             "MC06", "RG01", "RS02", "EFJ",
+             "RED", "RSA", "RSAW", "SULF")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -523,9 +531,20 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
   mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
                                              "AB00_precip", "AT07_precip", "GV01_precip",
                                              "HO00_precip", "MC06_precip", "RG01_precip",
-                                             "RS02_precip", "SP02_precip", 
-                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
-                                             "SULF_precip")))
+                                             "RS02_precip", "EFJ_precip", "RED_precip", 
+                                             "RSA_precip", "RSAW_precip","SULF_precip",
+                                             "AB00_Tea_fire","AB00_Jesusita_fire",
+                                             "AT07_Jesusita_fire",
+                                             "GV01_Gaviota_fire",
+                                             "HO00_Gaviota_fire","HO00_Sherpa_fire",
+                                             "MC06_Tea_fire", "MC06_Jesusita_fire",
+                                             "RG01_Gaviota_fire", "RG01_Sherpa_fire",
+                                             "RS02_Tea_fire", "RS02_Jesusita_fire",
+                                             "EFJ_Thompson_fire", "EFJ_Conchas_fire",
+                                             "RED_Thompson_fire",
+                                             "RSA_Conchas_fire",
+                                             "RSAW_Thompson_fire", "RSAW_Conchas_fire",
+                                             "SULF_Thompson_fire")))
 
 # plot results
 (RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
@@ -537,10 +556,9 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "NH4 MARSS modeling results - 12/4/2021") +
+         title = "NH4 MARSS modeling results - 02/02/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
-
 
 ## Script for diagnoses ###
 
