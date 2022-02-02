@@ -579,7 +579,10 @@ CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",2
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(vars(region, Site), scales = "free"))
 
-ggsave("figures/MARSS_12states_nh4_precip_fire_020222.pdf", RESULTS_ALL2)
+# ggsave("figures/MARSS_12states_nh4_precip_fire_020222.png",
+#        width = 40,
+#        height = 20,
+#        units = "cm")
 
 ## Script for diagnoses ###
 
@@ -918,7 +921,6 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
          title = "NO3 MARSS modeling results - 12/5/2021") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
-
 
 ## Script for diagnoses ###
 
