@@ -8,7 +8,11 @@
 # S - State
 # S - Space
 
-# Note: Following a discussion with John Melack, the following sites have both enough chemistry
+# A few notes about the process below:
+# First, if you would like to skip over the data tidying portions
+# you can load in the dataset on line 305 with all SB and VC data.
+
+# Following a discussion with John Melack, the following sites have both enough chemistry
 # and precip data, as well as fires that occurred within that timeframe to be included in the
 # MARSS analysis performed below.
 
@@ -22,7 +26,7 @@
 # San Pedro - SP02
 
 # The following site may be added later, but a longer precipitation record needs to be
-# identified for them - Bell Canyon (BC02).
+# identified for it - Bell Canyon (BC02).
 
 # See "data_raw/VCNP_sonde_site_codes_names.csv" for other possible site names used across other files (E.g., sonde data, GIS, etc.)
 # "Redondo Creek" ~ "RED",
@@ -173,6 +177,21 @@ firechem_nm_monthly <- firechem_nm_ed2 %>%
             SULF_Thompson = mean(SULF_Thompson, na.rm = TRUE)) %>%
   ungroup()
 
+# Adding a plot to examine analyte availability
+firechem_nm_monthly[is.nan(firechem_nm_monthly)] = NA
+
+fnm_test <- firechem_nm_monthly %>%
+  select(Year, Month, sitecode_match, mean_nh4_uM) %>%
+  group_by(Year, Month, sitecode_match) %>%
+  summarize(nh4_n = n())
+
+fnm_test %>%
+  ggplot(aes(x = Month, y = nh4_n, color = sitecode_match)) +
+  geom_point() +
+  theme_bw() +
+  theme(legend.position = "none") +
+  facet_grid(Year~ sitecode_match)
+
 # add year and month columns into the precip dataset
 precip_nm_ed <- precip_nm %>%
   mutate(year = year(datetimeMT),
@@ -227,7 +246,7 @@ seas_2_nm <- cos(2 * pi * seq(n_months_nm) / 12)
 dat_nm_trim <- dat_nm_trim %>%
   mutate(Season1 = rep(seas_1_nm, 8),
          Season2 = rep(seas_2_nm, 8),
-         index = rep(seq(1,166), 8))
+         index = rep(seq(1,165), 8))
 
 # AJW: replace NaNs with NAs
 dat_nm_trim[is.nan(dat_nm_trim)] = NA
@@ -283,12 +302,15 @@ dat_agu <- rbind(dat_select, dat_nm_select)
 dat_agu[,26:33][is.na(dat_agu[,26:33])] = 0
 
 # And export to save progress
-saveRDS(dat_agu, "data_working/marss_data_sb_vc_120621.rds")
+saveRDS(dat_agu, "data_working/marss_data_sb_vc_020222.rds")
 
-#### Model fit ####
+#### Model fitting ####
 
 # Data: Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SCond)
 # Covariates: Month, Precip, Fire
+
+# Note, we cannot analyze TSS, because we only have TSS data
+# from the CA sites and TDS data from the NM sites.
 
 #### NH4 ####
 # Starting with NH4 for test run.
