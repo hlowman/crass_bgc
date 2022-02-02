@@ -560,6 +560,27 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
 
+# adding some formatting to match cond figure output
+CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Thompson"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Conchas"),] 
+CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",22))
+
+(RESULTS_ALL2 <- ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+    geom_point(position=position_dodge(width=0.3), size=5) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Ammonium MARSS modeling results - 2/2/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(vars(region, Site), scales = "free"))
+
+ggsave("figures/MARSS_12states_nh4_precip_fire_020222.pdf", RESULTS_ALL2)
+
 ## Script for diagnoses ###
 
 dat = dat_dep
@@ -576,90 +597,65 @@ mod_list_null <- list(
   A = "zero",
   R = "zero" 
 )
-mod.null <- MARSS(y = dat_dep, model = mod_list_null,
-                  control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE)
-# mod.null <- MARSS(y = dat_dep, model = mod_list_null,
-#                    control = list(maxit = 5000), method = "BFGS")
 
-bbmle::AICtab(fit, mod.null)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, 
+                                    allow.degen=TRUE, trace=1), 
+                     fit=TRUE) # default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), 
+                  method = "BFGS", 
+                  inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
-# mod.null  0.0 39
-# fit       1.1 54
-# RESULT: 
+# mod.null  0.0  69
+# fit       0.4  36
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+plot(dat_dep[8,], type="o")
 
 ### Do resids have temporal autocorrelation? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
-forecast::Acf(resids$model.residuals[1,], main="HO00 model residuals", na.action=na.pass, lag.max = 24)
-forecast::Acf(resids$state.residuals[1,], main="HO00 state residuals", na.action=na.pass, lag.max = 24)
-forecast::Acf(resids$model.residuals[2,], main="RG01 model residuals", na.action=na.pass, lag.max = 24)
-forecast::Acf(resids$state.residuals[2,], main="RG01 state residuals", na.action=na.pass, lag.max = 24)
-mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
-# RESULT: yes, at lag 1 for RG01 and in multiple locations for HO00
-
-### Do resids have temporal trend? ###
-par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
-plot(resids$model.residuals[1,], ylab="model residual", xlab="", main="HO00 model residuals")
-abline(h=0)
-plot(resids$state.residuals[1,], ylab="state residual", xlab="", main="HO00 state residuals")
-abline(h=0)
-plot(resids$model.residuals[2,], ylab="model residual", xlab="", main="RC01 model residuals")
-abline(h=0)
-plot(resids$state.residuals[2,], ylab="state residual", xlab="", main="RC01 state residuals")
-abline(h=0)
-mtext("Do resids have temporal trend?", outer = TRUE, cex = 1.5)
+for(i in c(1:12)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  # forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+# RESULT: ???
+# Getting the same error message for both forecasts:
+# Error in ts(x) : 'ts' object must have one or more observations
 
 ### Are resids normal? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
-qqnorm(resids$model.residuals[1,], main="HO00 model residuals", pch=16, 
-       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[1,])[1]))
-qqline(resids$model.residuals[1,])
-qqnorm(resids$state.residuals[1,], main="HO00 state residuals", pch=16, 
-       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[1,])[1]))
-qqline(resids$state.residuals[1,])
-qqnorm(resids$model.residuals[2,], main="RG01 model residuals", pch=16, 
-       xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[2,])[1]))
-qqline(resids$model.residuals[2,])
-qqnorm(resids$state.residuals[2,], main="RG01 state residuals", pch=16, 
-       xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[2,])[1]))
-qqline(resids$state.residuals[2,])
-mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+for(i in c(1:12)){
+  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+  #        pch=16, 
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  # qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
 
-### residuals vs fitted ###
-par(mfrow=c(2,2),oma = c(2, 0, 2, 0))
-scatter.smooth(as.vector(kf$xtT[1,]) ~ resids$model.residuals[1,],
-               main = "HO00 model resids vs fitted (y conditioned)")
-abline(lm(as.vector(kf$xtT[1,]) ~ resids$model.residuals[1,]), col="blue")
-scatter.smooth(as.vector(kf$xtT[1,]) ~ resids$state.residuals[1,],
-               main = "HO00 state resids vs fitted (y conditioned)")
-abline(lm(as.vector(kf$xtT[1,]) ~ resids$state.residuals[1,]), col="blue")
-scatter.smooth(as.vector(kf$xtT[2,]) ~ resids$model.residuals[2,],
-               main = "RC01 model resids vs fitted (y conditioned)")
-abline(lm(as.vector(kf$xtT[2,]) ~ resids$model.residuals[2,]), col="blue")
-scatter.smooth(as.vector(kf$xtT[2,]) ~ resids$state.residuals[2,],
-               main = "RC01 state resids vs fitted (y conditioned)")
-abline(lm(as.vector(kf$xtT[2,]) ~ resids$state.residuals[2,]), col="blue")
-mtext("Trends in fitted values vs residuals?", outer = TRUE, cex = 1.5)
-
-### residuals vs observed ###
-par(mfrow=c(2,2),oma = c(2, 0, 2, 0))
-scatter.smooth(as.vector(dat[1,]) ~ resids$model.residuals[1,],
-               main = "HO00 model resids vs observed")
-abline(lm(as.vector(kf$xtT[1,]) ~ resids$model.residuals[1,]))
-scatter.smooth(as.vector(dat[1,]) ~ resids$state.residuals[1,], 
-               main = "HO00 state resids vs observed") 
-abline(lm(as.vector(kf$xtT[1,]) ~ resids$state.residuals[1,]))
-scatter.smooth(as.vector(dat[2,]) ~ resids$model.residuals[2,],
-               main = "RC01 model resids vs observed")
-abline(lm(as.vector(kf$xtT[2,]) ~ resids$model.residuals[2,]))
-scatter.smooth(as.vector(dat[2,]) ~ resids$state.residuals[2,], 
-               main = "RC01 state resids vs observed") 
-abline(lm(as.vector(kf$xtT[2,]) ~ resids$state.residuals[2,]))
-mtext("Trends in observed values vs residuals?", outer = TRUE, cex = 1.5)
+# Also getting the following error here:
+# Error in qqnorm.default(resids$state.residuals[i, ], main = paste(i, "state residuals"),  : y is empty or has only NAs
 
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
 
 #### Scenario 2 : catchments in two ecoregions #### 
 # not using fire for now to simplify
