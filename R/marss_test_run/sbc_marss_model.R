@@ -4327,7 +4327,282 @@ for(i in c(1:12)){
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
-#************************** 
+#### Scenario 1 : all catchments are separate states - 11 catchments  #### 
+
+# Removing SULF site per 02/04/22 meeting
+
+# Pull out only response var
+names(dat_cond_log)
+# AB00, AT07, GV01, HO00, MC06, RG01, RS02,
+# EFJ, RED, RSA, & RSAW
+dat_dep <- t(dat_cond_log[,c(4:10,12,16:18)])
+row.names(dat_dep)
+
+# Make covariate inputs
+# without short ts sites:
+dat_cov <- dat_cond_log[,c(2:3, 
+                           20:26, 28,32,33,34,
+                           36:47, 50,51,49,54,52,53)]
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+#### make C matrix
+
+# without short ts sites:
+CC <- matrix(list( 
+  # season 1
+  "Season1", "Season1", "Season1", "Season1", 
+  "Season1", "Season1", "Season1", "Season1", 
+  "Season1", "Season1", "Season1",
+  # season 2
+  "Season2", "Season2", "Season2", "Season2", 
+  "Season2", "Season2", "Season2", "Season2",
+  "Season2", "Season2", "Season2",
+  # precip by site
+  "AB00_precip",0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_precip",0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_precip",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_precip",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_precip",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_precip",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_precip",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_precip", 0,0,0,
+  0,0,0,0,0,0,0,0,"RED_precip", 0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_precip", 0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",
+  # fires by site
+  "AB00_Tea",0,0,0,0,0,0,0,0,0,0,
+  "AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,
+  0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_Tea",0,0,0,0,0,0,
+  0,0,0,0,"MC06_Jesusita",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_Gaviota",0,0,0,0,0,
+  0,0,0,0,0,"RG01_Sherpa",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_Tea",0,0,0,0,
+  0,0,0,0,0,0,"RS02_Jesusita",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Thompson",0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Conchas",0,0,0,
+  0,0,0,0,0,0,0,0,"RED_Thompson",0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_Conchas",0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Thompson",
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Conchas"),11,31)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observtion model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# # fit EM by itself
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_test_run/fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+
+### DIAGNOSES ###
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+## check for hidden errors
+fit[["errors"]]
+# NULL - Yay!
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02","EFJ","RED","RSA","RSAW")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>%
+  #rename(Parameter = parm) %>%# rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip",
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "AB00_Tea",
+                                             "AB00_Jesusita",
+                                             "AT07_Jesusita",
+                                             "GV01_Gaviota",
+                                             "HO00_Gaviota",
+                                             "HO00_Sherpa",
+                                             "MC06_Tea",
+                                             "MC06_Jesusita",
+                                             "RG01_Gaviota",
+                                             "RG01_Sherpa",
+                                             "RS02_Tea",
+                                             "RS02_Jesusita",
+                                             "EFJ_Thompson",
+                                             "EFJ_Conchas",
+                                             "RED_Thompson",
+                                             "RSA_Conchas",
+                                             "RSAW_Thompson",
+                                             "RSAW_Conchas")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 02/04/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Thompson"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Conchas"),] 
+CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",18))
+
+(RESULTS_ALL <-ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+    geom_point(position=position_dodge(width=0.3), size=5) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 02/04/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(vars(region, Site), scales = "free"))
+
+# ggsave("figures/MARSS_11states_cond_precip_fire_020422.png",
+#        width = 40,
+#        height = 20,
+#        units = "cm")
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- residuals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#           dAIC df
+# fit        0.0 64
+# null.fit 289.4 33
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+# getting error message:
+# Error in ts(x) : 'ts' object must have one or more observations
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
+  #        pch=16, 
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  # qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# getting error message:
+# Error in qqnorm.default(resids$state.residuals[i, ], main = paste(i, "state residuals"),  : y is empty or has only NAs
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #### Scenario 2 : catchments in two ecoregions #### 
 
