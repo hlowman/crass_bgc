@@ -304,7 +304,7 @@ dat_agu <- rbind(dat_select, dat_nm_select)
 dat_agu[,26:33][is.na(dat_agu[,26:33])] = 0
 
 # And export to save progress
-saveRDS(dat_agu, "data_working/marss_data_sb_vc_020222.rds")
+#saveRDS(dat_agu, "data_working/marss_data_sb_vc_020222.rds")
 
 #### Model fitting ####
 
@@ -4267,7 +4267,8 @@ ggsave("figures/MARSS_12states_spc_precip_fire_120621.pdf",RESULTS_ALL)
 
 dat = dat_dep
 time = c(1:ncol(dat_dep))
-resids <- residuals(fit)
+# don't use residuals() - this will pull an entirely different df
+resids <- MARSSresiduals(fit)
 kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
@@ -4311,18 +4312,31 @@ for(i in c(1:12)){
   mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
 }
 
+# These look ok.
+# What you don't want is a consistent lag at 1 or 12.
+# Patterns are bad (esp. sinusoidal), random is good.
+# Should definitely examine these without seasonal effect to see how necessary this is.
+# If there's a pattern here, 
+
 ### Are resids normal? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
-  #        pch=16, 
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+         pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  # qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  # qqline(resids$state.residuals[i,])
   mtext("Are resids normal?", outer = TRUE, cex = 1.5)
 }
+
+# state residuals - not looking great
+# they are qq plots that should look like a straight line
+# shapiro test scores should be closer to 1
+# Press back arrow to see all 12 states
+# ordered according to data - SB sites look ok
+# flat lines likely due to low variation in data sites
 
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
@@ -4424,12 +4438,14 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 #                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
 
 # export model fit
-saveRDS(fit, file = "data_working/marss_test_run/fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
 
 ### DIAGNOSES ###
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
 fit[["errors"]]
 # NULL - Yay!
 
@@ -4437,10 +4453,14 @@ fit[["errors"]]
 ## estimates
 # hessian method is much fast but not ideal for final results
 est_fit <- MARSSparamCIs(fit)
-#est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+# better to do parametric/non-parametric bootstrapping once model is 
+# decided upon
+# Maybe increase to over 100 boots, 100 is standard
+# est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
-saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
 
+# formatting confidence intervals into dataframe
 CIs_fit = cbind(
   est_fit$par$U,
   est_fit$par.lowCI$U,
@@ -4509,6 +4529,7 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
 
+# Adding labels for plotting purposes
 CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
 CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Thompson"),] 
 CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Conchas"),] 
@@ -4540,6 +4561,15 @@ resids <- residuals(fit)
 kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
+# No C matrix
+# Need to be sure the covariates we've added are *actually* explaining
+# the variation we are seeing
+# Should have a better AIC score in model above
+
+# Future to-do : make new model with only seasonal effects, and compare
+# to null model to see how it performs. It may not be explaining much
+# more variability than the null model and making the model above overly
+# complex. Or could create model with covariates minus seasonal and compare.
 mod_list_null <- list(
   B = "diagonal and unequal",
   U = "zero", 
@@ -4549,6 +4579,9 @@ mod_list_null <- list(
   R = "zero" 
 )
 
+# fitting null model
+# Note - if we change the structure of the model above, make sure that
+# the same code is used to run the null models here below.
 null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
                      control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
@@ -4556,7 +4589,8 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
 bbmle::AICtab(fit, null.fit)
-
+# dAIC- delta AIC
+# 0.0 = always the value for the lowest model AIC
 #           dAIC df
 # fit        0.0 64
 # null.fit 289.4 33
