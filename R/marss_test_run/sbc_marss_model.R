@@ -220,6 +220,23 @@ names(site.labs) <- sites_used
 #        units = "cm"
 # )
 
+(cond_fig <- ggplot(firechem_nm_con %>% 
+                     filter(sitecode_match %in% sites_used), 
+                   aes(x = DateTime, y = mean_cond_uScm)) +
+    geom_point() +
+    labs(x = "Date") +
+    ylab(expression(paste(Conductivity," (μS/cm)"))) +
+    facet_wrap(.~sitecode_match, scales = "free",
+               ncol = 1,
+               labeller = labeller(sitecode_match = site.labs)) +
+    theme_bw())
+
+# ggsave(("figures/nm_sites_cond.png"),
+#        width = 12,
+#        height = 24,
+#        units = "cm"
+# )
+
 ## End of additional code making NM/VC figures for nutrients.
 
 # convert to uM and summarize by month
