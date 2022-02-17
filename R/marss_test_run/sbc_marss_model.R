@@ -157,6 +157,71 @@ firechem_nm_ed2 <- firechem_nm_ed %>%
          NO3_mgL_lod = as.numeric(ifelse(NO3_mgL <= 0.1, 0.05, NO3_mgL)),
          PO4_mgL_lod = as.numeric(ifelse(PO4_mgL <= 0.1, 0.05, PO4_mgL))) # Report low values at 1/2 LOD
 
+## Added extra figures John requested to this code chunk. ##
+firechem_nm_con <- firechem_nm_ed2 %>%
+  mutate(nh4_uM = (NH4_mgL_lod/80.043)*1000, # convert to uM
+         no3_uM = (NO3_mgL_lod/62.0049)*1000,
+         po4_uM = (PO4_mgL_lod/94.9714)*1000)
+
+# list of sites included in cond MARSS model below
+sites_used <- c("EFJ", "RED", "RSA", "RSAW", "SULF")
+# new facet labels for sites
+site.labs <- c("East Fork Jemez River", "Redondo Creek", "San Antonio Creek - Toledo", "San Antonio Creek - West", "Sulfur Creek")
+names(site.labs) <- sites_used
+
+(no3_fig <- ggplot(firechem_nm_con %>% 
+                    filter(sitecode_match %in% sites_used), 
+                  aes(x = DateTime, y = no3_uM)) +
+  geom_point() +
+  labs(x = "Date") +
+  ylab(expression(paste(NO[3]^{"-"}," (μM)"))) +
+  facet_wrap(.~sitecode_match, scales = "free",
+             ncol = 1,
+             labeller = labeller(sitecode_match = site.labs)) +
+  theme_bw())
+
+# ggsave(("figures/nm_sites_no3.png"),
+#        width = 12,
+#        height = 24,
+#        units = "cm"
+# )
+
+(nh4_fig <- ggplot(firechem_nm_con %>% 
+                     filter(sitecode_match %in% sites_used), 
+                   aes(x = DateTime, y = nh4_uM)) +
+    geom_point() +
+    labs(x = "Date") +
+    ylab(expression(paste(NH[4]^{"+"}," (μM)"))) +
+    facet_wrap(.~sitecode_match, scales = "free",
+               ncol = 1,
+               labeller = labeller(sitecode_match = site.labs)) +
+    theme_bw())
+
+# ggsave(("figures/nm_sites_nh4.png"),
+#        width = 12,
+#        height = 24,
+#        units = "cm"
+# )
+
+(po4_fig <- ggplot(firechem_nm_con %>% 
+                     filter(sitecode_match %in% sites_used), 
+                   aes(x = DateTime, y = po4_uM)) +
+    geom_point() +
+    labs(x = "Date") +
+    ylab(expression(paste(PO[4]^{"3-"}," (μM)"))) +
+    facet_wrap(.~sitecode_match, scales = "free",
+               ncol = 1,
+               labeller = labeller(sitecode_match = site.labs)) +
+    theme_bw())
+
+# ggsave(("figures/nm_sites_po4.png"),
+#        width = 12,
+#        height = 24,
+#        units = "cm"
+# )
+
+## End of additional code making NM/VC figures for nutrients.
+
 # convert to uM and summarize by month
 firechem_nm_monthly <- firechem_nm_ed2 %>%
   mutate(nh4_uM = (NH4_mgL_lod/80.043)*1000, # convert to uM
