@@ -4758,7 +4758,7 @@ mod_list2 <- list(
   A = "zero",
   D = "zero" ,
   d = "zero",
-  R = "diagonal and equal", #"zero",
+  R = "diagonal and equal",
   V0 = "zero" ,
   tinitx = 0
 )
@@ -4943,24 +4943,25 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #### Scenario 3 : all catchments in a single state #### 
 
-# Pull out only response var
-names(dat_cond_log)
-# AB00,AT07,GV01,HO00,MC06,RG01,RS02,
-#  EFJ, RED, RSA,RSAW,SULF
-dat_dep <- t(dat_cond_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
-row.names(dat_dep)
+# Use dat_dep from 11 state model.
 
-# not using fire for now to simplify
 # Make covariate inputs
-dat_cond_log <- dat_cond_log %>%
-  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02 + cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/16)
+# For now, using average precip and cumulative fire
+# so number of watersheds affected by fires is incorporated (need to run by group...)
+dat_cond_log3 <- dat_cond_log %>%
+  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_EFJ +  cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW)/11,
+         c_fire = (AB00_Tea_AB00 + AB00_Jesusita_AB00 + AT07_Jesusita_AT07 + GV01_Gaviota_GV01 + HO00_Gaviota_HO00 + HO00_Sherpa_HO00 + MC06_Tea_MC06 + MC06_Jesusita_MC06 + RG01_Gaviota_RG01 + RG01_Sherpa_RG01 + RS02_Tea_RS02 + RS02_Jesusita_RS02 + RED_Thompson_RED + EFJ_Thompson_EFJ + EFJ_Conchas_EFJ + RSAW_Thompson_RSAW + RSAW_Conchas_RSAW + RSA_Conchas_RSA))
 
-dat_cov3 <- dat_cond_log[,c(2:3,38)]
+names(dat_cond_log3)
+dat_cov3 <- dat_cond_log3[,c(2:3,55:56)]
 dat_cov3 <- t(scale(dat_cov3))
 row.names(dat_cov3)
 
-CC3 <- matrix(list("Season1", "Season2", "c_precip_avg"),1,3)
+CC3 <- matrix(list("Season1", "Season2", 
+                   "c_precip_avg", "c_fire"),1,4)
 
+# Note - Need to check about altering the R component of the matrix from zero
+# in the 11 state model to diagonal/equal in 2 and 1 state model structures
 # Model setup
 mod_list3 <- list(
   # tinitx = "zero", # setting initial state value to time = 0
@@ -4969,22 +4970,162 @@ mod_list3 <- list(
   C = CC3, # see new matrix above
   c = dat_cov3, # we should probably de-mean and scale covariates to units of sd 
   Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
-  Z = matrix(1, nrow = 16, ncol = 1),
+  Z = matrix(1, nrow = 11, ncol = 1),
   A = "zero",
-  R = "zero" # diagonal and equal: allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
+  R = "diagonal and equal" # allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
 )
 
 # Fit model
+kemfit3 <- MARSS(y = dat_dep, model = mod_list3,
+                 control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+
 fit3 <- MARSS(y = dat_dep, model = mod_list3,
-              control = list(maxit = 5000), method = "BFGS")
+              control = list(maxit = 5000), method = "BFGS", inits = kemfit3$par)
 
 # fit3 <- MARSS(y = dat_dep, model = mod_list3,
 #              control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
 # export model fit
-#saveRDS(fit3, file = "data_working/marss_test_run/fit_120321_1state.rds")
+#saveRDS(fit3, file = "data_working/marss_test_run/fit_022522_1state.rds")
 
 # Compare 1 and 2 state models with initial 11 state model
 m11 <- fit$AIC # 2350 - appears to be the winner!
 m2 <- fit2$AIC # 2571
-m1 <- fit3$AIC # ??
+m1 <- fit3$AIC # 2691
+
+### DIAGNOSES ###
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit3[["errors"]]
+# NULL - Yay!
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit3 <- MARSSparamCIs(fit3)
+# better to do parametric/non-parametric bootstrapping once model is decided upon
+# Maybe increase to over 100 boots, 100 is standard
+#est_fit3 <- MARSSparamCIs(fit3, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit3, "data_working/marss_test_run/CIs_fit_022522_1state_cond.rds")
+
+# formatting confidence intervals into dataframe
+CIs_fit3 = cbind(
+  est_fit3$par$U,
+  est_fit3$par.lowCI$U,
+  est_fit3$par.upCI$U)
+CIs_fit3 = as.data.frame(CIs_fit3)
+names(CIs_fit3) = c("Est.", "Lower", "Upper")
+CIs_fit3$parm = rownames(CIs_fit3)
+CIs_fit3[,1:3] = round(CIs_fit3[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+CIs_fit3_ed <- CIs_fit3 %>%
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2",
+                                             "c_precip_avg", "c_fire")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit3_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 02/25/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm"))) # need to play with margins to make it all fit
+
+# ggsave("figures/MARSS_1state_cond_precip_fire_022522.png",
+#        width = 10,
+#        height = 10,
+#        units = "cm")
+
+## Script for diagnoses ###
+
+dat3 = dat_dep
+time3 = c(1:ncol(dat_dep))
+resids3 <- MARSSresiduals(fit3)
+kf3 = print(fit2, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+# No C matrix
+# Need to be sure the covariates we've added are *actually* explaining
+# the variation we are seeing
+# Should have a better AIC score in model above
+
+# Future to-do : make new model with only seasonal effects, and compare
+# to null model to see how it performs. It may not be explaining much
+# more variability than the null model and making the model above overly
+# complex. Or could create model with covariates minus seasonal and compare.
+# NOTE - double check to be sure this structure is correct for 1 state option.
+mod_list_null3 <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+
+# fitting null model
+# Note - if we change the structure of the model above, make sure that
+# the same code is used to run the null models here below.
+null.kemfit3 <- MARSS(y = dat_dep, model = mod_list_null3,
+                      control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit3 <- MARSS(y = dat_dep, model = mod_list_null3,
+                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit3$par)
+
+bbmle::AICtab(fit3, null.fit3)
+# dAIC- delta AIC
+# 0.0 = always the value for the lowest model AIC
+#           dAIC df
+# fit        0.0 11
+# null.fit  48.6  8
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+# par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+# plot(dat_dep[1,], type="o")
+# plot(dat_dep[2,], type="o")
+# plot(dat_dep[3,], type="o")
+# plot(dat_dep[4,], type="o")
+# plot(dat_dep[5,], type="o")
+# plot(dat_dep[6,], type="o")
+# plot(dat_dep[7,], type="o")
+# plot(dat_dep[8,], type="o")
+# plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  #forecast::Acf(resids3$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids3$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+# May have some patterns in model residuals we should check...
+
+# State residuals look fine.
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  # qqnorm(resids3$model.residuals[i,], main=paste(i, "model residuals"),
+  #        pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids3$model.residuals[i,])[1]))
+  # qqline(resids3$model.residuals[i,])
+  qqnorm(resids3$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids3$state.residuals[i,])[1]))
+  qqline(resids3$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# QQ plots look even better for model residuals than they did in 2 state model.
+
+# End of script.
