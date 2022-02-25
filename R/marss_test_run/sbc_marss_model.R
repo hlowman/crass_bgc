@@ -53,18 +53,20 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 # Load datasets
 # Stream Chemistry - all sites
 chem <- readRDS("data_working/SBchem_edited_120321.rds")
-# chem_nm <- readRDS("data_working/VCNPchem_edited_110821.rds") - use firechem below
+chem_nm <- readRDS("data_working/VCNPchem_edited_120521.rds")
 # Precipitation - all sites
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_110321.rds")
 # Fire Events - all sites
 fire <- readRDS("data_working/SBfire_edited_120621.rds")
-firechem_nm <- readRDS("data_working/VCNPfire_edited_120621.rds")
+fire_nm <- readRDS("data_working/VCNPfire_edited_022422.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 location_nm <- read_csv("data_raw/VCNP_sonde_site_codes_names.csv")
   
 #### Filter & Joining Data ####
+
+#### Santa Barbara ####
 
 # I first need to identify the matching stream sites for the precip data
 precip_ed <- precip %>%
@@ -95,7 +97,7 @@ precip_ed %>%
 # So, covariate data, which cannot be missing, can run from a maximum of 9/2002 to 7/2016.
 
 # To avoid strange gaps in data, I'm going to start with the fire data,
-# since I know it extends from 9/1/2002 to 7/1/2016. This will ensure all other datasets are 
+# since I know it extends from 9/1/2002 to 7/1/2016. This will ensure all other datasets are
 # joined to these dates in full (which was causing problems earlier).
 fire_precip <- left_join(fire, precip_ed, by = c("site" = "sitecode_match", "date" = "Date"))
 
@@ -127,21 +129,44 @@ sum(is.na(dat$fire)) # 0
 sum(is.na(dat$cumulative_precip_mm)) # 0
 # Great!
 
-# Now to do the same for NM data
-# Beginning with the firechem dataset because it will be easier to join
+#### Valles Caldera ####
 
+# Now to do the same for NM data
+precip_nm_ed <- precip_nm %>%
+  dplyr::rename(sitecode_precip = ID) %>%
+  mutate(Day = 1) %>% # new column of "days"
+  mutate(Date = ymd(datetimeMT)) %>%
+  mutate(Year = year(Date),
+         Month = month(Date))
+
+## Timeframe Selection
+# Examine precip data coverage for MARSS timescale delineation
+precip_nm_ed %>%
+  ggplot(aes(x = Year, y = sitecode_precip, color = sitecode_precip)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+# So, covariate data, which cannot be missing, can run from a maximum of 2005 to 2021.
+# To avoid strange gaps in data, I'm going to start with the fire data,
+# since I know it extends from 6/1/2005 to 3/1/2019. This will ensure all other datasets are 
+# joined to these dates in full (which was causing problems earlier).
+fire_precip_nm <- left_join(fire_nm, precip_nm_ed, by = c("site" = "sitecode_precip", "date" = "Date"))
+
+# Edit chemistry dataset to permit joining
 namelist <- c("San Antonio Creek - Toledo", "San Antonio Creek- Toledo", "San Antonio Creek -Toledo")
 
-firechem_nm_ed <- firechem_nm %>%
-  mutate(sitecode_match = factor(case_when(
-    site == "Redondo Creek" ~ "RED",
-    site == "East Fork Jemez River" ~ "EFJ",
-    site == "San Antonio - West" ~ "RSAW",
-    site %in% namelist ~ "RSA",
-    site == "Indios Creek" ~ "IND",
-    site == "Indios Creek - Post Fire (Below Burn)" ~ "IND_BB",
-    site == "Indios Creek - above burn" ~ "IND_AB",
-    site == "Sulfur Creek" ~ "SULF",
+# Make abbreviations appear at appropriate sites
+chem_nm_ed <- chem_nm %>%
+  mutate(site = factor(case_when(
+    site_code == "Redondo Creek" ~ "RED",
+    site_code == "East Fork Jemez River" ~ "EFJ",
+    site_code == "San Antonio - West" ~ "RSAW",
+    site_code %in% namelist ~ "RSA",
+    site_code == "Indios Creek" ~ "IND",
+    site_code == "Indios Creek - Post Fire (Below Burn)" ~ "IND_BB",
+    site_code == "Indios Creek - above burn" ~ "IND_AB",
+    site_code == "Sulfur Creek" ~ "SULF",
     TRUE ~ NA_character_))) %>%
   mutate(NH4_mgL = gsub("<", "", nh4_mgL),
          NO3_mgL = gsub("<", "", nO2_nO3_mgL),
@@ -150,34 +175,84 @@ firechem_nm_ed <- firechem_nm %>%
 # need to also add in LODs and convert analytes appropriately
 mylist <- c("Contaminated")
 
-firechem_nm_ed2 <- firechem_nm_ed %>%
+chem_nm_ed2 <- chem_nm_ed %>%
   replace_with_na_at(.vars = c("NH4_mgL", "NO3_mgL", "PO4_mgL"),
                      condition = ~.x %in% mylist) %>% # Remove "contaminated" and replace with NA
   mutate(NH4_mgL_lod = as.numeric(ifelse(NH4_mgL <= 0.1, 0.05, NH4_mgL)),
          NO3_mgL_lod = as.numeric(ifelse(NO3_mgL <= 0.1, 0.05, NO3_mgL)),
          PO4_mgL_lod = as.numeric(ifelse(PO4_mgL <= 0.1, 0.05, PO4_mgL))) # Report low values at 1/2 LOD
 
-## Added extra figures John requested to this code chunk. ##
-firechem_nm_con <- firechem_nm_ed2 %>%
+# convert to uM and summarize by month
+chem_nm_ed3 <- chem_nm_ed2 %>%
   mutate(nh4_uM = (NH4_mgL_lod/80.043)*1000, # convert to uM
          no3_uM = (NO3_mgL_lod/62.0049)*1000,
-         po4_uM = (PO4_mgL_lod/94.9714)*1000)
+         po4_uM = (PO4_mgL_lod/94.9714)*1000) 
 
+chem_nm_monthly <- chem_nm_ed3 %>%
+  dplyr::group_by(site, Year, Month) %>%
+  summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE),
+            mean_no3_uM = mean(no3_uM, na.rm = TRUE),
+            mean_po4_uM = mean(po4_uM, na.rm = TRUE),
+            mean_cond_uScm = mean(mean_cond_uScm, na.rm = TRUE)) %>%
+  ungroup()
+
+# Then, left join with chemistry so as not to lose any data.
+dat_nm <- left_join(fire_precip_nm, chem_nm_monthly, by = c("site", "Year", "Month"))
+
+# Adding a plot to examine analyte availability
+chem_nm_monthly[is.nan(chem_nm_monthly)] = NA
+
+# plot of chem data availability
+chem_nm_monthly %>%
+  ggplot(aes(x = Year, y = site, color = site)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+dat_nm_trim <- dat_nm %>%
+  filter(date >= "2005-06-01") %>%
+  filter(date <= "2019-03-01")
+# should be 166 records pre site to match "dat" above
+# 166 records x 7 sites = 1162 records
+# dates between SB and NM datasets don't need to match
+# but lengths of time series do
+
+# Adding in dummy covariates by season
+n_months_nm <- dat_nm_trim$date %>%
+  unique() %>%
+  length()
+
+seas_1_nm <- sin(2 * pi * seq(n_months_nm) / 12)
+seas_2_nm <- cos(2 * pi * seq(n_months_nm) / 12)
+
+dat_nm_trim <- dat_nm_trim %>%
+  mutate(Season1 = rep(seas_1_nm, 7),
+         Season2 = rep(seas_2_nm, 7),
+         index = rep(seq(1,166), 7))
+
+# AJW: replace NaNs with NAs
+dat_nm_trim[is.nan(dat_nm_trim)] = NA
+
+# Note for future me - be VERY careful with the joining above. Something weird was happening previously where precip data that IS present was simply dropping off.
+
+# Also, because the Valles Caldera data isn't always monthly, some fire 1s were dropping off when they shouldn't, so Heili made edits 2/24/22 to rectify the situation.
+
+## Added extra figures John requested to this code chunk. ##
 # list of sites included in cond MARSS model below
 sites_used <- c("EFJ", "RED", "RSA", "RSAW", "SULF")
 # new facet labels for sites
 site.labs <- c("East Fork Jemez River", "Redondo Creek", "San Antonio Creek - Toledo", "San Antonio Creek - West", "Sulfur Creek")
 names(site.labs) <- sites_used
 
-(no3_fig <- ggplot(firechem_nm_con %>% 
-                    filter(sitecode_match %in% sites_used), 
+(no3_fig <- ggplot(chem_nm_ed3 %>% 
+                    filter(site %in% sites_used), 
                   aes(x = DateTime, y = no3_uM)) +
   geom_point() +
   labs(x = "Date") +
   ylab(expression(paste(NO[3]^{"-"}," (μM)"))) +
-  facet_wrap(.~sitecode_match, scales = "free",
+  facet_wrap(.~site, scales = "free",
              ncol = 1,
-             labeller = labeller(sitecode_match = site.labs)) +
+             labeller = labeller(site = site.labs)) +
   theme_bw())
 
 # ggsave(("figures/nm_sites_no3.png"),
@@ -186,15 +261,15 @@ names(site.labs) <- sites_used
 #        units = "cm"
 # )
 
-(nh4_fig <- ggplot(firechem_nm_con %>% 
-                     filter(sitecode_match %in% sites_used), 
+(nh4_fig <- ggplot(chem_nm_ed3 %>% 
+                     filter(site %in% sites_used), 
                    aes(x = DateTime, y = nh4_uM)) +
     geom_point() +
     labs(x = "Date") +
     ylab(expression(paste(NH[4]^{"+"}," (μM)"))) +
-    facet_wrap(.~sitecode_match, scales = "free",
+    facet_wrap(.~site, scales = "free",
                ncol = 1,
-               labeller = labeller(sitecode_match = site.labs)) +
+               labeller = labeller(site = site.labs)) +
     theme_bw())
 
 # ggsave(("figures/nm_sites_nh4.png"),
@@ -203,15 +278,15 @@ names(site.labs) <- sites_used
 #        units = "cm"
 # )
 
-(po4_fig <- ggplot(firechem_nm_con %>% 
-                     filter(sitecode_match %in% sites_used), 
+(po4_fig <- ggplot(chem_nm_ed3 %>% 
+                     filter(site %in% sites_used), 
                    aes(x = DateTime, y = po4_uM)) +
     geom_point() +
     labs(x = "Date") +
     ylab(expression(paste(PO[4]^{"3-"}," (μM)"))) +
-    facet_wrap(.~sitecode_match, scales = "free",
+    facet_wrap(.~site, scales = "free",
                ncol = 1,
-               labeller = labeller(sitecode_match = site.labs)) +
+               labeller = labeller(site = site.labs)) +
     theme_bw())
 
 # ggsave(("figures/nm_sites_po4.png"),
@@ -220,15 +295,15 @@ names(site.labs) <- sites_used
 #        units = "cm"
 # )
 
-(cond_fig <- ggplot(firechem_nm_con %>% 
-                     filter(sitecode_match %in% sites_used), 
+(cond_fig <- ggplot(chem_nm_ed3 %>% 
+                     filter(site %in% sites_used), 
                    aes(x = DateTime, y = mean_cond_uScm)) +
     geom_point() +
     labs(x = "Date") +
     ylab(expression(paste(Conductivity," (μS/cm)"))) +
-    facet_wrap(.~sitecode_match, scales = "free",
+    facet_wrap(.~site, scales = "free",
                ncol = 1,
-               labeller = labeller(sitecode_match = site.labs)) +
+               labeller = labeller(site = site.labs)) +
     theme_bw())
 
 # ggsave(("figures/nm_sites_cond.png"),
@@ -239,111 +314,14 @@ names(site.labs) <- sites_used
 
 ## End of additional code making NM/VC figures for nutrients.
 
-# convert to uM and summarize by month
-firechem_nm_monthly <- firechem_nm_ed2 %>%
-  mutate(nh4_uM = (NH4_mgL_lod/80.043)*1000, # convert to uM
-         no3_uM = (NO3_mgL_lod/62.0049)*1000,
-         po4_uM = (PO4_mgL_lod/94.9714)*1000) %>%
-  group_by(sitecode_match, Year, Month) %>%
-  summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE),
-            mean_no3_uM = mean(no3_uM, na.rm = TRUE),
-            mean_po4_uM = mean(po4_uM, na.rm = TRUE),
-            mean_cond_uScm = mean(mean_cond_uScm, na.rm = TRUE),
-            RED_Thompson = mean(RED_Thompson, na.rm = TRUE),
-            EFJ_Thompson = mean(EFJ_Thompson, na.rm = TRUE),
-            EFJ_Conchas = mean(EFJ_Conchas, na.rm = TRUE),
-            RSAW_Thompson = mean(RSAW_Thompson, na.rm = TRUE),
-            RSAW_Conchas = mean(RSAW_Conchas, na.rm = TRUE),
-            RSA_Conchas = mean(RSA_Conchas, na.rm = TRUE),
-            IND_BB_Conchas = mean(IND_BB_Conchas, na.rm = TRUE),
-            SULF_Thompson = mean(SULF_Thompson, na.rm = TRUE)) %>%
-  ungroup()
-
-# Adding a plot to examine analyte availability
-firechem_nm_monthly[is.nan(firechem_nm_monthly)] = NA
-
-fnm_test <- firechem_nm_monthly %>%
-  select(Year, Month, sitecode_match, mean_po4_uM) %>%
-  group_by(Year, Month, sitecode_match) %>%
-  summarize(po4_n = n())
-
-fnm_test %>%
-  ggplot(aes(x = Month, y = po4_n, color = sitecode_match)) +
-  geom_point() +
-  theme_bw() +
-  theme(legend.position = "none") +
-  facet_grid(Year~ sitecode_match)
-
-# add year and month columns into the precip dataset
-precip_nm_ed <- precip_nm %>%
-  mutate(year = year(datetimeMT),
-         month = month(datetimeMT))
-
-# examine precip data as we did above
-precip_nm_ed %>%
-  drop_na(ID) %>%
-  ggplot(aes(x = year, y = ID, color = ID)) +
-  geom_line() +
-  theme_bw() +
-  theme(legend.position = "none")
-# So, covariate data, which cannot be missing, can run from a maximum of 2005 to 2021.
-
-dat_nm <- left_join(precip_nm_ed, firechem_nm_monthly, by = c("ID" = "sitecode_match", "year" = "Year", "month" = "Month"))
-
-# so precip data runs roughly from 2002-2021
-# but chem data runs from ~ 2005-2014
-# since the data needs to be the same length 
-# as the SB data to prevent NAs
-# I'm going to trim down the dataset to match
-# (166 records x 8 sites = 1328 records)
-
-# plot of chem data availability
-firechem_nm_monthly %>%
-  ggplot(aes(x = Year, y = sitecode_match, color = sitecode_match)) +
-  geom_line() +
-  theme_bw() +
-  theme(legend.position = "none")
-
-# remove data with no matching site codes (these are extra samples like:
-  # "Redondo Creek (below Meadow, very low & often running subsurface, not flowing past exclosures, did not sample when too dry in 2014)"
-  # "San Antonio Creek - Flood Water Post Fire"
-  # "San Antonio Creek- Flood Water")
-firechem_nm_monthly = firechem_nm_monthly[!is.na(firechem_nm_monthly$sitecode_match),]
-
-dat_nm_trim <- dat_nm %>%
-  filter(datetimeMT > "2005-06-01") %>%
-  filter(datetimeMT < "2019-05-01") %>%
-  group_by(ID) %>%
-  arrange(datetimeMT, .by_group = TRUE) %>%
-  ungroup() # should be 1328 records to match "dat" above
-# dates between SB and NM datasets don't need to match
-# but lengths of time series do
-
-# Adding in dummy covariates by season
-n_months_nm <- dat_nm_trim$datetimeMT %>%
-  unique() %>%
-  length()
-
-seas_1_nm <- sin(2 * pi * seq(n_months_nm) / 12)
-seas_2_nm <- cos(2 * pi * seq(n_months_nm) / 12)
-
-dat_nm_trim <- dat_nm_trim %>%
-  mutate(Season1 = rep(seas_1_nm, 8),
-         Season2 = rep(seas_2_nm, 8),
-         index = rep(seq(1,166), 8))
-
-# AJW: replace NaNs with NAs
-dat_nm_trim[is.nan(dat_nm_trim)] = NA
-
-# Note for future me - be VERY careful with the joining above. Something weird was happening previously where precip data that IS present was simply dropping off.
+#### Join Full Dataset ####
 
 # And finally, join the Santa Barbara and New Mexico datasets
-dat_nm_trim <- dat_nm_trim %>%
-  rename(site = ID,
-         date = datetimeMT)
 
-# Add fire covrs back in for the AGU presentation
+# Created NM dataset for joining with SB data
 dat_nm_select <- dat_nm_trim %>%
+  rename(year = Year,
+         month = Month) %>%
   select(year, month, site, 
          cumulative_precip_mm, 
          RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson,
@@ -380,17 +358,18 @@ dat_select <- dat %>%
          IND_BB_Conchas = 0, 
          SULF_Thompson = 0) # need to add in empty values for NM fire columns so the rbind below works
 
-dat_agu <- rbind(dat_select, dat_nm_select)
+#dat_agu <- rbind(dat_select, dat_nm_select)
+dat_new22 <- rbind(dat_select, dat_nm_select)
 
 # replace fire NAs with zeros
-dat_agu[,26:33][is.na(dat_agu[,26:33])] = 0
+dat_new22[,26:33][is.na(dat_new22[,26:33])] = 0
 
 # And export to save progress
-#saveRDS(dat_agu, "data_working/marss_data_sb_vc_020222.rds")
+#saveRDS(dat_new22, "data_working/marss_data_sb_vc_022422.rds")
 
 #### Model fitting ####
 
-# Data: Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TSS, SCond)
+# Data: Stream Chemistry analytes (NH4, NO3, TDN, TPN, PO4, TDP, TP, TPP, TPC, TDS/TSS, SCond)
 # Covariates: Month, Precip, Fire
 
 # Note, we cannot analyze TSS, because we only have TSS data
@@ -4052,7 +4031,6 @@ plot(dat_cond$mean_cond_uScm_RSAW, type="o")
 plot(dat_cond$mean_cond_uScm_SULF, type="o")
 
 #### Scenario 1 : all catchments are separate states - 12 catchments  #### 
-
 # Pull out only response var
 names(dat_cond_log)
 # AB00,AT07,GV01,HO00,MC06,RG01,RS02,
@@ -4423,7 +4401,7 @@ for(i in c(1:12)){
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
-#### Scenario 1 : all catchments are separate states - 11 catchments  #### 
+#### Scenario 1 : all catchments are separate states - 11 catchments ####
 
 # Removing SULF site per 02/04/22 meeting
 
@@ -4520,10 +4498,9 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 #                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
 
 # export model fit
-#saveRDS(fit, file = "data_working/marss_test_run/fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_022422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
 
 ### DIAGNOSES ###
-#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -4540,7 +4517,7 @@ est_fit <- MARSSparamCIs(fit)
 # Maybe increase to over 100 boots, 100 is standard
 # est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
-#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_020422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_022422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
 
 # formatting confidence intervals into dataframe
 CIs_fit = cbind(
@@ -4626,11 +4603,11 @@ CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",1
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 02/04/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 02/24/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(vars(region, Site), scales = "free"))
 
-# ggsave("figures/MARSS_11states_cond_precip_fire_020422.png",
+# ggsave("figures/MARSS_11states_cond_precip_fire_022422.png",
 #        width = 40,
 #        height = 20,
 #        units = "cm")
@@ -4639,7 +4616,7 @@ CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",1
 
 dat = dat_dep
 time = c(1:ncol(dat_dep))
-resids <- residuals(fit)
+resids <- MARSSresiduals(fit)
 kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
@@ -4698,24 +4675,24 @@ for(i in c(1:12)){
   mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
 }
 
-# getting error message:
-# Error in ts(x) : 'ts' object must have one or more observations
+# Error when trying to plot model residuals:
+# Error in plot.window(...) : need finite 'ylim' values
 
 ### Are resids normal? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
-  #        pch=16, 
+  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+  #        pch=16,
   #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
   # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
          xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
   qqline(resids$state.residuals[i,])
   mtext("Are resids normal?", outer = TRUE, cex = 1.5)
 }
 
-# getting error message:
-# Error in qqnorm.default(resids$state.residuals[i, ], main = paste(i, "state residuals"),  : y is empty or has only NAs
+# Error when trying to plot model residuals:
+# Error in shapiro.test(resids$model.residuals[i, ]) : # all 'x' values are identical
 
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
@@ -4723,17 +4700,19 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 #### Scenario 2 : catchments in two ecoregions #### 
 
 # Pull out only response var
-names(dat_cond_log)
-# AB00,AT07,GV01,HO00,MC06,RG01,RS02,
-#  EFJ, RED, RSA,RSAW,SULF
-dat_dep <- t(dat_cond_log[,c(4,5,6,7,8,9,10,12,16,17,18,19)])
-row.names(dat_dep)
+# Use "dat_dep" from above
 
-# not using fire for now to simplify
+# AB00, AT07, GV01, HO00, MC06, RG01, RS02,
+# EFJ, RED, RSA, & RSAW
+
 # Make covariate inputs
+# For now, using average precip and cumulative fire
+# so number of watersheds affected by fires is incorporated (?)
 dat_cond_log <- dat_cond_log %>%
-  mutate(c_precip_SB = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_SP02)/8,
-         c_precip_NM = (cumulative_precip_mm_EFJ + cumulative_precip_mm_IND + cumulative_precip_mm_IND_AB + cumulative_precip_mm_IND_BB + cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW + cumulative_precip_mm_SULF)/8)
+  mutate(avg_precip_SB = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02)/7,
+         avg_precip_NM = (cumulative_precip_mm_EFJ +  cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW)/4,
+         c_fire_SB = (AB00_Tea_AB00 + AB00_Jesusita_AB00 + AT07_Jesusita_AT07 + GV01_Gaviota_GV01 + HO00_Gaviota_HO00 + HO00_Sherpa_HO00 + MC06_Tea_MC06 + MC06_Jesusita_MC06 + RG01_Gaviota_RG01 + RG01_Sherpa_RG01 + RS02_Tea_RS02 + RS02_Jesusita_RS02),
+         c_fire_NM = (RED_Thompson_RED + EFJ_Thompson_EFJ + EFJ_Conchas_EFJ + RSAW_Thompson_RSAW + RSAW_Conchas_RSAW + RSA_Conchas_RSA))
 
 names(dat_cond_log)
 dat_cov2 <- dat_cond_log[,c(2:3,

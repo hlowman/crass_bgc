@@ -8,31 +8,31 @@
 # 1) Las Conchas fire (Start date: 26 June, 2011)
 # 2) Thompson Ridge fire (start date: 31 May, 2013)
 
-
 ## Load packages
 library(plyr) # needs to be loaded prior to dplyr
 library(tidyverse) # contains dplyr
 library(lubridate)
 library(here)
 
+# NOTE: THIS WAS ALL RE-DONE BY HEILI ON 2/24/22 HAVING FOUND A PREVIOUS ERROR
+# WITH HOW THE FIRE DUMMY VARIABLES POPULATED.
 
-## May not need chem data but was thinking to merge with fire data
-#chem_reg_vcnp <- read_rds("data_working/VCNPchem_edited_110821.rds")
-chem_reg_vcnp <- read_rds("data_working/VCNPchem_edited_120521.rds")
+# Create base dataframe of dates and sites (from June 2005 to March 2019). This timeframe
+# was chosen based on available precipitation data.
+# Create sequence of dates
+d <- seq(as.Date("2005/6/1"), by = "month", length.out = 166)
 
-str(chem_reg_vcnp)
-#list(chem_reg_vcnp$site_code)
+# Repeat 7 times for each site
+d7 <- rep(d, times = 7)
+d7df <- data.frame(d7)
 
-chem_reg_vcnp <- chem_reg_vcnp %>% rename(site = "site_code") # rename to site to match sbc variable name
+# Create repeated sequence of sites
+s <- rep(c("EFJ", "RSAW", "RSA", "IND", "IND_BB", "RED", "SULF"), each=166)
+sdf <- data.frame(s)
 
-## Tidy site_code variable list:
-# 1) Remove rows with Nas
-chem_reg_vcnp <- chem_reg_vcnp %>% 
-  filter(!is.na(site)) %>%
-  filter(!is.na(Date)) %>%
-  filter(site != "La Jara Well - HQ Drinking Water, Pre-treatment") # remove random site, not stream
-
-# 2) Need to fix variable names because inconsistent naming (location of dashes)
+# Bind dates and sites together
+dates <- cbind(d7df, sdf)
+colnames(dates) <- c("date","site")
 
 ## Fire names and start dates of burn - sites affected
 # Las Conchas (2011-06-26) - EFJ, RSAW, RSA, IND, IND_BB
@@ -48,29 +48,23 @@ chem_reg_vcnp <- chem_reg_vcnp %>%
 # currently use Date variable to determine when site is 1 or 0.
 # As of 12/6/2021 - we are adding in dummy variable (1s) only for the year
 # following the fire event
-# Conchas = LasConchas
-# Thompson = Thompson Ridge
-
-namelist <- c("San Antonio Creek - Toledo", "San Antonio Creek- Toledo", "San Antonio Creek -Toledo")
+# Conchas = Las Conchas fire
+# Thompson = Thompson Ridge fire
 
 # commented out those fires/sites that resulted in a column of all zeros
 # which the MARSS model doesn't like
-dates_fire_vcnp <- chem_reg_vcnp %>%
-  mutate(RED_Thompson = ifelse(site == "Redondo Creek" & Date >= "2013-05-31" & Date < "2014-05-31", 1, 0),
-         EFJ_Thompson = ifelse(site == "East Fork Jemez River" & Date >= "2013-05-31" & Date < "2014-05-31", 1, 0),
-         #EFJ_Prescribe = ifelse(site == "East Fork Jemez River" & Date >= "2016-05-11" & Date < "2017-05-11", 1, 0),
-         EFJ_Conchas = ifelse(site == "East Fork Jemez River" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
-         RSAW_Thompson = ifelse(site == "San Antonio - West" & Date >= "2013-05-31" & Date < "2014-05-31", 1, 0),
-         RSAW_Conchas = ifelse(site == "San Antonio - West" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
-         RSA_Conchas = ifelse(site %in% namelist & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
-         #IND_Conchas = ifelse(site == "Indios Creek" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
-         IND_BB_Conchas = ifelse(site == "Indios Creek - Post Fire (Below Burn)" & Date >= "2011-06-26" & Date < "2012-06-26", 1, 0),
-         SULF_Thompson = ifelse(site == "Sulfur Creek" & Date >= "2013-05-31" & Date < "2014-05-31", 1, 0))
-
-## Need information on what sites were within the burn area or downstream of burn area to better designate if a site gets a 1 or 0 after fire start date. 
-# Sites not impacted by wildfire just receive a 0. 
+dates_fire_vcnp <- dates %>%
+  mutate(RED_Thompson = ifelse(site == "RED" & date >= "2013-05-31" & date < "2014-05-31", 1, 0),
+         EFJ_Thompson = ifelse(site == "EFJ" & date >= "2013-05-31" & date < "2014-05-31", 1, 0),
+         EFJ_Conchas = ifelse(site == "EFJ" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
+         RSAW_Thompson = ifelse(site == "RSAW" & date >= "2013-05-31" & date < "2014-05-31", 1, 0),
+         RSAW_Conchas = ifelse(site == "RSAW" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
+         RSA_Conchas = ifelse(site == "RSA" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
+         IND_Conchas = ifelse(site == "IND" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
+         IND_BB_Conchas = ifelse(site == "IND_BB" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
+         SULF_Thompson = ifelse(site == "SULF" & date >= "2013-05-31" & date < "2014-05-31", 1, 0))
 
 # And export for MARSS script
-saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_120621.rds")
+saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_022422.rds")
 
 # End of script.

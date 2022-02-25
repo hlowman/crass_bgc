@@ -34,7 +34,7 @@ chem_reg_vcnp_names <- chem_reg_vcnp %>%
   
 # Select variables of interest 
 chem_reg_vcnp_names_short <- chem_reg_vcnp_names %>%
-  select(site_code, Date, DTG, nh4_mgL, nO2_nO3_mgL, po4_mgL, tkn_mgL, tds,mean_cond_uScm)
+  select(site_code, Date, DTG, nh4_mgL, nO2_nO3_mgL, po4_mgL, tkn_mgL, tds, mean_cond_uScm)
 
 str(chem_reg_vcnp_names_short)
 
