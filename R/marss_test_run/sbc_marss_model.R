@@ -4835,7 +4835,7 @@ CIs_fit2_ed <- rbind(CIs_SB, CIs_NM) %>%
 # Adding labels for plotting purposes
 CIs_fit2_ed$region <- c(rep("Coastal California",4),rep("Subalpine New Mexico",4))
 
-(RESULTS_ALL <-ggplot(CIs_fit2_ed, aes(Parameter, Est., color=region)) + 
+(RESULTS_ALL2 <-ggplot(CIs_fit2_ed, aes(Parameter, Est., color=region)) + 
     geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
     geom_point(position=position_dodge(width=0.3), size=5) + 
     theme_bw()+
@@ -4850,7 +4850,7 @@ CIs_fit2_ed$region <- c(rep("Coastal California",4),rep("Subalpine New Mexico",4
 
 # ggsave("figures/MARSS_2states_cond_precip_fire_022522.png",
 #        width = 20,
-#        height = 10,
+#        height = 6,
 #        units = "cm")
 
 ## Script for diagnoses ###
@@ -5028,7 +5028,7 @@ CIs_fit3_ed <- CIs_fit3 %>%
                                              "c_precip_avg", "c_fire")))
 
 # plot results
-(RESULTS_ALL <- ggplot(CIs_fit3_ed, aes(Parameter, Est.)) + 
+(RESULTS_ALL3 <- ggplot(CIs_fit3_ed, aes(Parameter, Est.)) + 
     geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
     geom_point(position=position_dodge(width=0.3), size=2) + 
     theme_bw()+
@@ -5042,7 +5042,7 @@ CIs_fit3_ed <- CIs_fit3 %>%
 
 # ggsave("figures/MARSS_1state_cond_precip_fire_022522.png",
 #        width = 10,
-#        height = 10,
+#        height = 6,
 #        units = "cm")
 
 ## Script for diagnoses ###
