@@ -10,7 +10,7 @@
 
 # A few notes about the process below:
 # First, if you would like to skip over the data tidying portions
-# you can load in the dataset on line 305 with all SB and VC data.
+# you can load in the dataset on line 368 with all SB and VC data.
 
 # Following a discussion with John Melack, the following sites have both enough chemistry
 # and precip data, as well as fires that occurred within that timeframe to be included in the
@@ -3971,14 +3971,14 @@ plot(dat_po4_log$mean_po4_uM_SULF, type="o")
 
 #### mean_cond_uScm ####
 
-dat_cond <- dat_agu %>%
+dat_cond <- dat_new22 %>%
   select(site, index, Season1, Season2, 
          mean_cond_uScm, cumulative_precip_mm,
          AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson) %>% 
   pivot_wider(names_from = site, values_from = c(mean_cond_uScm, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson)) %>%
   select(index, Season1, Season2, 
-         mean_cond_uScm_AB00, mean_cond_uScm_AT07, mean_cond_uScm_GV01, mean_cond_uScm_HO00, mean_cond_uScm_MC06, mean_cond_uScm_RG01, mean_cond_uScm_RS02, mean_cond_uScm_SP02, mean_cond_uScm_EFJ, mean_cond_uScm_IND, mean_cond_uScm_IND_AB, mean_cond_uScm_IND_BB, mean_cond_uScm_RED, mean_cond_uScm_RSA, mean_cond_uScm_RSAW, mean_cond_uScm_SULF,
-         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF,
+         mean_cond_uScm_AB00, mean_cond_uScm_AT07, mean_cond_uScm_GV01, mean_cond_uScm_HO00, mean_cond_uScm_MC06, mean_cond_uScm_RG01, mean_cond_uScm_RS02, mean_cond_uScm_SP02, mean_cond_uScm_EFJ, mean_cond_uScm_IND, mean_cond_uScm_IND_BB, mean_cond_uScm_RED, mean_cond_uScm_RSA, mean_cond_uScm_RSAW, mean_cond_uScm_SULF,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF,
          AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, SP02_Gap_SP02, RED_Thompson_RED, EFJ_Thompson_EFJ, EFJ_Conchas_EFJ, RSAW_Thompson_RSAW, RSAW_Conchas_RSAW, RSA_Conchas_RSA, IND_BB_Conchas_IND_BB, SULF_Thompson_SULF)
 
 dat_cond[is.nan(dat_cond)] <- NA
@@ -3986,11 +3986,11 @@ dat_cond[is.nan(dat_cond)] <- NA
 # log and scale transform response var
 names(dat_cond)
 dat_cond_log = dat_cond
-dat_cond_log[,4:19] = log10(dat_cond_log[,4:19])
-dat_cond_log[,4:19] = scale(dat_cond_log[,4:19])
-sum(is.nan(dat_cond_log[,4:19]))
-sum(is.na(dat_cond_log[,4:19]))
-range(dat_cond_log[,4:19], na.rm = T)
+dat_cond_log[,4:18] = log10(dat_cond_log[,4:18])
+dat_cond_log[,4:18] = scale(dat_cond_log[,4:18])
+sum(is.nan(dat_cond_log[,4:18]))
+sum(is.na(dat_cond_log[,4:18]))
+range(dat_cond_log[,4:18], na.rm = T)
 
 ### Plot response vars ###
 par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
@@ -4004,7 +4004,7 @@ plot(dat_cond_log$mean_cond_uScm_RS02, type="o")
 plot(dat_cond_log$mean_cond_uScm_SP02, type="o")
 plot(dat_cond_log$mean_cond_uScm_EFJ, type="o")
 plot(dat_cond_log$mean_cond_uScm_IND, type="o")
-plot(dat_cond_log$mean_cond_uScm_IND_AB, type="o")
+#plot(dat_cond_log$mean_cond_uScm_IND_AB, type="o")
 plot(dat_cond_log$mean_cond_uScm_IND_BB, type="o")
 plot(dat_cond_log$mean_cond_uScm_RED, type="o")
 plot(dat_cond_log$mean_cond_uScm_RSA, type="o")
@@ -4023,7 +4023,7 @@ plot(dat_cond$mean_cond_uScm_RS02, type="o")
 plot(dat_cond$mean_cond_uScm_SP02, type="o")
 plot(dat_cond$mean_cond_uScm_EFJ, type="o")
 plot(dat_cond$mean_cond_uScm_IND, type="o")
-plot(dat_cond$mean_cond_uScm_IND_AB, type="o")
+#plot(dat_cond$mean_cond_uScm_IND_AB, type="o")
 plot(dat_cond$mean_cond_uScm_IND_BB, type="o")
 plot(dat_cond$mean_cond_uScm_RED, type="o")
 plot(dat_cond$mean_cond_uScm_RSA, type="o")
@@ -4409,14 +4409,14 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 names(dat_cond_log)
 # AB00, AT07, GV01, HO00, MC06, RG01, RS02,
 # EFJ, RED, RSA, & RSAW
-dat_dep <- t(dat_cond_log[,c(4:10,12,16:18)])
+dat_dep <- t(dat_cond_log[,c(4:10,12,15:17)])
 row.names(dat_dep)
 
 # Make covariate inputs
 # without short ts sites:
-dat_cov <- dat_cond_log[,c(2:3, 
-                           20:26, 28,32,33,34,
-                           36:47, 50,51,49,54,52,53)]
+dat_cov <- dat_cond_log[,c(2:3, # seasonal covariates
+                           19:25, 27, 30:32, # precip
+                           34:45, 48, 49, 47, 52, 50, 51)] # fire (reordering to match c matrix below)
 dat_cov <- t(scale(dat_cov))
 row.names(dat_cov)
 
@@ -4512,8 +4512,7 @@ fit[["errors"]]
 ## estimates
 # hessian method is much fast but not ideal for final results
 est_fit <- MARSSparamCIs(fit)
-# better to do parametric/non-parametric bootstrapping once model is 
-# decided upon
+# better to do parametric/non-parametric bootstrapping once model is decided upon
 # Maybe increase to over 100 boots, 100 is standard
 # est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
@@ -4536,7 +4535,7 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
 
 # Now to iterate over all sites
-my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02","EFJ","RED","RSA","RSAW")
+my_list <- c("AB00","AT07","GV01","HO00","MC06","RG01","RS02","EFJ","RED","RSA","RSAW")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -4652,7 +4651,7 @@ bbmle::AICtab(fit, null.fit)
 # 0.0 = always the value for the lowest model AIC
 #           dAIC df
 # fit        0.0 64
-# null.fit 289.4 33
+# null.fit 292.8 33
 # RESULT: covar model is better than null
 
 ### Plot response vars ###
@@ -4675,6 +4674,8 @@ for(i in c(1:12)){
   mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
 }
 
+# State residuals don't have any patterns that jump out.
+
 # Error when trying to plot model residuals:
 # Error in plot.window(...) : need finite 'ylim' values
 
@@ -4690,6 +4691,8 @@ for(i in c(1:12)){
   qqline(resids$state.residuals[i,])
   mtext("Are resids normal?", outer = TRUE, cex = 1.5)
 }
+
+# State residuals aren't great, but slightly better at SB.
 
 # Error when trying to plot model residuals:
 # Error in shapiro.test(resids$model.residuals[i, ]) : # all 'x' values are identical
