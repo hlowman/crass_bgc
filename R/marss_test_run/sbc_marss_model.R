@@ -4702,7 +4702,7 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #### Scenario 2 : catchments in two ecoregions #### 
 
-# Pull out only response var
+# Pull out response var
 # If needed, here are mean conductivity values per location
 dat_dep2 <- dat_cond_log %>%
   mutate(avg_cond_SB = (mean_cond_uScm_AB00 + mean_cond_uScm_AT07 + mean_cond_uScm_GV01 + mean_cond_uScm_HO00 + mean_cond_uScm_MC06 + mean_cond_uScm_RG01 + mean_cond_uScm_RS02)/7,
@@ -4730,33 +4730,6 @@ dat_cov2 <- dat_cond_log2[,c(2:3, # seasonal
                             55:58)] # precip + fire
 dat_cov2 <- t(scale(dat_cov2))
 row.names(dat_cov2)
-
-# CC2 <- matrix(list(# season 1
-#   "Season1", "Season1", "Season1", "Season1", 
-#   "Season1", "Season1", "Season1", "Season1", 
-#   "Season1", "Season1", "Season1",
-#   # season 2
-#   "Season2", "Season2", "Season2", "Season2", 
-#   "Season2", "Season2", "Season2", "Season2",
-#   "Season2", "Season2", "Season2",
-#   # precip
-#   "avg_precip_SB", "avg_precip_SB", 
-#   "avg_precip_SB", "avg_precip_SB", 
-#   "avg_precip_SB", "avg_precip_SB",
-#   "avg_precip_SB", 
-#   0, 0, 0, 0,
-#   0, 0, 0, 0, 0, 0, 0, 
-#   "avg_precip_NM", "avg_precip_NM",
-#   "avg_precip_NM", "avg_precip_NM",
-#   # fire
-#   "c_fire_SB", "c_fire_SB",
-#   "c_fire_SB", "c_fire_SB",
-#   "c_fire_SB", "c_fire_SB",
-#   "c_fire_SB",
-#   0, 0, 0, 0,
-#   0, 0, 0, 0, 0, 0, 0,
-#   "c_fire_NM", "c_fire_NM",
-#   "c_fire_NM", "c_fire_NM"), 11, 6)
 
 CC2 <- matrix(list(# season 1
   "Season1", "Season1",
@@ -4795,16 +4768,178 @@ kemfit2 <- MARSS(y = dat_dep, model = mod_list2,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
 
 fit2 <- MARSS(y = dat_dep, model = mod_list2,
-             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
-
-# Error: Stopped in MARSSinits(): R inits must be either a scalar (dim=NULL) or the same size as the par$R element.
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit2$par)
 
 # # fit EM by itself
 # fit2 <- MARSS(y = dat_dep, model = mod_list2,
 #                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
 
 # export model fit
-#saveRDS(fit2, file = "data_working/marss_test_run/fit_120321_2states.rds")
+#saveRDS(fit2, file = "data_working/marss_test_run/fit_022522_2states.rds")
+
+### DIAGNOSES ###
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit2[["errors"]]
+# NULL - Yay!
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit2 <- MARSSparamCIs(fit2)
+# better to do parametric/non-parametric bootstrapping once model is decided upon
+# Maybe increase to over 100 boots, 100 is standard
+# est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit2, "data_working/marss_test_run/CIs_fit_022522_2state_cond.rds")
+
+# formatting confidence intervals into dataframe
+CIs_fit2 = cbind(
+  est_fit2$par$U,
+  est_fit2$par.lowCI$U,
+  est_fit2$par.upCI$U)
+CIs_fit2 = as.data.frame(CIs_fit2)
+names(CIs_fit2) = c("Est.", "Lower", "Upper")
+CIs_fit2$parm = rownames(CIs_fit2)
+CIs_fit2[,1:3] = round(CIs_fit2[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs for two states
+CIs_SB <- rbind(CIs_fit2[1:2,], CIs_fit2[grepl("SB", CIs_fit2$parm),]) %>%
+  mutate(Region = "Santa Barbara")
+CIs_NM <- rbind(CIs_fit2[1:2,], CIs_fit2[grepl("NM", CIs_fit2$parm),]) %>%
+  mutate(Region = "Valles Caldera")
+  
+CIs_fit2_ed <- rbind(CIs_SB, CIs_NM) %>%
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2",
+                                             "avg_precip_SB", "avg_precip_NM",
+                                             "c_fire_SB", "c_fire_NM")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit2_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 02/25/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Region, scales = "free"))
+
+# Adding labels for plotting purposes
+CIs_fit2_ed$region <- c(rep("Coastal California",4),rep("Subalpine New Mexico",4))
+
+(RESULTS_ALL <-ggplot(CIs_fit2_ed, aes(Parameter, Est., color=region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+    geom_point(position=position_dodge(width=0.3), size=5) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 02/25/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(vars(region), scales = "free"))
+
+# ggsave("figures/MARSS_2states_cond_precip_fire_022522.png",
+#        width = 20,
+#        height = 10,
+#        units = "cm")
+
+## Script for diagnoses ###
+
+dat2 = dat_dep
+time2 = c(1:ncol(dat_dep))
+resids2 <- MARSSresiduals(fit2)
+kf2 = print(fit2, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+# No C matrix
+# Need to be sure the covariates we've added are *actually* explaining
+# the variation we are seeing
+# Should have a better AIC score in model above
+
+# Future to-do : make new model with only seasonal effects, and compare
+# to null model to see how it performs. It may not be explaining much
+# more variability than the null model and making the model above overly
+# complex. Or could create model with covariates minus seasonal and compare.
+# NOTE - double check to be sure this structure is correct for 2 state option.
+mod_list_null2 <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+
+# fitting null model
+# Note - if we change the structure of the model above, make sure that
+# the same code is used to run the null models here below.
+null.kemfit2 <- MARSS(y = dat_dep, model = mod_list_null2,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit2 <- MARSS(y = dat_dep, model = mod_list_null2,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit2$par)
+
+bbmle::AICtab(fit2, null.fit2)
+# dAIC- delta AIC
+# 0.0 = always the value for the lowest model AIC
+#           dAIC df
+# fit        0.0 11
+# null.fit  71.5 33
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+# par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+# plot(dat_dep[1,], type="o")
+# plot(dat_dep[2,], type="o")
+# plot(dat_dep[3,], type="o")
+# plot(dat_dep[4,], type="o")
+# plot(dat_dep[5,], type="o")
+# plot(dat_dep[6,], type="o")
+# plot(dat_dep[7,], type="o")
+# plot(dat_dep[8,], type="o")
+# plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  forecast::Acf(resids2$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  #forecast::Acf(resids2$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+# NM may have some yearly patterns in state residuals we should check...
+
+# SB data has some autocorrelation a few months out for model residuals,
+# but no patterns that seem worrisome overall.
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  qqnorm(resids2$model.residuals[i,], main=paste(i, "model residuals"),
+         pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids2$model.residuals[i,])[1]))
+  qqline(resids2$model.residuals[i,])
+  # qqnorm(resids2$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids2$state.residuals[i,])[1]))
+  # qqline(resids2$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# Similar to 11 state model, state residuals aren't great, but slightly better at SB.
+# QQ plots even look a bit better for model residuals than they did in 11 state model.
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #### Scenario 3 : all catchments in a single state #### 
 
@@ -4848,3 +4983,8 @@ fit3 <- MARSS(y = dat_dep, model = mod_list3,
 
 # export model fit
 #saveRDS(fit3, file = "data_working/marss_test_run/fit_120321_1state.rds")
+
+# Compare 1 and 2 state models with initial 11 state model
+m11 <- fit$AIC # 2350 - appears to be the winner!
+m2 <- fit2$AIC # 2571
+m1 <- fit3$AIC # ??
