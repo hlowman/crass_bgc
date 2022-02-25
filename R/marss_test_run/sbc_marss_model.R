@@ -4472,7 +4472,7 @@ mod_list <- list(
   C = CC, 
   c = dat_cov,
   Q = "diagonal and unequal", 
-  ### inputs to observtion model ###
+  ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
@@ -4703,34 +4703,75 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 #### Scenario 2 : catchments in two ecoregions #### 
 
 # Pull out only response var
-# Use "dat_dep" from above
+# If needed, here are mean conductivity values per location
+dat_dep2 <- dat_cond_log %>%
+  mutate(avg_cond_SB = (mean_cond_uScm_AB00 + mean_cond_uScm_AT07 + mean_cond_uScm_GV01 + mean_cond_uScm_HO00 + mean_cond_uScm_MC06 + mean_cond_uScm_RG01 + mean_cond_uScm_RS02)/7,
+         avg_cond_NM = (mean_cond_uScm_EFJ + mean_cond_uScm_RED + mean_cond_uScm_RSA + mean_cond_uScm_RSAW)/4)
+
+names(dat_dep2)
+dat_dep2 <- dat_dep2[,c(55:56)] # conductivity
+dat_dep2 <- t(scale(dat_dep2))
+row.names(dat_dep2)
 
 # AB00, AT07, GV01, HO00, MC06, RG01, RS02,
 # EFJ, RED, RSA, & RSAW
 
 # Make covariate inputs
 # For now, using average precip and cumulative fire
-# so number of watersheds affected by fires is incorporated (?)
-dat_cond_log <- dat_cond_log %>%
+# so number of watersheds affected by fires is incorporated (need to run by group...)
+dat_cond_log2 <- dat_cond_log %>%
   mutate(avg_precip_SB = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02)/7,
          avg_precip_NM = (cumulative_precip_mm_EFJ +  cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW)/4,
          c_fire_SB = (AB00_Tea_AB00 + AB00_Jesusita_AB00 + AT07_Jesusita_AT07 + GV01_Gaviota_GV01 + HO00_Gaviota_HO00 + HO00_Sherpa_HO00 + MC06_Tea_MC06 + MC06_Jesusita_MC06 + RG01_Gaviota_RG01 + RG01_Sherpa_RG01 + RS02_Tea_RS02 + RS02_Jesusita_RS02),
          c_fire_NM = (RED_Thompson_RED + EFJ_Thompson_EFJ + EFJ_Conchas_EFJ + RSAW_Thompson_RSAW + RSAW_Conchas_RSAW + RSA_Conchas_RSA))
 
-names(dat_cond_log)
-dat_cov2 <- dat_cond_log[,c(2:3,
-                            36:37)]
+names(dat_cond_log2)
+dat_cov2 <- dat_cond_log2[,c(2:3, # seasonal
+                            55:58)] # precip + fire
 dat_cov2 <- t(scale(dat_cov2))
 row.names(dat_cov2)
 
-CC2 <- matrix(list("Season1", "Season1",
-                   "Season2", "Season2",
-                   "c_precip_SB", 0,
-                   0, "c_precip_NM"),2,4)
+# CC2 <- matrix(list(# season 1
+#   "Season1", "Season1", "Season1", "Season1", 
+#   "Season1", "Season1", "Season1", "Season1", 
+#   "Season1", "Season1", "Season1",
+#   # season 2
+#   "Season2", "Season2", "Season2", "Season2", 
+#   "Season2", "Season2", "Season2", "Season2",
+#   "Season2", "Season2", "Season2",
+#   # precip
+#   "avg_precip_SB", "avg_precip_SB", 
+#   "avg_precip_SB", "avg_precip_SB", 
+#   "avg_precip_SB", "avg_precip_SB",
+#   "avg_precip_SB", 
+#   0, 0, 0, 0,
+#   0, 0, 0, 0, 0, 0, 0, 
+#   "avg_precip_NM", "avg_precip_NM",
+#   "avg_precip_NM", "avg_precip_NM",
+#   # fire
+#   "c_fire_SB", "c_fire_SB",
+#   "c_fire_SB", "c_fire_SB",
+#   "c_fire_SB", "c_fire_SB",
+#   "c_fire_SB",
+#   0, 0, 0, 0,
+#   0, 0, 0, 0, 0, 0, 0,
+#   "c_fire_NM", "c_fire_NM",
+#   "c_fire_NM", "c_fire_NM"), 11, 6)
+
+CC2 <- matrix(list(# season 1
+  "Season1", "Season1",
+  # season 2
+  "Season2", "Season2",
+  # precip
+  "avg_precip_SB", 0, 
+  0, "avg_precip_NM",
+  # fire
+  "c_fire_SB", 0,
+  0, "c_fire_NM"), 2, 6)
 
 # Model setup
 mod_list2 <- list(
-  B = "diagonal and unequal",
+  B = "identity", #"diagonal and unequal",
   U = "zero", 
   C = CC2, 
   c = dat_cov2, 
@@ -4738,24 +4779,29 @@ mod_list2 <- list(
   Z = factor(c("SantaBarbara", "SantaBarbara",
                "SantaBarbara", "SantaBarbara",
                "SantaBarbara", "SantaBarbara",
-               "SantaBarbara", 
+               "SantaBarbara",
                "VallesCaldera", "VallesCaldera",
-               "VallesCaldera", "VallesCaldera",
-               "VallesCaldera")),
+               "VallesCaldera", "VallesCaldera")),
   A = "zero",
-  R = "zero"
+  D = "zero" ,
+  d = "zero",
+  R = "diagonal and equal", #"zero",
+  V0 = "zero" ,
+  tinitx = 0
 )
 
 # fit BFGS with priors
 kemfit2 <- MARSS(y = dat_dep, model = mod_list2,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+
 fit2 <- MARSS(y = dat_dep, model = mod_list2,
              control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# Error: Stopped in MARSSinits(): R inits must be either a scalar (dim=NULL) or the same size as the par$R element.
 
 # # fit EM by itself
 # fit2 <- MARSS(y = dat_dep, model = mod_list2,
 #                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
-
 
 # export model fit
 #saveRDS(fit2, file = "data_working/marss_test_run/fit_120321_2states.rds")
