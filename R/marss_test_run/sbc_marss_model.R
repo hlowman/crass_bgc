@@ -4700,6 +4700,297 @@ for(i in c(1:12)){
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
+#### Scenario 1 : all catchments are separate states - 11 catchments - w/o seasonal effect ####
+
+# Removing seasonal effect to compare to 11 catchment model
+# WITH seasonal effect above
+
+# Pull out only response var
+names(dat_cond_log)
+# AB00, AT07, GV01, HO00, MC06, RG01, RS02,
+# EFJ, RED, RSA, & RSAW
+dat_dep <- t(dat_cond_log[,c(4:10,12,15:17)])
+row.names(dat_dep)
+
+# Make covariate inputs
+# without short ts sites:
+dat_cov <- dat_cond_log[,c(19:25, 27, 30:32, # precip
+                           34:45, 48, 49, 47, 52, 50, 51)] # fire (reordering to match c matrix below)
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+#### make C matrix
+
+# without short ts sites:
+CC <- matrix(list( 
+  # precip by site
+  "AB00_precip",0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_precip",0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_precip",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_precip",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_precip",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_precip",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_precip",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_precip", 0,0,0,
+  0,0,0,0,0,0,0,0,"RED_precip", 0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_precip", 0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",
+  # fires by site
+  "AB00_Tea",0,0,0,0,0,0,0,0,0,0,
+  "AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,
+  0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_Tea",0,0,0,0,0,0,
+  0,0,0,0,"MC06_Jesusita",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_Gaviota",0,0,0,0,0,
+  0,0,0,0,0,"RG01_Sherpa",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_Tea",0,0,0,0,
+  0,0,0,0,0,0,"RS02_Jesusita",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Thompson",0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Conchas",0,0,0,
+  0,0,0,0,0,0,0,0,"RED_Thompson",0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_Conchas",0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Thompson",
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Conchas"),11,29)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+fit_woseas <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+#saveRDS(fit_woseas, file = "data_working/marss_test_run/fit_032222_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS_woSeas.rds")
+
+### DIAGNOSES ###
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit_woseas[["errors"]]
+# NULL - Yay!
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit_woseas <- MARSSparamCIs(fit_woseas)
+# better to do parametric/non-parametric bootstrapping once model is decided upon
+# Maybe increase to over 100 boots, 100 is standard
+# est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit_woseas, "data_working/marss_test_run/CIs_fit_032222_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS_woseas.rds")
+
+# formatting confidence intervals into dataframe
+CIs_fit = cbind(
+  est_fit_woseas$par$U,
+  est_fit_woseas$par.lowCI$U,
+  est_fit_woseas$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00","AT07","GV01","HO00","MC06","RG01","RS02","EFJ","RED","RSA","RSAW")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>%
+  #rename(Parameter = parm) %>%# rename site column
+  mutate(Parameter = factor(parm, levels = c("AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip",
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "AB00_Tea",
+                                             "AB00_Jesusita",
+                                             "AT07_Jesusita",
+                                             "GV01_Gaviota",
+                                             "HO00_Gaviota",
+                                             "HO00_Sherpa",
+                                             "MC06_Tea",
+                                             "MC06_Jesusita",
+                                             "RG01_Gaviota",
+                                             "RG01_Sherpa",
+                                             "RS02_Tea",
+                                             "RS02_Jesusita",
+                                             "EFJ_Thompson",
+                                             "EFJ_Conchas",
+                                             "RED_Thompson",
+                                             "RSA_Conchas",
+                                             "RSAW_Thompson",
+                                             "RSAW_Conchas")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 03/22/2022 - Without Seasonal Term") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+# Adding labels for plotting purposes
+CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Thompson"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Conchas"),] 
+CIs_fit_ed2$region = c(rep("Coastal California",19),rep("Subalpine New Mexico",10))
+
+(RESULTS_ALL <-ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+    geom_point(position=position_dodge(width=0.3), size=5) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 02/24/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(vars(region, Site), scales = "free"))
+
+# ggsave("figures/MARSS_11states_cond_woseas_032222.png",
+#        width = 40,
+#        height = 20,
+#        units = "cm")
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- MARSSresiduals(fit_woseas)
+kf=print(fit_woseas, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+# No C matrix
+# Need to be sure the covariates we've added are *actually* explaining
+# the variation we are seeing
+# Should have a better AIC score in model above
+
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+
+# fitting null model
+# Note - if we change the structure of the model above, make sure that
+# the same code is used to run the null models here below.
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit_woseas, null.fit)
+# dAIC- delta AIC
+# 0.0 = always the value for the lowest model AIC
+#                  dAIC df
+# fit_woseas        0.0 62
+# null.fit        296.3 33
+# RESULT: covar model is better than null
+
+# AND COMPARE TO MODEL ABOVE WITH SEASONS-
+bbmle::AICtab(fit_woseas, fit)
+#            dAIC df
+# fit_woseas  0.0 62
+# fit         3.5 64
+# RESULT: covar model WITHOUT seasons is better than
+# one WITH seasons - but only slightly?
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  #forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+# Neither state nor model residuals have any patterns that jump out.
+
+# Error when trying to plot model residuals:
+# Error in plot.window(...) : need finite 'ylim' values
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+         pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  # qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  # qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# State residuals aren't great, but slightly better at SB. Maybe look worse now that seasonal effect is removed?
+
+# Error when trying to plot model residuals:
+# Error in shapiro.test(resids$model.residuals[i, ]) : # all 'x' values are identical
+
+# reset plotting window
+# par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+dev.off()
+
 #### Scenario 2 : catchments in two ecoregions #### 
 
 # Pull out response var
