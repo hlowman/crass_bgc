@@ -3913,6 +3913,282 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #************************** all the NM sites have terrible residuals, likely bc there is so little variation in the data and so many below detection values
 
+#### Scenario 1 : (SB only) all catchments are separate states  #### 
+
+# Mimicking NH4 model above, and redoing the dataset because all NO3 models above have no fire variables
+
+# first, subset and pivot the NO3 data
+dat_no3 <- dat_new22 %>%
+  select(site, index, Season1, Season2, 
+         mean_no3_uM, cumulative_precip_mm,
+         AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_no3_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas)) %>%
+  select(index, Season1, Season2, 
+         mean_no3_uM_AB00, mean_no3_uM_AT07, mean_no3_uM_GV01, mean_no3_uM_HO00, mean_no3_uM_MC06, mean_no3_uM_RG01, mean_no3_uM_RS02, mean_no3_uM_EFJ, mean_no3_uM_RED, mean_no3_uM_RSA, mean_no3_uM_RSAW,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_EFJ, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, 
+         AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, EFJ_Thompson_EFJ, EFJ_Conchas_EFJ, RED_Thompson_RED, RSA_Conchas_RSA, RSAW_Thompson_RSAW, RSAW_Conchas_RSAW)
+
+# Remove the NaNs and replace with NAs.
+dat_no3[is.nan(dat_no3)] <- NA
+
+# log and scale transform response var
+names(dat_no3)
+dat_no3_log <- dat_no3
+dat_no3_log[,4:14] <- log10(dat_no3_log[,4:14])
+dat_no3_log[,4:14] <- scale(dat_no3_log[,4:14])
+sum(is.nan(dat_no3_log[,4:14])) # 0 yay!!
+sum(is.na(dat_no3_log[,4:14])) # 711
+range(dat_no3_log[,4:14], na.rm = T)
+
+# Pull out only NO3 data
+names(dat_no3_log)
+# Remaining sites: AB00, AT07, GV01, HO00, MC06, RG01, RS02
+# 7 sites total with 166 observations each
+dat_dep <- t(dat_no3_log[,c(4:10)])
+row.names(dat_dep)
+
+# Make covariate inputs
+# 21 covariates total with 166 observations each
+dat_cov <- dat_no3_log[,c(2:3, # seasons
+                          15:21, # precip
+                          26:37)] # fires
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+
+# make C matrix
+# this matrix controls what covars predict what response vars; 
+# in contrast to unconstrained: separately estimates ALL correlations of 
+# predictor vars with x, i.e. how predictor vars drive ts dynamics. 
+# This structure is ok given that covars are unique to each site, but it 
+# would not be ok if there is a mix of shared and unique covars.
+# 7 response variables - so 7 rows in the matrix
+# 21 covariates in total - so 21 columns in the matrix
+
+# without short ts sites
+CC <- matrix(list(# season 1 covariate
+  "Season1", "Season1", "Season1", "Season1", 
+  "Season1", "Season1", "Season1",
+  # season 2 covariate
+  "Season2", "Season2", "Season2", "Season2", 
+  "Season2", "Season2", "Season2",
+  # precipitation covariates
+  "AB00_precip", 0, 0, 0, 0, 0, 0,
+  0, "AT07_precip", 0, 0, 0, 0, 0, 
+  0, 0, "GV01_precip", 0, 0, 0, 0,
+  0, 0, 0, "HO00_precip", 0, 0, 0,
+  0, 0, 0, 0, "MC06_precip", 0, 0,
+  0, 0, 0, 0, 0, "RG01_precip", 0,
+  0, 0, 0, 0, 0, 0, "RS02_precip",
+  # fire covariates
+  "AB00_Tea_fire", 0, 0, 0, 0, 0, 0,
+  "AB00_Jesusita_fire", 0, 0, 0, 0, 0, 0,
+  0, "AT07_Jesusita_fire", 0, 0, 0, 0, 0,
+  0, 0, "GV01_Gaviota_fire", 0, 0, 0, 0,
+  0, 0, 0, "HO00_Gaviota_fire", 0, 0, 0,
+  0, 0, 0, "HO00_Sherpa_fire", 0, 0, 0,
+  0, 0, 0, 0, "MC06_Tea_fire", 0, 0,
+  0, 0, 0, 0, "MC06_Jesusita_fire", 0, 0,
+  0, 0, 0, 0, 0, "RG01_Gaviota_fire", 0,
+  0, 0, 0, 0, 0, "RG01_Sherpa_fire", 0,
+  0, 0, 0, 0, 0, 0, "RS02_Tea_fire",
+  0, 0, 0, 0, 0, 0, "RS02_Jesusita_fire"),
+  7, 21)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit = 100, allow.degen = TRUE, trace = 1),
+                fit = TRUE) # used to get some priors
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", 
+             inits=kemfit$par) # actual BFGS method model
+
+# fit_em <- MARSS(y = dat_dep, model = mod_list,
+#                 control = list(maxit = 2000, allow.degen = TRUE, trace = 1),
+#                 fit = TRUE) # actual EM method model
+
+# see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_032322_7state_no3_AB00_AT07_GV01_HO00_MC06_RG01_RS02_mBFGS.rds")
+
+### DIAGNOSES ###
+
+## check for hidden errors
+fit[["errors"]]
+# NULL- Yay!!
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+
+# No error messages!
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_032322_7state_no3_AB00_AT07_GV01_HO00_MC06_RG01_RS02_mBFGS.rds")
+
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+my_list <- c("AB00", "AT07", "GV01", "HO00", 
+             "MC06", "RG01", "RS02")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  rename(Site = i) %>% # rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip",
+                                             "AB00_Tea_fire","AB00_Jesusita_fire",
+                                             "AT07_Jesusita_fire",
+                                             "GV01_Gaviota_fire",
+                                             "HO00_Gaviota_fire","HO00_Sherpa_fire",
+                                             "MC06_Tea_fire", "MC06_Jesusita_fire",
+                                             "RG01_Gaviota_fire", "RG01_Sherpa_fire",
+                                             "RS02_Tea_fire", "RS02_Jesusita_fire")))
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "NO3 MARSS modeling results SB only - 03/23/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+# adding some formatting to match cond figure output
+CIs_fit_ed2 = CIs_fit_ed
+CIs_fit_ed2$region = c(rep("Coastal California",33))
+
+(RESULTS_ALL2 <- ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+    geom_point(position=position_dodge(width=0.3), size=5) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Nitrate (NO3) MARSS modeling results SB only - 3/23/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm"),# need to play with margins to make it all fit
+          legend.position = "none") +
+    facet_wrap(vars(region, Site), scales = "free"))
+
+# ggsave("figures/MARSS_7states_SBonly_no3_precip_fire_032322.png",
+#        width = 25,
+#        height = 15,
+#        units = "cm")
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- MARSSresiduals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, 
+                                    allow.degen=TRUE, trace=1), 
+                     fit=TRUE) # default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), 
+                  method = "BFGS", 
+                  inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+# dAIC - delta AIC
+# 0.0 = always the value for the lowest model AIC
+#          dAIC  df
+# fit       0.0  42
+# null.fit 150.1 21
+# RESULT: covar model is better than null - yay!!
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  # forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+# Model residuals look alright - only errant lags at certain sites.
+# State residuals look fine - no major patterns again, although should look at results for state 5/MC06 (crossing threshold at 3, 4, 11, and 12 month lags).
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+         pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  # qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  # qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# State residuals look ok....state 2/AT07 does have a step in it again.
+# Model residuals look TERRIBLE...all flat lines again.
+
+# reset plotting window
+dev.off()
+
 #### po4 ####
 
 dat_po4 <- dat_agu %>%
