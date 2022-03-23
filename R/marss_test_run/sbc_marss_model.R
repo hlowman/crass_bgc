@@ -774,8 +774,8 @@ CC <- matrix(list(# season 1 covariate
   0, 0, 0, 0, "MC06_Jesusita_fire", 0, 0,
   0, 0, 0, 0, 0, "RG01_Gaviota_fire", 0,
   0, 0, 0, 0, 0, "RG01_Sherpa_fire", 0,
-  0, 0, 0, 0, 0, 0, "RS01_Tea_fire",
-  0, 0, 0, 0, 0, 0, "RS01_Jesusita_fire"),
+  0, 0, 0, 0, 0, 0, "RS02_Tea_fire",
+  0, 0, 0, 0, 0, 0, "RS02_Jesusita_fire"),
   7, 21)
 
 # Model setup
@@ -886,7 +886,7 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
 
 # adding some formatting to match cond figure output
 CIs_fit_ed2 = CIs_fit_ed
-CIs_fit_ed2$region = c(rep("Coastal California",31))
+CIs_fit_ed2$region = c(rep("Coastal California",33))
 
 (RESULTS_ALL2 <- ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
     geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
@@ -946,24 +946,24 @@ bbmle::AICtab(fit, null.fit)
 ### Do resids have temporal autocorrelation? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  # forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  # forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
   mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
 }
 
 # Model residuals look alright - no major patterns, although need to look into results for model 6/RG01 (crossing threshold at 4, 9, and 15 month lags).
-# State residuals look fine - no major patterns again, although should look at results for state 4/HO00 (crossing threshold at 1, 2, and 12 month lags).
+# State residuals look fine - no major patterns again, although should look at results for state 4/HO00 (crossing threshold at 1, 2, 11, and 12 month lags).
 
 ### Are resids normal? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-         pch=16,
-         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  qqline(resids$model.residuals[i,])
-  # qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  # qqline(resids$state.residuals[i,])
+  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+  #        pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  # qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
   mtext("Are resids normal?", outer = TRUE, cex = 1.5)
 }
 
