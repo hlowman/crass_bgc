@@ -376,32 +376,31 @@ dat_new22[,26:33][is.na(dat_new22[,26:33])] = 0
 # from the CA sites and TDS data from the NM sites.
 
 #### NH4 ####
-# HL - edited the following script on 2/2/22 to
+# HL - edited the following script on 3/23/22 to
 # try and match Alex's successful modeling of conductivity.
 
 # first, subset and pivot the NH4 data
-dat_nh4 <- dat_agu %>%
+dat_nh4 <- dat_new22 %>%
   select(site, index, Season1, Season2, 
          mean_nh4_uM, cumulative_precip_mm,
-         AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson) %>% 
-  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, SP02_Gap, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson)) %>%
+         AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_nh4_uM, cumulative_precip_mm, AB00_Tea, AB00_Jesusita, AT07_Jesusita, GV01_Gaviota, HO00_Gaviota, HO00_Sherpa, MC06_Tea, MC06_Jesusita, RG01_Gaviota, RG01_Sherpa, RS02_Tea, RS02_Jesusita, RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas)) %>%
   select(index, Season1, Season2, 
-         mean_nh4_uM_AB00, mean_nh4_uM_AT07, mean_nh4_uM_GV01, mean_nh4_uM_HO00, mean_nh4_uM_MC06, mean_nh4_uM_RG01, mean_nh4_uM_RS02, mean_nh4_uM_SP02, mean_nh4_uM_EFJ, mean_nh4_uM_IND, mean_nh4_uM_IND_AB, mean_nh4_uM_IND_BB, mean_nh4_uM_RED, mean_nh4_uM_RSA, mean_nh4_uM_RSAW, mean_nh4_uM_SULF,
-         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_AB, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF,
-         AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, SP02_Gap_SP02, RED_Thompson_RED, EFJ_Thompson_EFJ, EFJ_Conchas_EFJ, RSAW_Thompson_RSAW, RSAW_Conchas_RSAW, RSA_Conchas_RSA, IND_BB_Conchas_IND_BB, SULF_Thompson_SULF)
+         mean_nh4_uM_AB00, mean_nh4_uM_AT07, mean_nh4_uM_GV01, mean_nh4_uM_HO00, mean_nh4_uM_MC06, mean_nh4_uM_RG01, mean_nh4_uM_RS02, mean_nh4_uM_EFJ, mean_nh4_uM_RED, mean_nh4_uM_RSA, mean_nh4_uM_RSAW,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_EFJ, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, 
+         AB00_Tea_AB00, AB00_Jesusita_AB00, AT07_Jesusita_AT07, GV01_Gaviota_GV01, HO00_Gaviota_HO00, HO00_Sherpa_HO00, MC06_Tea_MC06, MC06_Jesusita_MC06, RG01_Gaviota_RG01, RG01_Sherpa_RG01, RS02_Tea_RS02, RS02_Jesusita_RS02, EFJ_Thompson_EFJ, EFJ_Conchas_EFJ, RED_Thompson_RED, RSA_Conchas_RSA, RSAW_Thompson_RSAW, RSAW_Conchas_RSAW)
 
 # Remove the NaNs and replace with NAs.
 dat_nh4[is.nan(dat_nh4)] <- NA
 
 # log and scale transform response var
-# AW - I cannot scale because IND has no variation
 names(dat_nh4)
 dat_nh4_log <- dat_nh4
-dat_nh4_log[,4:19] <- log10(dat_nh4_log[,4:19])
-#dat_nh4_log[,4:19] <- scale(dat_nh4_log[,4:19]) # not scaling
-sum(is.nan(dat_nh4_log[,4:19])) # 0 yay!!
-sum(is.na(dat_nh4_log[,4:19])) # 1390
-range(dat_nh4_log[,4:19], na.rm = T)
+dat_nh4_log[,4:14] <- log10(dat_nh4_log[,4:14])
+dat_nh4_log[,4:14] <- scale(dat_nh4_log[,4:14])
+sum(is.nan(dat_nh4_log[,4:14])) # 0 yay!!
+sum(is.na(dat_nh4_log[,4:14])) # 724
+range(dat_nh4_log[,4:14], na.rm = T)
 
 ### Plot response vars ###
 # note - this is a HUGE plot
@@ -413,15 +412,15 @@ plot(dat_nh4_log$mean_nh4_uM_HO00, type="o")
 plot(dat_nh4_log$mean_nh4_uM_MC06, type="o")
 plot(dat_nh4_log$mean_nh4_uM_RG01, type="o")
 plot(dat_nh4_log$mean_nh4_uM_RS02, type="o")
-plot(dat_nh4_log$mean_nh4_uM_SP02, type="o")
+#plot(dat_nh4_log$mean_nh4_uM_SP02, type="o")
 plot(dat_nh4_log$mean_nh4_uM_EFJ, type="o")
-plot(dat_nh4_log$mean_nh4_uM_IND, type="o")
-plot(dat_nh4_log$mean_nh4_uM_IND_AB, type="o")
-plot(dat_nh4_log$mean_nh4_uM_IND_BB, type="o")
+#plot(dat_nh4_log$mean_nh4_uM_IND, type="o")
+#plot(dat_nh4_log$mean_nh4_uM_IND_AB, type="o")
+#plot(dat_nh4_log$mean_nh4_uM_IND_BB, type="o")
 plot(dat_nh4_log$mean_nh4_uM_RED, type="o")
 plot(dat_nh4_log$mean_nh4_uM_RSA, type="o")
 plot(dat_nh4_log$mean_nh4_uM_RSAW, type="o")
-plot(dat_nh4_log$mean_nh4_uM_SULF, type="o")
+#plot(dat_nh4_log$mean_nh4_uM_SULF, type="o")
 # SB sites clearly have better NH4 coverage than VC sites
 
 #### Scenario 1 : all catchments are separate states #### 
@@ -723,20 +722,20 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #### Scenario 1 : (SB only) all catchments are separate states #### 
 
+# Heili revised the below section following a conversation with Tamara in 02/2022
+
 # Pull out only NH4 data
 names(dat_nh4_log)
-# Removing shorter timeseries since this worked for conductivity
 # Remaining sites: AB00, AT07, GV01, HO00, MC06, RG01, RS02
 # 7 sites total with 166 observations each
 dat_dep <- t(dat_nh4_log[,c(4:10)])
 row.names(dat_dep)
 
 # Make covariate inputs
-# Removing shorter timeseries since this worked for conductivity
-# 33 covariates total with 166 observations each
-dat_cov <- dat_nh4_log[,c(2:3, 
-                          20:26,
-                          36:47)]
+# 21 covariates total with 166 observations each
+dat_cov <- dat_nh4_log[,c(2:3, # seasons
+                          15:21, # precip
+                          26:37)] # fires
 dat_cov <- t(scale(dat_cov))
 row.names(dat_cov)
 
@@ -810,14 +809,14 @@ fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit = 5000), method = "BFGS", 
              inits=kemfit$par) # actual BFGS method model
 
-fit_em <- MARSS(y = dat_dep, model = mod_list,
-                control = list(maxit = 2000, allow.degen = TRUE, trace = 1),
-                fit = TRUE) # actual EM method model
+# fit_em <- MARSS(y = dat_dep, model = mod_list,
+#                 control = list(maxit = 2000, allow.degen = TRUE, trace = 1),
+#                 fit = TRUE) # actual EM method model
 
 # see pg 5 in MARSS manual for notes on method BFGS vs method EM: EM algorithm gives more robust estimation for datasets replete with missing values and for high-dimensional models with various constraints. BFGS is faster and is good enough for some datasets. Typically, both should be tried.
 
 # export model fit
-saveRDS(fit, file = "data_working/marss_test_run/fit_020322_7state_nh4_AB00_AT07_GV01_HO00_MC06_RG01_RS02_mBFGS.rds")
+#saveRDS(fit, file = "data_working/marss_test_run/fit_032322_7state_nh4_AB00_AT07_GV01_HO00_MC06_RG01_RS02_mBFGS.rds")
 
 ### DIAGNOSES ###
 
@@ -831,8 +830,7 @@ fit[["errors"]]
 est_fit <- MARSSparamCIs(fit)
 
 # No error messages!
-
-saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_020322_7state_nh4_AB00_AT07_GV01_HO00_MC06_RG01_RS02_mBFGS.rds")
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_032322_7state_nh4_AB00_AT07_GV01_HO00_MC06_RG01_RS02_mBFGS.rds")
 
 CIs_fit = cbind(
   est_fit$par$U,
@@ -846,10 +844,6 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 ### Plot Results for All Sites ###
 
 # First, create dataset of all outputs
-# This works for HO00 alone
-CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
-
-# Now to iterate over all sites
 my_list <- c("AB00", "AT07", "GV01", "HO00", 
              "MC06", "RG01", "RS02")
 
@@ -886,7 +880,7 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "NH4 MARSS modeling results SB only - 02/03/2022") +
+         title = "NH4 MARSS modeling results SB only - 03/23/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
 
@@ -903,20 +897,21 @@ CIs_fit_ed2$region = c(rep("Coastal California",31))
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Ammonium MARSS modeling results SB only - 2/3/2022") +
-    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+         title = "Ammonium (NH4) MARSS modeling results SB only - 3/23/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm"),# need to play with margins to make it all fit
+          legend.position = "none") +
     facet_wrap(vars(region, Site), scales = "free"))
 
-# ggsave("figures/MARSS_7states_SBonly_nh4_precip_fire_020322.png",
-#        width = 40,
-#        height = 20,
+# ggsave("figures/MARSS_7states_SBonly_nh4_precip_fire_032322.png",
+#        width = 25,
+#        height = 15,
 #        units = "cm")
 
 ## Script for diagnoses ###
 
 dat = dat_dep
 time = c(1:ncol(dat_dep))
-resids <- residuals(fit)
+resids <- MARSSresiduals(fit)
 kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
@@ -941,52 +936,42 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
 
 bbmle::AICtab(fit, null.fit)
 
-#           dAIC df
-# mod.null  0.0  42
-# fit       4.5  21
-# RESULT: covar model is better than null
-
-### Plot response vars ###
-# par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
-# plot(dat_dep[1,], type="o")
-# plot(dat_dep[2,], type="o")
-# plot(dat_dep[3,], type="o")
-# plot(dat_dep[4,], type="o")
-# plot(dat_dep[5,], type="o")
-# plot(dat_dep[6,], type="o")
-# plot(dat_dep[7,], type="o")
-# plot(dat_dep[8,], type="o")
-# plot(dat_dep[8,], type="o")
+# dAIC - delta AIC
+# 0.0 = always the value for the lowest model AIC
+#          dAIC df
+# fit       0.0 42
+# null.fit 66.5 21
+# RESULT: covar model is better than null - yay!!
 
 ### Do resids have temporal autocorrelation? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  # forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  # forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
   mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
 }
-# RESULT: ???
-# Getting the same error message for both forecasts:
-# Error in ts(x) : 'ts' object must have one or more observations
+
+# Model residuals look alright - no major patterns, although need to look into results for model 6/RG01 (crossing threshold at 4, 9, and 15 month lags).
+# State residuals look fine - no major patterns again, although should look at results for state 4/HO00 (crossing threshold at 1, 2, and 12 month lags).
 
 ### Are resids normal? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"), 
-  #        pch=16, 
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+         pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  # qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  # qqline(resids$state.residuals[i,])
   mtext("Are resids normal?", outer = TRUE, cex = 1.5)
 }
 
-# Also getting the following error here:
-# Error in qqnorm.default(resids$state.residuals[i, ], main = paste(i, "state residuals"),  : y is empty or has only NAs
+# State residuals look ok....state 2/AT07 does have a step in it.
+# Model residuals look TERRIBLE...all flat lines.
 
 # reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+dev.off()
 
 #### Scenario 1 : (SB + SULF) all catchments are separate states #### 
 
