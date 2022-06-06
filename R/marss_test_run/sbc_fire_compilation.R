@@ -73,9 +73,42 @@ dates_fire <- dates_watersheds %>%
     #RG01_Whittier = ifelse(site == "RG01" & date >= "2017-07-01", 1, 0),
     RS02_Tea = ifelse(site == "RS02" & date >= "2008-11-01" & date < "2009-11-01", 1, 0),
     RS02_Jesusita = ifelse(site == "RS02" & date >= "2009-05-01" & date < "2010-05-01", 1, 0),
-    SP02_Gap = ifelse(site == "SP02" & date >= "2008-07-01" & date < "2009-07-01", 1, 0))
+    SP02_Gap = ifelse(site == "SP02" & date >= "2008-07-01" & date < "2009-07-01", 1, 0)) %>%
+  # also adding in 4 year decay term for each of the fires
+  mutate(AB00_Tea_d = NA,
+         AB00_Jesusita_d = NA,
+         AT07_Jesusita_d = NA,
+         GV01_Gaviota_d = NA,
+         HO00_Gaviota_d = NA,
+         HO00_Sherpa_d = NA,
+         MC06_Tea_d = NA,
+         MC06_Jesusita_d = NA,
+         RG01_Gaviota_d = NA,
+         RG01_Sherpa_d = NA,
+         RS02_Tea_d = NA,
+         RS02_Jesusita_d = NA,
+         SP02_Gap_d = NA)
+
+values <- rev(seq(1, 48, by = 1))
+decay <- exp(values)
+
+dates_fire$AB00_Tea_d[75:122] <- decay
+dates_fire$AB00_Jesusita_d[81:128] <- decay
+dates_fire$AT07_Jesusita_d[247:294] <- decay
+dates_fire$GV01_Gaviota_d[354:401] <- decay
+dates_fire$HO00_Gaviota_d[520:567] <- decay
+dates_fire$HO00_Sherpa_d[664] <- decay[1]
+dates_fire$MC06_Tea_d[739:786] <- decay
+dates_fire$MC06_Jesusita_d[745:792] <- decay
+dates_fire$RG01_Gaviota_d[852:899] <- decay
+dates_fire$RG01_Sherpa_d[996] <- decay[1]
+dates_fire$RS02_Tea_d[1071:1118] <- decay
+dates_fire$RS02_Jesusita_d[1077:1124] <- decay
+dates_fire$SP02_Gap_d[1233:1280] <- decay
+
+dates_fire[is.na(dates_fire)] = 0
 
 # And export for MARSS script
-saveRDS(dates_fire, "data_working/SBfire_edited_120621.rds")
+saveRDS(dates_fire, "data_working/SBfire_edited_060622.rds")
 
 # End of script.

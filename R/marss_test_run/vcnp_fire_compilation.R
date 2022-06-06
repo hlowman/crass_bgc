@@ -62,9 +62,32 @@ dates_fire_vcnp <- dates %>%
          RSA_Conchas = ifelse(site == "RSA" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
          IND_Conchas = ifelse(site == "IND" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
          IND_BB_Conchas = ifelse(site == "IND_BB" & date >= "2011-06-26" & date < "2012-06-26", 1, 0),
-         SULF_Thompson = ifelse(site == "SULF" & date >= "2013-05-31" & date < "2014-05-31", 1, 0))
+         SULF_Thompson = ifelse(site == "SULF" & date >= "2013-05-31" & date < "2014-05-31", 1, 0)) %>%
+  # also adding in 4 year decay term for each of the fires
+  mutate(RED_Thompson_d = NA,
+         EFJ_Thompson_d = NA,
+         EFJ_Conchas_d = NA,
+         RSAW_Thompson_d = NA,
+         RSAW_Conchas_d = NA,
+         IND_Conchas_d = NA,
+         IND_BB_Conchas_d = NA,
+         SULF_Thompson_d = NA)
+
+values <- rev(seq(1, 48, by = 1))
+decay <- exp(values)
+
+dates_fire_vcnp$RED_Thompson_d[927:974] <- decay
+dates_fire_vcnp$EFJ_Thompson_d[97:144] <- decay
+dates_fire_vcnp$EFJ_Conchas_d[74:121] <- decay
+dates_fire_vcnp$RSAW_Thompson_d[263:310] <- decay
+dates_fire_vcnp$RSAW_Conchas_d[240:287] <- decay
+dates_fire_vcnp$IND_Conchas_d[572:619] <- decay
+dates_fire_vcnp$IND_BB_Conchas_d[738:785] <- decay
+dates_fire_vcnp$SULF_Thompson_d[1093:1140] <- decay
+
+dates_fire_vcnp[is.na(dates_fire_vcnp)] = 0
 
 # And export for MARSS script
-saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_022422.rds")
+saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_060622.rds")
 
 # End of script.
