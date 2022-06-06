@@ -58,8 +58,8 @@ chem_nm <- readRDS("data_working/VCNPchem_edited_120521.rds")
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_110321.rds")
 # Fire Events - all sites
-fire <- readRDS("data_working/SBfire_edited_120621.rds")
-fire_nm <- readRDS("data_working/VCNPfire_edited_022422.rds")
+fire <- readRDS("data_working/SBfire_edited_060622.rds")
+fire_nm <- readRDS("data_working/VCNPfire_edited_060622.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 location_nm <- read_csv("data_raw/VCNP_sonde_site_codes_names.csv")
@@ -190,11 +190,11 @@ chem_nm_ed3 <- chem_nm_ed2 %>%
 
 chem_nm_monthly <- chem_nm_ed3 %>%
   dplyr::group_by(site, Year, Month) %>%
-  summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE),
+  dplyr::summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE),
             mean_no3_uM = mean(no3_uM, na.rm = TRUE),
             mean_po4_uM = mean(po4_uM, na.rm = TRUE),
             mean_cond_uScm = mean(mean_cond_uScm, na.rm = TRUE)) %>%
-  ungroup()
+  dplyr::ungroup()
 
 # Then, left join with chemistry so as not to lose any data.
 dat_nm <- left_join(fire_precip_nm, chem_nm_monthly, by = c("site", "Year", "Month"))
@@ -320,11 +320,12 @@ names(site.labs) <- sites_used
 
 # Created NM dataset for joining with SB data
 dat_nm_select <- dat_nm_trim %>%
-  rename(year = Year,
+  dplyr::rename(year = Year,
          month = Month) %>%
   select(year, month, site, 
          cumulative_precip_mm, 
-         RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_BB_Conchas, SULF_Thompson,
+         RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_Conchas, IND_BB_Conchas, SULF_Thompson,
+         RED_Thompson_d, EFJ_Thompson_d, EFJ_Conchas_d, RSAW_Thompson_d, RSAW_Conchas_d, RSA_Conchas_d, IND_Conchas_d, IND_BB_Conchas_d, SULF_Thompson_d,
          mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
          Season1, Season2, index) %>%
   mutate(region = "VC") %>%
@@ -340,12 +341,26 @@ dat_nm_select <- dat_nm_trim %>%
          RG01_Sherpa = 0,
          RS02_Tea = 0,
          RS02_Jesusita = 0,
-         SP02_Gap = 0) # need to add in empty values for SB fire columns so the rbind below works
+         SP02_Gap = 0,
+         AB00_Tea_d = 0,
+         AB00_Jesusita_d = 0,
+         AT07_Jesusita_d = 0,
+         GV01_Gaviota_d = 0,
+         HO00_Gaviota_d = 0,
+         HO00_Sherpa_d = 0,
+         MC06_Tea_d = 0,
+         MC06_Jesusita_d = 0,
+         RG01_Gaviota_d = 0,
+         RG01_Sherpa_d = 0,
+         RS02_Tea_d = 0,
+         RS02_Jesusita_d = 0,
+         SP02_Gap_d = 0) # need to add in empty values for SB fire columns so the rbind below works
 
 dat_select <- dat %>%
   select(year, month, site, 
          cumulative_precip_mm, 
          AB00_Tea,AB00_Jesusita,AT07_Jesusita,GV01_Gaviota,HO00_Gaviota,HO00_Sherpa,MC06_Tea,MC06_Jesusita,RG01_Gaviota,RG01_Sherpa,RS02_Tea,RS02_Jesusita,SP02_Gap,
+         AB00_Tea_d,AB00_Jesusita_d,AT07_Jesusita_d,GV01_Gaviota_d,HO00_Gaviota_d,HO00_Sherpa_d,MC06_Tea_d,MC06_Jesusita_d,RG01_Gaviota_d,RG01_Sherpa_d,RS02_Tea_d,RS02_Jesusita_d,SP02_Gap_d,
          mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
          Season1, Season2, index) %>%
   mutate(region = "SB") %>%
@@ -355,8 +370,18 @@ dat_select <- dat %>%
          RSAW_Thompson = 0, 
          RSAW_Conchas = 0, 
          RSA_Conchas = 0, 
+         IND_Conchas = 0,
          IND_BB_Conchas = 0, 
-         SULF_Thompson = 0) # need to add in empty values for NM fire columns so the rbind below works
+         SULF_Thompson = 0,
+         RED_Thompson_d = 0, 
+         EFJ_Thompson_d = 0, 
+         EFJ_Conchas_d = 0, 
+         RSAW_Thompson_d = 0, 
+         RSAW_Conchas_d = 0, 
+         RSA_Conchas_d = 0, 
+         IND_Conchas_d = 0,
+         IND_BB_Conchas_d = 0, 
+         SULF_Thompson_d = 0) # need to add in empty values for NM fire columns so the rbind below works
 
 #dat_agu <- rbind(dat_select, dat_nm_select)
 dat_new22 <- rbind(dat_select, dat_nm_select)
@@ -366,6 +391,7 @@ dat_new22[,26:33][is.na(dat_new22[,26:33])] = 0
 
 # And export to save progress
 #saveRDS(dat_new22, "data_working/marss_data_sb_vc_022422.rds")
+saveRDS(dat_new22, "data_working/marss_data_sb_vc_060622.rds")
 
 #### Model fitting ####
 
@@ -5251,6 +5277,328 @@ for(i in c(1:12)){
 # reset plotting window
 # par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 dev.off()
+
+#### Scenario 1 : all catchments are separate states - new fire covariate ####
+
+# New fire covariate - exponential decay over 4 years (per Verkaik et al. 2013)
+
+dat_cond_d <- dat_new22 %>%
+  select(site, index, Season1, Season2, 
+         mean_cond_uScm, cumulative_precip_mm,
+         AB00_Tea_d, AB00_Jesusita_d, AT07_Jesusita_d, GV01_Gaviota_d, HO00_Gaviota_d, HO00_Sherpa_d, MC06_Tea_d, MC06_Jesusita_d, RG01_Gaviota_d, RG01_Sherpa_d, RS02_Tea_d, RS02_Jesusita_d, SP02_Gap_d, RED_Thompson_d, EFJ_Thompson_d, EFJ_Conchas_d, RSAW_Thompson_d, RSAW_Conchas_d, RSA_Conchas_d, IND_BB_Conchas_d, SULF_Thompson_d) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_cond_uScm, cumulative_precip_mm, AB00_Tea_d, AB00_Jesusita_d, AT07_Jesusita_d, GV01_Gaviota_d, HO00_Gaviota_d, HO00_Sherpa_d, MC06_Tea_d, MC06_Jesusita_d, RG01_Gaviota_d, RG01_Sherpa_d, RS02_Tea_d, RS02_Jesusita_d, SP02_Gap_d, RED_Thompson_d, EFJ_Thompson_d, EFJ_Conchas_d, RSAW_Thompson_d, RSAW_Conchas_d, RSA_Conchas_d, IND_BB_Conchas_d, SULF_Thompson_d)) %>%
+  select(index, Season1, Season2, 
+         mean_cond_uScm_AB00, mean_cond_uScm_AT07, mean_cond_uScm_GV01, mean_cond_uScm_HO00, mean_cond_uScm_MC06, mean_cond_uScm_RG01, mean_cond_uScm_RS02, mean_cond_uScm_SP02, mean_cond_uScm_EFJ, mean_cond_uScm_IND, mean_cond_uScm_IND_BB, mean_cond_uScm_RED, mean_cond_uScm_RSA, mean_cond_uScm_RSAW, mean_cond_uScm_SULF,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF,
+         AB00_Tea_d_AB00, AB00_Jesusita_d_AB00, AT07_Jesusita_d_AT07, GV01_Gaviota_d_GV01, HO00_Gaviota_d_HO00, HO00_Sherpa_d_HO00, MC06_Tea_d_MC06, MC06_Jesusita_d_MC06, RG01_Gaviota_d_RG01, RG01_Sherpa_d_RG01, RS02_Tea_d_RS02, RS02_Jesusita_d_RS02, SP02_Gap_d_SP02, RED_Thompson_d_RED, EFJ_Thompson_d_EFJ, EFJ_Conchas_d_EFJ, RSAW_Thompson_d_RSAW, RSAW_Conchas_d_RSAW, RSA_Conchas_d_RSA, IND_BB_Conchas_d_IND_BB, SULF_Thompson_d_SULF)
+
+dat_cond_d[is.nan(dat_cond_d)] <- NA
+
+# log and scale transform response var
+names(dat_cond_d)
+dat_cond_d_log = dat_cond_d
+dat_cond_d_log[,4:18] = log10(dat_cond_d_log[,4:18])
+dat_cond_d_log[,4:18] = scale(dat_cond_d_log[,4:18])
+sum(is.nan(dat_cond_d_log[,4:18]))
+sum(is.na(dat_cond_d_log[,4:18]))
+range(dat_cond_d_log[,4:18], na.rm = T)
+
+# Pull out only response var
+names(dat_cond_d_log)
+# AB00, AT07, GV01, HO00, MC06, RG01, RS02,
+# EFJ, RED, RSA, & RSAW
+dat_dep_d <- t(dat_cond_d_log[,c(4:10,12,15:17)])
+row.names(dat_dep_d)
+
+# Make covariate inputs
+# without short ts sites:
+dat_cov_d <- dat_cond_d_log[,c(2:3, # seasonal covariates
+                           19:25, 27, 30:32, # precip
+                           34:42, 44, 45, 48, 49, 47, 52, 50, 51)] # fire (reordering to match c matrix below)
+
+dat_cov_d <- t(scale(dat_cov_d))
+row.names(dat_cov_d)
+sum(is.nan(dat_cov_d)) # RG01_Sherpa causing problems so removed it from above
+sum(is.na(dat_cov_d))
+
+#### make C matrix
+
+# without short ts sites:
+CC <- matrix(list( 
+  # season 1
+  "Season1", "Season1", "Season1", "Season1", 
+  "Season1", "Season1", "Season1", "Season1", 
+  "Season1", "Season1", "Season1",
+  # season 2
+  "Season2", "Season2", "Season2", "Season2", 
+  "Season2", "Season2", "Season2", "Season2",
+  "Season2", "Season2", "Season2",
+  # precip by site
+  "AB00_precip",0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_precip",0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_precip",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_precip",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_precip",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_precip",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_precip",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_precip", 0,0,0,
+  0,0,0,0,0,0,0,0,"RED_precip", 0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_precip", 0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_precip",
+  # fires by site
+  "AB00_Tea",0,0,0,0,0,0,0,0,0,0,
+  "AB00_Jesusita",0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_Jesusita",0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_Gaviota",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_Gaviota",0,0,0,0,0,0,0,
+  0,0,0,"HO00_Sherpa",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_Tea",0,0,0,0,0,0,
+  0,0,0,0,"MC06_Jesusita",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_Gaviota",0,0,0,0,0,
+  #0,0,0,0,0,"RG01_Sherpa",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_Tea",0,0,0,0,
+  0,0,0,0,0,0,"RS02_Jesusita",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Thompson",0,0,0,
+  0,0,0,0,0,0,0,"EFJ_Conchas",0,0,0,
+  0,0,0,0,0,0,0,0,"RED_Thompson",0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_Conchas",0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Thompson",
+  0,0,0,0,0,0,0,0,0,0,"RSAW_Conchas"),11,30)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov_d,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep_d, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+fit <- MARSS(y = dat_dep_d, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# # fit EM by itself
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+# export model fit
+#saveRDS(fit, file = "data_working/marss_test_run/fit_060622_11state_cond_decay_mBFGS.rds")
+
+### DIAGNOSES ###
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+# better to do parametric/non-parametric bootstrapping once model is decided upon
+# Maybe increase to over 100 boots, 100 is standard
+# est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_060622_11state_cond_decay_mBFGS.rds")
+
+# formatting confidence intervals into dataframe
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00","AT07","GV01","HO00","MC06","RG01","RS02","EFJ","RED","RSA","RSAW")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  dplyr::rename(Site = i) %>%
+  #rename(Parameter = parm) %>%# rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip",
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip",
+                                             "AB00_Tea",
+                                             "AB00_Jesusita",
+                                             "AT07_Jesusita",
+                                             "GV01_Gaviota",
+                                             "HO00_Gaviota",
+                                             "HO00_Sherpa",
+                                             "MC06_Tea",
+                                             "MC06_Jesusita",
+                                             "RG01_Gaviota",
+                                             "RS02_Tea",
+                                             "RS02_Jesusita",
+                                             "EFJ_Thompson",
+                                             "EFJ_Conchas",
+                                             "RED_Thompson",
+                                             "RSA_Conchas",
+                                             "RSAW_Thompson",
+                                             "RSAW_Conchas")))
+
+# plot results
+(RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 06/06/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+# Adding labels for plotting purposes
+CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Thompson"),] 
+CIs_fit_ed2 = CIs_fit_ed2[!(CIs_fit_ed2$Site=="RSA" & CIs_fit_ed2$Parameter=="RSAW_Conchas"),] 
+CIs_fit_ed2$region = c(rep("Coastal California",32),rep("Subalpine New Mexico",18))
+
+(RESULTS_ALL_d <-ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+    geom_point(position=position_dodge(width=0.3), size=5) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 06/06/2022\n11 state - 4-year fire decay term") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(vars(region, Site), scales = "free"))
+
+# ggsave("figures/MARSS_11states_cond_precip_fire_decay_060622.png",
+#        width = 40,
+#        height = 20,
+#        units = "cm")
+
+## Script for diagnoses ###
+
+dat = dat_dep
+time = c(1:ncol(dat_dep))
+resids <- MARSSresiduals(fit)
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+# No C matrix
+# Need to be sure the covariates we've added are *actually* explaining
+# the variation we are seeing
+# Should have a better AIC score in model above
+
+# Future to-do : make new model with only seasonal effects, and compare
+# to null model to see how it performs. It may not be explaining much
+# more variability than the null model and making the model above overly
+# complex. Or could create model with covariates minus seasonal and compare.
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+
+# fitting null model
+# Note - if we change the structure of the model above, make sure that
+# the same code is used to run the null models here below.
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+# dAIC- delta AIC
+# 0.0 = always the value for the lowest model AIC
+#           dAIC df
+# fit        0.0 64
+# null.fit 292.8 33
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+# State residuals don't have any patterns that jump out.
+
+# Error when trying to plot model residuals:
+# Error in plot.window(...) : need finite 'ylim' values
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+  #        pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  # qqline(resids$model.residuals[i,])
+  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# State residuals aren't great, but slightly better at SB.
+
+# Error when trying to plot model residuals:
+# Error in shapiro.test(resids$model.residuals[i, ]) : # all 'x' values are identical
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #### Scenario 2 : catchments in two ecoregions #### 
 

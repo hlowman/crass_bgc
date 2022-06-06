@@ -67,6 +67,7 @@ dates_fire_vcnp <- dates %>%
   mutate(RED_Thompson_d = NA,
          EFJ_Thompson_d = NA,
          EFJ_Conchas_d = NA,
+         RSA_Conchas_d = NA,
          RSAW_Thompson_d = NA,
          RSAW_Conchas_d = NA,
          IND_Conchas_d = NA,
@@ -79,6 +80,7 @@ decay <- exp(values)
 dates_fire_vcnp$RED_Thompson_d[927:974] <- decay
 dates_fire_vcnp$EFJ_Thompson_d[97:144] <- decay
 dates_fire_vcnp$EFJ_Conchas_d[74:121] <- decay
+dates_fire_vcnp$RSA_Conchas_d[406:453] <- decay
 dates_fire_vcnp$RSAW_Thompson_d[263:310] <- decay
 dates_fire_vcnp$RSAW_Conchas_d[240:287] <- decay
 dates_fire_vcnp$IND_Conchas_d[572:619] <- decay
