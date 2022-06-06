@@ -5495,34 +5495,27 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
 #### Scenario 3 : all catchments in a single state #### 
 
-# Use dat_dep from 11 state model.
+# Use dat_dep and dat_cov from 11 state model.
+
+CC3 <- "unconstrained"
+
+# Note - Need to check about altering the R component of the matrix.
 
 # Make covariate inputs
-# For now, using average precip and cumulative fire
-# so number of watersheds affected by fires is incorporated (need to run by group...)
-dat_cond_log3 <- dat_cond_log %>%
-  mutate(c_precip_avg = (cumulative_precip_mm_AB00 + cumulative_precip_mm_AT07 + cumulative_precip_mm_GV01 + cumulative_precip_mm_HO00 + cumulative_precip_mm_MC06 + cumulative_precip_mm_RG01 + cumulative_precip_mm_RS02 + cumulative_precip_mm_EFJ +  cumulative_precip_mm_RED + cumulative_precip_mm_RSA + cumulative_precip_mm_RSAW)/11,
-         c_fire = (AB00_Tea_AB00 + AB00_Jesusita_AB00 + AT07_Jesusita_AT07 + GV01_Gaviota_GV01 + HO00_Gaviota_HO00 + HO00_Sherpa_HO00 + MC06_Tea_MC06 + MC06_Jesusita_MC06 + RG01_Gaviota_RG01 + RG01_Sherpa_RG01 + RS02_Tea_RS02 + RS02_Jesusita_RS02 + RED_Thompson_RED + EFJ_Thompson_EFJ + EFJ_Conchas_EFJ + RSAW_Thompson_RSAW + RSAW_Conchas_RSAW + RSA_Conchas_RSA))
+# without short ts sites:
+dat_s <- dat_cond_log[,c(2:3)] # seasonal covariates
+dat_s <- t(scale(dat_s))
+row.names(dat_s)
 
-names(dat_cond_log3)
-dat_cov3 <- dat_cond_log3[,c(2:3,55:56)]
-dat_cov3 <- t(scale(dat_cov3))
-row.names(dat_cov3)
-
-CC3 <- matrix(list("Season1", "Season2", 
-                   "c_precip_avg", "c_fire"),1,4)
-
-# Note - Need to check about altering the R component of the matrix from zero
-# in the 11 state model to diagonal/equal in 2 and 1 state model structures
 # Model setup
 mod_list3 <- list(
   # tinitx = "zero", # setting initial state value to time = 0
-  B = "diagonal and unequal",
+  B = "identity",
   U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
   C = CC3, # see new matrix above
-  c = dat_cov3, # we should probably de-mean and scale covariates to units of sd 
+  c = dat_s, #dat_cov,
   Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
-  Z = matrix(1, nrow = 11, ncol = 1),
+  Z = matrix(1, nrow = nrow(dat_dep), ncol = 1), # number of estimated state processes = 1
   A = "zero",
   R = "diagonal and equal" # allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
 )
@@ -5559,7 +5552,7 @@ fit3[["errors"]]
 est_fit3 <- MARSSparamCIs(fit3)
 # better to do parametric/non-parametric bootstrapping once model is decided upon
 # Maybe increase to over 100 boots, 100 is standard
-#est_fit3 <- MARSSparamCIs(fit3, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+# est_fit3 <- MARSSparamCIs(fit3, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
 #saveRDS(est_fit3, "data_working/marss_test_run/CIs_fit_022522_1state_cond.rds")
 
@@ -5576,8 +5569,7 @@ CIs_fit3[,1:3] = round(CIs_fit3[,1:3], 3)
 ### Plot Results for All Sites ###
 
 CIs_fit3_ed <- CIs_fit3 %>%
-  mutate(Parameter = factor(parm, levels = c("Season1", "Season2",
-                                             "c_precip_avg", "c_fire")))
+  mutate(Parameter = factor(parm, levels = c("(X1,Season1)", "(X1,Season2)")))
 
 # plot results
 (RESULTS_ALL3 <- ggplot(CIs_fit3_ed, aes(Parameter, Est.)) + 
@@ -5589,7 +5581,7 @@ CIs_fit3_ed <- CIs_fit3 %>%
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 02/25/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 06/06/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm"))) # need to play with margins to make it all fit
 
 # ggsave("figures/MARSS_1state_cond_precip_fire_022522.png",
