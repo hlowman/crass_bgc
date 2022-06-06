@@ -5294,25 +5294,30 @@ CC2 <- matrix(list(# season 1
   "c_fire_SB", 0,
   0, "c_fire_NM"), 2, 6)
 
+## Attempt #2:
+# Use dat_dep and dat_cov from 11 state model.
+
+CC2 <- "unconstrained"
+
+# Note - Need to check about altering the R component of the matrix.
+
+# Make covariate inputs
+# without short ts sites:
+dat_s <- dat_cond_log[,c(2:3)] # seasonal covariates
+dat_s <- t(scale(dat_s))
+row.names(dat_s)
+
 # Model setup
 mod_list2 <- list(
-  B = "identity", #"diagonal and unequal",
-  U = "zero", 
-  C = CC2, 
-  c = dat_cov2, 
-  Q = "diagonal and unequal",
-  Z = factor(c("SantaBarbara", "SantaBarbara",
-               "SantaBarbara", "SantaBarbara",
-               "SantaBarbara", "SantaBarbara",
-               "SantaBarbara",
-               "VallesCaldera", "VallesCaldera",
-               "VallesCaldera", "VallesCaldera")),
+  # tinitx = "zero", # setting initial state value to time = 0
+  B = "identity",
+  U = "zero", # zero: does NOT allow a drift term in process model to be estimated # removing due to lack of anticipated monotonic trend
+  C = CC2, # see new matrix above
+  c = dat_s, #dat_cov,
+  Q = "diagonal and unequal", # diagonal and unequal: allows for and estimates the covariance matrix of process errors
+  Z = matrix(c(1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1), nrow = nrow(dat_dep), ncol = 2), # number of estimated state processes = 1
   A = "zero",
-  D = "zero" ,
-  d = "zero",
-  R = "diagonal and equal",
-  V0 = "zero" ,
-  tinitx = 0
+  R = "diagonal and equal" # allows for and estimates the covariance matrix of observations errors (may want to provide a number for this from method precision etc if possible) - changed to "zero" on 11/22 to "turn off" observation error
 )
 
 # fit BFGS with priors
@@ -5360,15 +5365,13 @@ CIs_fit2[,1:3] = round(CIs_fit2[,1:3], 3)
 ### Plot Results for All Sites ###
 
 # First, create dataset of all outputs for two states
-CIs_SB <- rbind(CIs_fit2[1:2,], CIs_fit2[grepl("SB", CIs_fit2$parm),]) %>%
+CIs_SB <- rbind(CIs_fit2[c(1,3),]) %>%
   mutate(Region = "Santa Barbara")
-CIs_NM <- rbind(CIs_fit2[1:2,], CIs_fit2[grepl("NM", CIs_fit2$parm),]) %>%
+CIs_NM <- rbind(CIs_fit2[c(2,4),]) %>%
   mutate(Region = "Valles Caldera")
   
 CIs_fit2_ed <- rbind(CIs_SB, CIs_NM) %>%
-  mutate(Parameter = factor(parm, levels = c("Season1", "Season2",
-                                             "avg_precip_SB", "avg_precip_NM",
-                                             "c_fire_SB", "c_fire_NM")))
+  mutate(Parameter = factor(parm))
 
 # plot results
 (RESULTS_ALL <- ggplot(CIs_fit2_ed, aes(Parameter, Est.)) + 
@@ -5380,7 +5383,7 @@ CIs_fit2_ed <- rbind(CIs_SB, CIs_NM) %>%
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 02/25/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 06/06/2022\n2 State (Season Only)") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Region, scales = "free"))
 
@@ -5400,7 +5403,7 @@ CIs_fit2_ed$region <- c(rep("Coastal California",4),rep("Subalpine New Mexico",4
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(vars(region), scales = "free"))
 
-# ggsave("figures/MARSS_2states_cond_precip_fire_022522.png",
+# ggsave("figures/MARSS_2states_cond_precip_fire_060622.png",
 #        width = 20,
 #        height = 6,
 #        units = "cm")
@@ -5569,7 +5572,7 @@ CIs_fit3[,1:3] = round(CIs_fit3[,1:3], 3)
 ### Plot Results for All Sites ###
 
 CIs_fit3_ed <- CIs_fit3 %>%
-  mutate(Parameter = factor(parm, levels = c("(X1,Season1)", "(X1,Season2)")))
+  mutate(Parameter = factor(parm))
 
 # plot results
 (RESULTS_ALL3 <- ggplot(CIs_fit3_ed, aes(Parameter, Est.)) + 
@@ -5581,10 +5584,10 @@ CIs_fit3_ed <- CIs_fit3 %>%
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 06/06/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 06/06/2022\n1 State (Season Only)") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm"))) # need to play with margins to make it all fit
 
-# ggsave("figures/MARSS_1state_cond_precip_fire_022522.png",
+# ggsave("figures/MARSS_1state_cond_precip_fire_060622.png",
 #        width = 10,
 #        height = 6,
 #        units = "cm")
