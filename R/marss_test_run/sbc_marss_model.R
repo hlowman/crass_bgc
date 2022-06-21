@@ -4785,7 +4785,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 #                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
 
 # export model fit
-#saveRDS(fit, file = "data_working/marss_test_run/fit_022422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_062122_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
 
 ### DIAGNOSES ###
 
@@ -4803,7 +4803,7 @@ est_fit <- MARSSparamCIs(fit)
 # Maybe increase to over 100 boots, 100 is standard
 # est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
-#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_022422_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_062122_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
 
 # formatting confidence intervals into dataframe
 CIs_fit = cbind(
@@ -4870,7 +4870,7 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 02/04/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 06/21/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
 
@@ -4889,11 +4889,11 @@ CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",1
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 02/24/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 06/21/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(vars(region, Site), scales = "free"))
 
-# ggsave("figures/MARSS_11states_cond_precip_fire_022422.png",
+# ggsave("figures/MARSS_11states_cond_precip_fire_062122.png",
 #        width = 40,
 #        height = 20,
 #        units = "cm")
@@ -4903,6 +4903,10 @@ CIs_fit_ed2$region = c(rep("Coastal California",33),rep("Subalpine New Mexico",1
 dat = dat_dep
 time = c(1:ncol(dat_dep))
 resids <- MARSSresiduals(fit)
+
+# Save residuals dataframe
+saveRDS(resids, "data_working/marss_test_run/all_resids_062122_11state_cond_AB00_AT07_GV01_HO00_MC06_RG01_RS02_EFJ_RED_RSA_RSAW_mBFGS.rds")
+
 kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
@@ -4956,8 +4960,8 @@ plot(dat_dep[8,], type="o")
 ### Do resids have temporal autocorrelation? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  # forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
   mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
 }
 
@@ -4969,13 +4973,13 @@ for(i in c(1:12)){
 ### Are resids normal? ###
 par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
 for(i in c(1:12)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+         pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  # qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  # qqline(resids$state.residuals[i,])
   mtext("Are resids normal?", outer = TRUE, cex = 1.5)
 }
 
@@ -5399,7 +5403,7 @@ fit <- MARSS(y = dat_dep_d, model = mod_list,
 #                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
 
 # export model fit
-#saveRDS(fit, file = "data_working/marss_test_run/fit_060622_11state_cond_decay_mBFGS.rds")
+saveRDS(fit, file = "data_working/marss_test_run/fit_062122_11state_cond_decay_mBFGS.rds")
 
 ### DIAGNOSES ###
 
@@ -5417,7 +5421,7 @@ est_fit <- MARSSparamCIs(fit)
 # Maybe increase to over 100 boots, 100 is standard
 # est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
 
-#saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_060622_11state_cond_decay_mBFGS.rds")
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_062122_11state_cond_decay_mBFGS.rds")
 
 # formatting confidence intervals into dataframe
 CIs_fit = cbind(
@@ -5483,7 +5487,7 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 06/06/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 06/21/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(.~Site, scales = "free"))
 
@@ -5502,20 +5506,24 @@ CIs_fit_ed2$region = c(rep("Coastal California",32),rep("Subalpine New Mexico",1
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 06/06/2022\n11 state - 4-year fire decay term") +
+         title = "Sp. Conductivity MARSS modeling results - 06/21/2022\n11 state - 4-year fire decay term") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
     facet_wrap(vars(region, Site), scales = "free"))
 
-# ggsave("figures/MARSS_11states_cond_precip_fire_decay_060622.png",
+# ggsave("figures/MARSS_11states_cond_precip_fire_decay_062122.png",
 #        width = 40,
 #        height = 20,
 #        units = "cm")
 
 ## Script for diagnoses ###
 
-dat = dat_dep
-time = c(1:ncol(dat_dep))
+dat = dat_dep_d
+time = c(1:ncol(dat_dep_d))
 resids <- MARSSresiduals(fit)
+
+# Save resids dataframe
+saveRDS(resids, file = "data_working/marss_test_run/all_resids_062122_11state_cond_decay_mBFGS.rds")
+
 kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
@@ -5524,10 +5532,6 @@ kf=print(fit, what="kfs") # Kalman filter and smoother output
 # the variation we are seeing
 # Should have a better AIC score in model above
 
-# Future to-do : make new model with only seasonal effects, and compare
-# to null model to see how it performs. It may not be explaining much
-# more variability than the null model and making the model above overly
-# complex. Or could create model with covariates minus seasonal and compare.
 mod_list_null <- list(
   B = "diagonal and unequal",
   U = "zero", 
@@ -5540,18 +5544,296 @@ mod_list_null <- list(
 # fitting null model
 # Note - if we change the structure of the model above, make sure that
 # the same code is used to run the null models here below.
-null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+null.kemfit <- MARSS(y = dat_dep_d, model = mod_list_null,
                      control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
 
-null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+null.fit <- MARSS(y = dat_dep_d, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
 bbmle::AICtab(fit, null.fit)
 # dAIC- delta AIC
 # 0.0 = always the value for the lowest model AIC
 #           dAIC df
-# fit        0.0 64
-# null.fit 292.8 33
+# fit        0.0 63
+# null.fit 350.7 33
+# RESULT: covar model is better than null
+
+### Plot response vars ###
+par(mfrow=c(4,2),oma = c(0, 0, 2, 0))
+plot(dat_dep[1,], type="o")
+plot(dat_dep[2,], type="o")
+plot(dat_dep[3,], type="o")
+plot(dat_dep[4,], type="o")
+plot(dat_dep[5,], type="o")
+plot(dat_dep[6,], type="o")
+plot(dat_dep[7,], type="o")
+plot(dat_dep[8,], type="o")
+plot(dat_dep[8,], type="o")
+
+### Do resids have temporal autocorrelation? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
+  #forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
+  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1.5)
+}
+
+# State residuals don't have any patterns that jump out.
+
+# Error when trying to plot model residuals:
+# Error in plot.window(...) : need finite 'ylim' values
+
+### Are resids normal? ###
+par(mfrow=c(2,2),oma = c(0, 0, 2, 0))
+for(i in c(1:12)){
+  qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
+         pch=16,
+         xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
+  qqline(resids$model.residuals[i,])
+  # qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16,
+  #        xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
+  # qqline(resids$state.residuals[i,])
+  mtext("Are resids normal?", outer = TRUE, cex = 1.5)
+}
+
+# State residuals aren't great, but slightly better at SB.
+
+# Error when trying to plot model residuals:
+# Error in shapiro.test(resids$model.residuals[i, ]) : # all 'x' values are identical
+
+# reset plotting window
+par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+#### Scenario 1 : all catchments are separate states - NO fire covariate ####
+
+dat_cond_nof <- dat_new22 %>%
+  select(site, index, Season1, Season2, 
+         mean_cond_uScm, cumulative_precip_mm) %>% 
+  pivot_wider(names_from = site, values_from = c(mean_cond_uScm, cumulative_precip_mm)) %>%
+  select(index, Season1, Season2, 
+         mean_cond_uScm_AB00, mean_cond_uScm_AT07, mean_cond_uScm_GV01, mean_cond_uScm_HO00, mean_cond_uScm_MC06, mean_cond_uScm_RG01, mean_cond_uScm_RS02, mean_cond_uScm_SP02, mean_cond_uScm_EFJ, mean_cond_uScm_IND, mean_cond_uScm_IND_BB, mean_cond_uScm_RED, mean_cond_uScm_RSA, mean_cond_uScm_RSAW, mean_cond_uScm_SULF,
+         cumulative_precip_mm_AB00, cumulative_precip_mm_AT07, cumulative_precip_mm_GV01, cumulative_precip_mm_HO00, cumulative_precip_mm_MC06, cumulative_precip_mm_RG01, cumulative_precip_mm_RS02, cumulative_precip_mm_SP02, cumulative_precip_mm_EFJ, cumulative_precip_mm_IND, cumulative_precip_mm_IND_BB, cumulative_precip_mm_RED, cumulative_precip_mm_RSA, cumulative_precip_mm_RSAW, cumulative_precip_mm_SULF)
+
+dat_cond_nof[is.nan(dat_cond_nof)] <- NA
+
+# log and scale transform response var
+names(dat_cond_nof)
+dat_cond_nof_log = dat_cond_nof
+dat_cond_nof_log[,4:18] = log10(dat_cond_nof_log[,4:18])
+dat_cond_nof_log[,4:18] = scale(dat_cond_nof_log[,4:18])
+sum(is.nan(dat_cond_nof_log[,4:18]))
+sum(is.na(dat_cond_nof_log[,4:18]))
+range(dat_cond_nof_log[,4:18], na.rm = T)
+
+# Pull out only response var
+names(dat_cond_nof_log)
+# AB00, AT07, GV01, HO00, MC06, RG01, RS02,
+# EFJ, RED, RSA, & RSAW
+dat_dep_nof <- t(dat_cond_nof_log[,c(4:10,12,15:17)])
+row.names(dat_dep_nof)
+
+# Make covariate inputs
+# without short ts sites:
+dat_cov_nof <- dat_cond_nof_log[,c(2:3, # seasonal covariates
+                               19:25, 27, 30:32)] # precip
+
+dat_cov_nof <- t(scale(dat_cov_nof))
+row.names(dat_cov_nof)
+sum(is.nan(dat_cov_nof)) # RG01_Sherpa causing problems so removed it from above
+sum(is.na(dat_cov_nof))
+
+#### make C matrix
+
+# without short ts sites:
+CC <- matrix(list( 
+  # season 1
+  "Season1", "Season1", "Season1", "Season1", 
+  "Season1", "Season1", "Season1", "Season1", 
+  "Season1", "Season1", "Season1",
+  # season 2
+  "Season2", "Season2", "Season2", "Season2", 
+  "Season2", "Season2", "Season2", "Season2",
+  "Season2", "Season2", "Season2",
+  # precip by site
+  "AB00_precip",0,0,0,0,0,0,0,0,0,0,
+  0,"AT07_precip",0,0,0,0,0,0,0,0,0,
+  0,0,"GV01_precip",0,0,0,0,0,0,0,0,
+  0,0,0,"HO00_precip",0,0,0,0,0,0,0,
+  0,0,0,0,"MC06_precip",0,0,0,0,0,0,
+  0,0,0,0,0,"RG01_precip",0,0,0,0,0,
+  0,0,0,0,0,0,"RS02_precip",0,0,0,0,
+  0,0,0,0,0,0,0,"EFJ_precip", 0,0,0,
+  0,0,0,0,0,0,0,0,"RED_precip", 0,0,
+  0,0,0,0,0,0,0,0,0,"RSA_precip", 0,
+  0,0,0,0,0,0,0,0,0,0,"RSAW_precip"),11,13)
+
+# Model setup
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov_nof,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep_nof, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+fit <- MARSS(y = dat_dep_nof, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# # fit EM by itself
+# fit <- MARSS(y = dat_dep, model = mod_list,
+#                 control = list(maxit= 2000, allow.degen=TRUE, trace=1), fit=TRUE) 
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_test_run/fit_062122_11state_cond_nofire_mBFGS.rds")
+
+### DIAGNOSES ###
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results
+est_fit <- MARSSparamCIs(fit)
+# better to do parametric/non-parametric bootstrapping once model is decided upon
+# Maybe increase to over 100 boots, 100 is standard
+# est = MARSSparamCIs(fit, method = "parametric", alpha = 0.05, nboot = 100, silent=F)
+
+saveRDS(est_fit, "data_working/marss_test_run/CIs_fit_062122_11state_cond_nofire_mBFGS.rds")
+
+# formatting confidence intervals into dataframe
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+# This works for HO00 alone
+CIs_HO00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("HO00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00","AT07","GV01","HO00","MC06","RG01","RS02","EFJ","RED","RSA","RSAW")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[1:2,], CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  dplyr::rename(Site = i) %>%
+  #rename(Parameter = parm) %>%# rename site column
+  mutate(Parameter = factor(parm, levels = c("Season1", "Season2", # relevel parameters
+                                             "AB00_precip", "AT07_precip", "GV01_precip",
+                                             "HO00_precip", "MC06_precip", "RG01_precip",
+                                             "RS02_precip", "SP02_precip",
+                                             "EFJ_precip", "RED_precip", "RSA_precip", "RSAW_precip")))
+
+# plot results
+(RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est.)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 06/21/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(.~Site, scales = "free"))
+
+# Adding labels for plotting purposes
+CIs_fit_ed2 = CIs_fit_ed[!(CIs_fit_ed$Site=="RSA" & CIs_fit_ed$Parameter=="RSAW_precip"),] 
+CIs_fit_ed2$region = c(rep("Coastal California",21),rep("Subalpine New Mexico",12))
+
+(RESULTS_ALL_d <-ggplot(CIs_fit_ed2, aes(Parameter, Est., color=region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=.7) +
+    geom_point(position=position_dodge(width=0.3), size=5) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 06/21/2022\n11 state - no fire term") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + # need to play with margins to make it all fit
+    facet_wrap(vars(region, Site), scales = "free"))
+
+# ggsave("figures/MARSS_11states_cond_precip_nofire_062122.png",
+#        width = 40,
+#        height = 20,
+#        units = "cm")
+
+## Script for diagnoses ###
+
+dat = dat_dep_nof
+time = c(1:ncol(dat_dep_nof))
+resids <- MARSSresiduals(fit)
+
+# Save resids dataframe
+saveRDS(resids, file = "data_working/marss_test_run/all_resids_062122_11state_cond_nofire_mBFGS.rds")
+
+kf=print(fit, what="kfs") # Kalman filter and smoother output
+
+### Compare to null model ###
+# No C matrix
+# Need to be sure the covariates we've added are *actually* explaining
+# the variation we are seeing
+# Should have a better AIC score in model above
+mod_list_null <- list(
+  B = "diagonal and unequal",
+  U = "zero", 
+  Q = "diagonal and unequal", 
+  Z = "identity",
+  A = "zero",
+  R = "zero" 
+)
+
+# fitting null model
+# Note - if we change the structure of the model above, make sure that
+# the same code is used to run the null models here below.
+null.kemfit <- MARSS(y = dat_dep_nof, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep_nof, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+# dAIC- delta AIC
+# 0.0 = always the value for the lowest model AIC
+#           dAIC df
+# fit        0.0 46
+# null.fit   257 33
 # RESULT: covar model is better than null
 
 ### Plot response vars ###
