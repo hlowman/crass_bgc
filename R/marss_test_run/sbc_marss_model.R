@@ -6197,6 +6197,27 @@ for(i in c(1:12)){
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 
+### residuals analysis ###
+# NOTES:
+# Sections 12.3.1 and 12.3.2 in the 2021 edition of the MARSS manual describe two complementary ways (outlier detection & level change detection from standardized smoothed model & state residuals, respectively) to detect change in a time series using residuals. See this example also explained in the lab manual in section 6.5.1, here https://atsa-es.github.io/atsa-labs/sec-uss-basic-diagnostics.html. From looking at the code made available with the lab manual (https://atsa-es.github.io/atsa-labs/chap-univariate-state-space.html#data-and-packages-3), I think you would get these two residual types from a model fit using the code below. 
+
+resids <- residuals(fit, type='tT', standardization="marginal")
+
+# for outlier detection
+mresids <- subset(resids, name == "model") 
+plot(mresids$t, mresids$.std.resids,
+     ylab = "model std smoothationl", xlab = "", main = "data outliers")
+abline(h = 0)
+abline(h = c(2,-2), lty=2)
+
+# for sudden level changes detection
+sresids <- subset(resids, name == "state")
+sresids$.rownames = as.factor(sresids$.rownames)
+plot(sresids$t, sresids$.std.resids, type="l", col=(sresids$.rownames),
+     ylab = "state std smoothation", xlab = "", main = "sudden level changes")
+abline(h = 0)
+abline(h = c(2,-2), lty=2)
+
 #### Scenario 2 : catchments in two ecoregions #### 
 
 # Pull out response var
