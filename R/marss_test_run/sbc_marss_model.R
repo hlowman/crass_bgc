@@ -6002,6 +6002,9 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 saveRDS(fit, 
         file = "data_working/marss_test_run/fit_071122_11state_cond_winteraction_mBFGS.rds")
 
+# import model fit
+fit = readRDS("data_working/marss_test_run/fit_071122_11state_cond_winteraction_mBFGS.rds")
+
 ### DIAGNOSES ###
 
 ## check for hidden errors
