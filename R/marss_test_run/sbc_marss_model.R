@@ -56,7 +56,7 @@ chem <- readRDS("data_working/SBchem_edited_120321.rds")
 chem_nm <- readRDS("data_working/VCNPchem_edited_120521.rds")
 # Precipitation - all sites
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
-precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_110321.rds")
+precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_20220721.rds")
 # Fire Events - all sites
 fire <- readRDS("data_working/SBfire_edited_060622.rds")
 fire_nm <- readRDS("data_working/VCNPfire_edited_060622.rds")
@@ -135,9 +135,9 @@ sum(is.na(dat$cumulative_precip_mm)) # 0
 precip_nm_ed <- precip_nm %>%
   dplyr::rename(sitecode_precip = ID) %>%
   mutate(Day = 1) %>% # new column of "days"
-  mutate(Date = ymd(datetimeMT)) %>%
-  mutate(Year = year(Date),
-         Month = month(Date))
+  mutate(Date = as.Date(paste(year, month, "01", sep="-")))%>%
+  mutate(Year = year,
+         Month = month)
 
 ## Timeframe Selection
 # Examine precip data coverage for MARSS timescale delineation
@@ -209,13 +209,20 @@ chem_nm_monthly %>%
   theme_bw() +
   theme(legend.position = "none")
 
+temp = chem_nm_monthly[!is.na(chem_nm_monthly$mean_cond_uScm),]
+temp %>%
+  ggplot(aes(x = Year, y = site, color = site)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+
 dat_nm_trim <- dat_nm %>%
-  filter(date >= "2005-06-01") %>%
-  filter(date <= "2019-03-01")
+  filter(date >= "2005-06-01") 
 # should be 166 records pre site to match "dat" above
 # 166 records x 7 sites = 1162 records
 # dates between SB and NM datasets don't need to match
 # but lengths of time series do
+table(dat_nm_trim$site)
 
 # Adding in dummy covariates by season
 n_months_nm <- dat_nm_trim$date %>%
@@ -320,8 +327,8 @@ names(site.labs) <- sites_used
 
 # Created NM dataset for joining with SB data
 dat_nm_select <- dat_nm_trim %>%
-  dplyr::rename(year = Year,
-         month = Month) %>%
+  # dplyr::rename(year = Year,
+  #        month = Month) %>%
   select(year, month, site, 
          cumulative_precip_mm, 
          RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_Conchas, IND_BB_Conchas, SULF_Thompson,
@@ -386,12 +393,15 @@ dat_select <- dat %>%
 #dat_agu <- rbind(dat_select, dat_nm_select)
 dat_new22 <- rbind(dat_select, dat_nm_select)
 
+
 # replace fire NAs with zeros
-dat_new22[,26:33][is.na(dat_new22[,26:33])] = 0
+dat_new22[,c(5:30,39:56)][is.na(dat_new22[,c(5:30,39:56)])] = 0
 
 # And export to save progress
 #saveRDS(dat_new22, "data_working/marss_data_sb_vc_022422.rds")
-saveRDS(dat_new22, "data_working/marss_data_sb_vc_060622.rds")
+#saveRDS(dat_new22, "data_working/marss_data_sb_vc_060622.rds")
+# with fixed NM ppt data (AJW):
+saveRDS(dat_new22, "data_working/marss_data_sb_vc_072222.rds")
 
 #### Model fitting ####
 
