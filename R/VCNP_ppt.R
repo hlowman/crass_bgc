@@ -277,8 +277,8 @@ ppt_all[which(is.na(ppt_all$ppt_in)),]
 
 pptz_m = pptz_d_ws
 for(i in names(pptz_m)){
-  pptz_m[[i]]$month = lubridate::round_date(pptz_m[[i]]$date, "month") 
-  pptz_m[[i]]$year = lubridate::round_date(pptz_m[[i]]$date, "year") 
+  pptz_m[[i]]$month = lubridate::month(pptz_m[[i]]$date) 
+  pptz_m[[i]]$year = lubridate::year(pptz_m[[i]]$date) 
   pptz_m[[i]] = 
     pptz_m[[i]] %>% 
     group_by(month, year,ID) %>% 
