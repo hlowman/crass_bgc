@@ -2,23 +2,23 @@
 # Script started July 19, 2022
 # Heili Lowman, Alex Webster
 
-# The following script will run a MARSS analysis at SBC LTER & NM Valles Caldera sites for the CRASS project.
+#### READ ME ####
 
-#### Data Notes ####
+# The following script will prepare data and run a MARSS analysis at SBC LTER & NM Valles Caldera sites for the CRASS project. Modeling sections each contain one model or one model comparision and restart the script and import data anew each time. 
 
 # A few notes about the process below:
 # Data was tidied in sbc_marss_model.R script and exported to file:
 # marss_data_sb_vc_072222.rds (as of July 22, 2022 when errors in NM ppt data were identified and fixed)
-# It is imported from that file in this script.
+# It is imported from that file into this script.
 
 # The first goal of this script is to demo a MARSS model with 12 states (each watershed as a unique state) and the following predictive vars:
 # 1 - cum. monthly ppt
-# 2 - fire_pa_6m  (1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m, one col for all fires)
-# 3 - fire_pa_6m_1ylegacy (1=fire ignited 6 m - 1 y ago, 0=no fire ignitions 6 m - 1 y ago)
-# 4 - fire_pa_6m_2ylegacy (1=fire ignited 1.5 - 2 y ago, 0=no fire ignitions 1.5 - 2 y ago)
-# 5 - fire_pa_6m_3ylegacy (1=fire ignited 2.5 - 3 y ago, 0=no fire ignitions 2.5 - 3 y ago)
-# 6 - fire_pa_6m_4ylegacy (1=fire ignited 3.5 - 4 y ago, 0=no fire ignitions 3.5 - 4 y ago)
-# 7 - fire_pa_6m_5ylegacy (1=fire ignited 4.5 - 5 y ago, 0=no fire ignitions 4.5 - 5 y ago)
+# 2 - fire_pa_6m  (1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m, one col for all fires) OR fire_pa (1-fire ignited in this month, 0=no fire ignition this month). fire_pa is an immediate effect of the fire by itself, whereas fire_pa_6m is an effect of the fire by itself that is potentially lagged by up to 6 m. 
+# 3 - fire_pa_6m_1ylegacy (1=fire ignited 6 m - 1 y ago, 0=no fire ignitions 6 m - 1 y ago) OR fire_pa_1ylegacy (1=fire ignited 1 y ago)
+# 4 - fire_pa_6m_2ylegacy (1=fire ignited 1.5 - 2 y ago, 0=no fire ignitions 1.5 - 2 y ago) OR fire_pa_2ylegacy (1=fire ignited 2 y ago)
+# 5 - fire_pa_6m_3ylegacy (1=fire ignited 2.5 - 3 y ago, 0=no fire ignitions 2.5 - 3 y ago) OR fire_pa_3ylegacy (1=fire ignited 3 y ago)
+# 6 - fire_pa_6m_4ylegacy (1=fire ignited 3.5 - 4 y ago, 0=no fire ignitions 3.5 - 4 y ago) OR fire_pa_4ylegacy (1=fire ignited 4 y ago)
+# 7 - fire_pa_6m_5ylegacy (1=fire ignited 4.5 - 5 y ago, 0=no fire ignitions 4.5 - 5 y ago) OR fire_pa_5ylegacy (1=fire ignited 5 y ago)
 # 8 - fire_pa_6m_ppt (fire ignited in prior 6 m * ppt this month)
 # 9 - fire_pa_6m_ppt_1ylegacy (fire ignited 6 m - 1 y ago * ppt this month)
 # 10 - fire_pa_6m_ppt_2ylegacy (fire ignited 1.5 - 2 y ago * ppt this month)
@@ -74,13 +74,14 @@ library(naniar)
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
 
-#### Import data ####
+#### Import and edit data to include fire x ppt interactions and legacy effects ####
 
 # dat1 = readRDS("data_working/marss_data_sb_vc_060622.rds")
 dat1 = readRDS("data_working/marss_data_sb_vc_072222.rds")
 
 
-#### Consolidate fire effect to one col ####
+#### Consolidate fire effect to one col ###
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 dat2 = dat1
 
@@ -171,7 +172,8 @@ max(dat3$fires_pa)
 
 qplot(index, fires_pa, data=dat3, colour=site, geom="path")
 
-#### Add 6 m window to fire effect ####
+#### Add 6 m window to fire effect ###
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # fire_pa_6m: 1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m
 
@@ -195,7 +197,8 @@ dat5$fires_pa_6m[is.na(dat5$fires_pa_6m)] = 0
 
 qplot(index, fires_pa_6m, data=dat5, colour=site, geom="path")
 
-#### Add fire p/a legacy effects ####
+#### Add fire p/a legacy effects ###
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # 1 year legacy
 firedates_6m_1ylegacy = data.frame(year = firedates_6m$year+1,
@@ -238,7 +241,8 @@ dat10 = left_join(dat9, firedates_6m_5ylegacy, by=c("year","month","site"))
 # replace NAs with 0
 dat10[,28:32][is.na(dat10[,28:32])] = 0
 
-#### Add fire p/a x ppt legacy effects ####
+#### Add fire p/a x ppt legacy effects ###
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 dat10$fire_pa_6m_ppt = dat10$fires_pa_6m*dat10$cumulative_precip_mm
 dat10$fire_pa_6m_ppt_1ylegacy = dat10$fire_pa_6m_1ylegacy*dat10$cumulative_precip_mm
@@ -839,6 +843,10 @@ kemfit <- MARSS(y = dat_dep, model = mod_list,
 fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
 
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_test_run/fit_07232022_10state_cond_firepa_firexppt&legacies_mBFGS.rds")
+
 #### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 ## check for hidden errors
@@ -865,6 +873,7 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 ### Plot Results for All Sites ###
 
 # First, create dataset of all outputs
+
 # RSA and RSAW get mixed up in plotting, so replacing RSAW with SAW
 CIs_fit$parm =gsub("RSAW","SAW",CIs_fit$parm)
 rownames(CIs_fit) =gsub("RSAW","SAW",rownames(CIs_fit))
