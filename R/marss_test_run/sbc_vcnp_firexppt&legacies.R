@@ -9,7 +9,7 @@
     # 6 or 8 mo are both defensible. See email btw heili & alex on July 27, 2022
 # [X] Heili BY July 29: find within-watersheds fire area data for SB
     # need to get from spatial analysis. Have asked Stevan for help. 
-# [] Alex BY Aug 1: find within-watersheds fire area data for VC
+# [X] Alex BY Aug 1: find within-watersheds fire area data for VC
 # [] Alex BY Aug 8 : Once all above is done, create demo models with and w/o legacy effects and w and w/o fire area. These should be ready to iterate in structure to a) different numbers of legacy effects for model comparisions, b) other solutes in SB, and c) to modified Q matrices to test hypotheses about different numbers of sate processes. 
 
 #### READ ME ####
@@ -87,7 +87,8 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 #### Import and edit data to include fire x ppt interactions and legacy effects ####
 
 # dat1 = readRDS("data_working/marss_data_sb_vc_060622.rds")
-dat1 = readRDS("data_working/marss_data_sb_vc_072222.rds")
+# dat1 = readRDS("data_working/marss_data_sb_vc_072222.rds")
+dat1 = readRDS("data_working/marss_data_sb_vc_072822.rds")
 
 
 #### Consolidate fire effect to one col ###
@@ -95,63 +96,14 @@ dat1 = readRDS("data_working/marss_data_sb_vc_072222.rds")
 
 dat2 = dat1
 
-# first, change effect to just the month of ignition (in contrast to 1 year long effect)
-# fires = 
-  # AB00_Jesusita
-  # AB00_Tea
-  # AT07_Jesusita
-  # GV01_Gaviota
-  # HO00_Gaviota 
-  # HO00_Sherpa
-  # MC06_Tea
-  # MC06_Jesusita
-  # RG01_Gaviota 
-  # RG01_Sherpa
-  # RS02_Tea
-  # RS02_Jesusita
-  # SP02_Gap
-  # RED_Thompson
-  # EFJ_Thompson
-  # EFJ_Conchas
-  # RSAW_Thompson
-  # RSAW_Conchas
-  # RSA_Conchas
-  # IND_Conchas
-  # IND_BB_Conchas
-  # SULF_Thompson
+# combine fires in each watershed so there is one fire effect column
 
-dat2$AB00_Jesusita[dat2$AB00_Jesusita==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$AB00_Tea[dat2$AB00_Tea==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$AT07_Jesusita[dat2$AT07_Jesusita==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$GV01_Gaviota[dat2$GV01_Gaviota==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$HO00_Gaviota[dat2$HO00_Gaviota==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-#dat2$HO00_Sherpa[dat2$HO00_Sherpa==1] = c(1,0,0,0,0,0,0,0,0,0,0,0) this one only had a 1 m effect because ignition occurred at end of record, so no editing needed
-dat2$MC06_Tea[dat2$MC06_Tea==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$MC06_Jesusita[dat2$MC06_Jesusita==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$RG01_Gaviota[dat2$RG01_Gaviota==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-# dat2$RG01_Sherpa[dat2$RG01_Sherpa==1] = c(1,0,0,0,0,0,0,0,0,0,0,0) this one only had a 1 m effect because ignition occurred at end of record, so no editing needed
-dat2$RS02_Tea[dat2$RS02_Tea==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$RS02_Jesusita[dat2$RS02_Jesusita==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$SP02_Gap[dat2$SP02_Gap==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-#
-dat2$RED_Thompson[dat2$RED_Thompson==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$EFJ_Thompson[dat2$EFJ_Thompson==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$EFJ_Conchas[dat2$EFJ_Conchas==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$RSAW_Thompson[dat2$RSAW_Thompson==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$RSAW_Conchas[dat2$RSAW_Conchas==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$RSA_Conchas[dat2$RSA_Conchas==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$IND_Conchas[dat2$IND_Conchas==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$IND_BB_Conchas[dat2$IND_BB_Conchas==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-dat2$SULF_Thompson[dat2$SULF_Thompson==1] = c(1,0,0,0,0,0,0,0,0,0,0,0)
-
-# Second, combine fires in each watershed so there is one fire effect column
-
-dat2$AB00_allfires = dat2$AB00_Jesusita + dat2$AB00_Tea
+dat2$AB00_allfires = dat2$AB00_Jesusita
 dat2$AT07_allfires = dat2$AT07_Jesusita
 dat2$GV01_allfires = dat2$GV01_Gaviota
-dat2$HO00_allfires = dat2$HO00_Gaviota + dat2$HO00_Sherpa
+dat2$HO00_allfires = dat2$HO00_Gaviota
 dat2$MC06_allfires = dat2$MC06_Tea + dat2$MC06_Jesusita
-dat2$RG01_allfires = dat2$RG01_Gaviota + dat2$RG01_Sherpa
+dat2$RG01_allfires = dat2$RG01_Sherpa
 dat2$RGS02_allfires = dat2$RS02_Tea + dat2$RS02_Jesusita
 dat2$SP02_allfires = dat2$SP02_Gap
 #
@@ -165,47 +117,68 @@ dat2$SULF_allfires = dat2$SULF_Thompson
 
 # reorganize
 names(dat2)
-dat3 = dat2[,c(1,2,3,
-               37,38,
-               57:71, 
-               4,
-               34,
-               35,36)]
+dat3 = dat2[,c(1,2,21,22,3, #"year" "month" "index" "region" "site" 
+               4, # cumulative_precip_mm
+               5:14, # sb seperate fires
+               23:31, # vc seperate fires
+               32:46, # sb and vc combined fires
+               19:20, # seasonal effects
+               15:18)] # solutes
 
 # add all fire effects to 1 col
-dat3$fires_pa<-rowSums(dat3[,6:20])
+dat3$fires_pa<-rowSums(dat3[,26:40])
 
 # check that there are no 2s in fire effect cols
-max(dat3[,6:20])
+max(dat3[,7:40])
 max(dat3$fires_pa)
 # dat3[,6:20][dat3[,6:20]==2] = 1 replace 2s with 1s if needed
 
-qplot(index, fires_pa, data=dat3, colour=site, geom="path")
+qplot(index, fires_pa, data=dat3, colour=site, geom="path", facets = "region")
+
+#### Add 2 m window to fire effect ###
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# fire_pa_2m: 1=fire ignited in prior 2 m, 0=no fire ignitions in 2 m
+
+dat4 = dat3
+
+dat4$date = as.Date(paste(dat4$year, dat4$month, "01", sep="-"))
+
+firedates_2m = c(dat4$date[dat4$fires_pa == 1],
+                 dat4$date[dat4$fires_pa == 1] + 31*1)
+
+firedates_2m = data.frame(year = year(firedates_2m),
+                          month = month(firedates_2m),
+                          site = rep(dat4$site[dat4$fires_pa == 1], 2),
+                          fires_pa_2m = 1)
+dat5 = left_join(dat4, firedates_2m, by=c("year","month","site"))
+dat5$fires_pa_2m[is.na(dat5$fires_pa_2m)] = 0
+
+qplot(index, fires_pa_2m, data=dat5, colour=site, geom="path", facets = "region")
+
 
 #### Add 6 m window to fire effect ###
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # fire_pa_6m: 1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m
 
-dat4 = dat3
-
-dat4$date = as.Date(paste(dat4$year, dat4$month, "15", sep="-"))
+dat4$date = as.Date(paste(dat4$year, dat4$month, "01", sep="-"))
 
 firedates_6m = c(dat4$date[dat4$fires_pa == 1],
-                 dat4$date[dat4$fires_pa == 1] + 30*1,
-                 dat4$date[dat4$fires_pa == 1] + 30*2,
-                 dat4$date[dat4$fires_pa == 1] + 30*3,
-                 dat4$date[dat4$fires_pa == 1] + 30*4,
-                 dat4$date[dat4$fires_pa == 1] + 30*5)
+                 dat4$date[dat4$fires_pa == 1] + 31*1,
+                 dat4$date[dat4$fires_pa == 1] + 31*2,
+                 dat4$date[dat4$fires_pa == 1] + 31*3,
+                 dat4$date[dat4$fires_pa == 1] + 31*4,
+                 dat4$date[dat4$fires_pa == 1] + 31*5)
 
 firedates_6m = data.frame(year = year(firedates_6m),
                           month = month(firedates_6m),
                           site = rep(dat4$site[dat4$fires_pa == 1], 6),
                           fires_pa_6m = 1)
-dat5 = left_join(dat4, firedates_6m, by=c("year","month","site"))
-dat5$fires_pa_6m[is.na(dat5$fires_pa_6m)] = 0
+dat6 = left_join(dat5, firedates_6m, by=c("year","month","site"))
+dat6$fires_pa_6m[is.na(dat6$fires_pa_6m)] = 0
 
-qplot(index, fires_pa_6m, data=dat5, colour=site, geom="path")
+qplot(index, fires_pa_6m, data=dat6, colour=site, geom="path", facets = "region")
 
 #### Add fire p/a legacy effects ###
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -215,7 +188,7 @@ firedates_6m_1ylegacy = data.frame(year = firedates_6m$year+1,
                                    month = firedates_6m$month,
                                    site = firedates_6m$site,
                                    fire_pa_6m_1ylegacy = 1)
-dat6 = left_join(dat5, firedates_6m_1ylegacy, by=c("year","month","site"))
+dat6 = left_join(dat6, firedates_6m_1ylegacy, by=c("year","month","site"))
 dat6$fire_pa_6m_1ylegacy[is.na(dat6$fire_pa_6m_1ylegacy)] = 0
 
 qplot(index, fire_pa_6m_1ylegacy, data=dat6, colour=site, geom="path")
@@ -249,7 +222,7 @@ firedates_6m_5ylegacy = data.frame(year = firedates_6m$year+5,
 dat10 = left_join(dat9, firedates_6m_5ylegacy, by=c("year","month","site"))
 
 # replace NAs with 0
-dat10[,28:32][is.na(dat10[,28:32])] = 0
+dat10[,51:55][is.na(dat10[,51:55])] = 0
 
 #### Add fire p/a x ppt legacy effects ###
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -309,27 +282,12 @@ abline(v=97, col="red")
 dat10$mean_cond_uScm[dat10$site=="EFJ" & dat10$index==14] = dat10$mean_cond_uScm[dat10$site=="EFJ" & dat10$index==13] 
 
 
-# other data checks
-#Stevan's fire mapping suggests that the Gaviota fire impacted HO00
-dat_site = dat10[dat10$site=="HO00",]
-# plot
-par(mfrow=c(2,1))
-plot(dat_site$HO00_allfires~dat_site$date, type="b",
-     xlab="Date", ylab="")
-abline(v=14, col="blue")
-abline(v=74, col="red")
-abline(v=97, col="red")
-plot(dat_site$mean_cond_uScm~dat_site$index, type="b",
-     xlab="Date", ylab="SpC")
-abline(v=14, col="blue")
-abline(v=74, col="red")
-abline(v=97, col="red")
-
 
 #
 #### Export data with fire x ppt interactions and legacy effects ####
 
-saveRDS(dat10, "data_working/marss_data_sb_vc_072222_2.rds")
+#saveRDS(dat10, "data_working/marss_data_sb_vc_072222_2.rds")
+saveRDS(dat10, "data_working/marss_data_sb_vc_072822_2.rds")
 
 #### MARSS: ppt, fire pa 1m, fire pa 6m x ppt, no legacy effects ####
 
@@ -349,7 +307,7 @@ dat = readRDS("data_working/marss_data_sb_vc_072222_2.rds")
 # include these sites only (10 total - these have the longest most complete ts for SpC and I have also removed HO00 because it was causing issues with missing fire effects data):
 # AB00, AT07, GV01, , MC06, RG01, RS02 = SB
 # EFJ, RED, RSA, & RSAW = VC
-sitez = c("AB00", "AT07", "GV01", "MC06", "RG01", "RS02", 
+sitez = c("AB00", "GV01", "MC06", "RG01", "RS02", "HO00",
           "EFJ", "RED", "RSA", "RSAW")
 dat = dat[dat$site %in% sitez,]
 table(dat$site)

@@ -58,8 +58,8 @@ chem_nm <- readRDS("data_working/VCNPchem_edited_120521.rds")
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_20220721.rds")
 # Fire Events - all sites
-fire <- readRDS("data_working/SBfire_edited_060622.rds")
-fire_nm <- readRDS("data_working/VCNPfire_edited_060622.rds")
+fire <- readRDS("data_working/SBfire_edited_072822.rds")
+fire_nm <- readRDS("data_working/VCNPfire_edited_072822.rds")
 # Site Location information
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 location_nm <- read_csv("data_raw/VCNP_sonde_site_codes_names.csv")
@@ -83,6 +83,23 @@ precip_ed <- precip %>%
                 sitecode_precip = sitecode) %>%
   mutate(Day = 1) %>% # new column of "days"
   mutate(Date = make_date(Year, Month, Day))
+
+# check edited fire data
+sitez = c("AB00", "GV01", "MC06", "RG01", "RS02", "HO00",
+          "EFJ", "RED", "RSA", "RSAW")
+fire_select = fire[fire$site %in% sitez,]
+par(mfrow=c(3,1))
+plot(fire_select$AB00_Jesusita~fire_select$date)
+plot(fire_select$MC06_Jesusita~fire_select$date)
+plot(fire_select$RS02_Jesusita~fire_select$date)
+par(mfrow=c(2,1))
+plot(fire_select$RS02_Tea~fire_select$date)
+plot(fire_select$MC06_Tea~fire_select$date)
+par(mfrow=c(2,1))
+plot(fire_select$GV01_Gaviota~fire_select$date)
+plot(fire_select$HO00_Gaviota~fire_select$date)
+par(mfrow=c(1,1))
+plot(fire_select$RG01_Sherpa~fire_select$date)
 
 ## Timeframe Selection
 
@@ -332,42 +349,38 @@ dat_nm_select <- dat_nm_trim %>%
   select(year, month, site, 
          cumulative_precip_mm, 
          RED_Thompson, EFJ_Thompson, EFJ_Conchas, RSAW_Thompson, RSAW_Conchas, RSA_Conchas, IND_Conchas, IND_BB_Conchas, SULF_Thompson,
-         RED_Thompson_d, EFJ_Thompson_d, EFJ_Conchas_d, RSAW_Thompson_d, RSAW_Conchas_d, RSA_Conchas_d, IND_Conchas_d, IND_BB_Conchas_d, SULF_Thompson_d,
+         # RED_Thompson_d, EFJ_Thompson_d, EFJ_Conchas_d, RSAW_Thompson_d, RSAW_Conchas_d, RSA_Conchas_d, IND_Conchas_d, IND_BB_Conchas_d, SULF_Thompson_d,
          mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
          Season1, Season2, index) %>%
   mutate(region = "VC") %>%
-  mutate(AB00_Tea = 0,
-         AB00_Jesusita = 0,
+  mutate(AB00_Jesusita = 0,
          AT07_Jesusita = 0,
          GV01_Gaviota = 0,
          HO00_Gaviota = 0,
-         HO00_Sherpa = 0,
          MC06_Tea = 0,
          MC06_Jesusita = 0,
-         RG01_Gaviota = 0,
          RG01_Sherpa = 0,
          RS02_Tea = 0,
          RS02_Jesusita = 0,
-         SP02_Gap = 0,
-         AB00_Tea_d = 0,
-         AB00_Jesusita_d = 0,
-         AT07_Jesusita_d = 0,
-         GV01_Gaviota_d = 0,
-         HO00_Gaviota_d = 0,
-         HO00_Sherpa_d = 0,
-         MC06_Tea_d = 0,
-         MC06_Jesusita_d = 0,
-         RG01_Gaviota_d = 0,
-         RG01_Sherpa_d = 0,
-         RS02_Tea_d = 0,
-         RS02_Jesusita_d = 0,
-         SP02_Gap_d = 0) # need to add in empty values for SB fire columns so the rbind below works
+         SP02_Gap = 0)
+         # AB00_Tea_d = 0,
+         # AB00_Jesusita_d = 0,
+         # AT07_Jesusita_d = 0,
+         # GV01_Gaviota_d = 0,
+         # HO00_Gaviota_d = 0,
+         # HO00_Sherpa_d = 0,
+         # MC06_Tea_d = 0,
+         # MC06_Jesusita_d = 0,
+         # RG01_Gaviota_d = 0,
+         # RG01_Sherpa_d = 0,
+         # RS02_Tea_d = 0,
+         # RS02_Jesusita_d = 0,
+         # SP02_Gap_d = 0) # need to add in empty values for SB fire columns so the rbind below works
 
 dat_select <- dat %>%
   select(year, month, site, 
          cumulative_precip_mm, 
-         AB00_Tea,AB00_Jesusita,AT07_Jesusita,GV01_Gaviota,HO00_Gaviota,HO00_Sherpa,MC06_Tea,MC06_Jesusita,RG01_Gaviota,RG01_Sherpa,RS02_Tea,RS02_Jesusita,SP02_Gap,
-         AB00_Tea_d,AB00_Jesusita_d,AT07_Jesusita_d,GV01_Gaviota_d,HO00_Gaviota_d,HO00_Sherpa_d,MC06_Tea_d,MC06_Jesusita_d,RG01_Gaviota_d,RG01_Sherpa_d,RS02_Tea_d,RS02_Jesusita_d,SP02_Gap_d,
+         "AB00_Jesusita" ,"AT07_Jesusita","GV01_Gaviota","HO00_Gaviota","MC06_Tea","MC06_Jesusita", "RG01_Sherpa","RS02_Tea","RS02_Jesusita","SP02_Gap",
          mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
          Season1, Season2, index) %>%
   mutate(region = "SB") %>%
@@ -379,29 +392,31 @@ dat_select <- dat %>%
          RSA_Conchas = 0, 
          IND_Conchas = 0,
          IND_BB_Conchas = 0, 
-         SULF_Thompson = 0,
-         RED_Thompson_d = 0, 
-         EFJ_Thompson_d = 0, 
-         EFJ_Conchas_d = 0, 
-         RSAW_Thompson_d = 0, 
-         RSAW_Conchas_d = 0, 
-         RSA_Conchas_d = 0, 
-         IND_Conchas_d = 0,
-         IND_BB_Conchas_d = 0, 
-         SULF_Thompson_d = 0) # need to add in empty values for NM fire columns so the rbind below works
+         SULF_Thompson = 0)
+         # RED_Thompson_d = 0, 
+         # EFJ_Thompson_d = 0, 
+         # EFJ_Conchas_d = 0, 
+         # RSAW_Thompson_d = 0, 
+         # RSAW_Conchas_d = 0, 
+         # RSA_Conchas_d = 0, 
+         # IND_Conchas_d = 0,
+         # IND_BB_Conchas_d = 0, 
+         # SULF_Thompson_d = 0) # need to add in empty values for NM fire columns so the rbind below works
 
 #dat_agu <- rbind(dat_select, dat_nm_select)
 dat_new22 <- rbind(dat_select, dat_nm_select)
 
 
 # replace fire NAs with zeros
-dat_new22[,c(5:30,39:56)][is.na(dat_new22[,c(5:30,39:56)])] = 0
+dat_new22[,c(5:14,23:31)][is.na(dat_new22[,c(5:14,23:31)])] = 0
 
 # And export to save progress
 #saveRDS(dat_new22, "data_working/marss_data_sb_vc_022422.rds")
 #saveRDS(dat_new22, "data_working/marss_data_sb_vc_060622.rds")
 # with fixed NM ppt data (AJW):
-saveRDS(dat_new22, "data_working/marss_data_sb_vc_072222.rds")
+#saveRDS(dat_new22, "data_working/marss_data_sb_vc_072222.rds")
+# removed decay terms and fixed errors in sb fire data:
+saveRDS(dat_new22, "data_working/marss_data_sb_vc_072822.rds")
 
 #### Model fitting ####
 
