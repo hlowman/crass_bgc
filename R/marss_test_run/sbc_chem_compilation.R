@@ -75,4 +75,77 @@ chem_full_monthly <- chem_full_ed %>%
 # And export for MARSS script
 saveRDS(chem_full_monthly, "data_working/SBchem_edited_120321.rds")
 
+# Additional plots made July 28,2022
+
+chem_oursites_cond <- chem_full_ed %>%
+  filter(site_code %in% 
+           c("RS02", "MC06", "AB00", "AT07", "SP02", "RG01", "HO00", "GV01")) %>%
+  select(site_code, DateTime, spec_cond_uSpercm)
+
+(RS02_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "RS02")) +
+  geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+  geom_vline(xintercept = as.POSIXct(as.Date("2008-11-13")), color = "red") +
+  geom_vline(xintercept = as.POSIXct(as.Date("2009-05-05")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "RS02") +
+    theme_bw())
+
+(MC06_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "MC06")) +
+    geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+    geom_vline(xintercept = as.POSIXct(as.Date("2008-11-13")), color = "red") +
+    geom_vline(xintercept = as.POSIXct(as.Date("2009-05-05")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "MC06") +
+    theme_bw())
+
+(AB00_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "AB00")) +
+    geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+    geom_vline(xintercept = as.POSIXct(as.Date("2009-05-05")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "AB00") +
+    theme_bw())
+
+(AT07_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "AT07")) +
+    geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+    geom_vline(xintercept = as.POSIXct(as.Date("2009-05-05")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "AT07") +
+    theme_bw())
+
+(SP02_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "SP02")) +
+    geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+    geom_vline(xintercept = as.POSIXct(as.Date("2008-07-01")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "SP02") +
+    theme_bw())
+
+(RG01_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "RG01")) +
+    geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+    geom_vline(xintercept = as.POSIXct(as.Date("2016-06-15")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "RG01") +
+    theme_bw())
+
+(HO00_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "HO00")) +
+    geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+    geom_vline(xintercept = as.POSIXct(as.Date("2004-06-05")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "HO00") +
+    theme_bw())
+
+(GV01_plot <- ggplot(chem_oursites_cond %>% filter(site_code == "GV01")) +
+    geom_point(aes(x = DateTime, y = spec_cond_uSpercm)) +
+    geom_vline(xintercept = as.POSIXct(as.Date("2004-06-05")), color = "red") +
+    labs(x = "Date", y = "Conductivity (uS/cm)", title = "GV01") +
+    theme_bw())
+
+library(patchwork)
+
+(all_sites <- RS02_plot / MC06_plot / AB00_plot / AT07_plot / SP02_plot / RG01_plot / HO00_plot / GV01_plot)
+
+ggsave(all_sites,
+       filename = "figures/crass_sbc_sites_cond_fire.png",
+       width = 15,
+       height = 40,
+       units = "cm"
+       )
+
+(combined_sites <- ggplot(chem_oursites_cond) +
+  geom_line(aes(x = DateTime, y = spec_cond_uSpercm, color = site_code)) +
+  labs(x = "Date", y = "Conductivity (uS/cm)", title = "GV01") +
+  theme_bw())
+
 # End of script.
