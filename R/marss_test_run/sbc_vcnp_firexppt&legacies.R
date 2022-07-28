@@ -308,6 +308,24 @@ abline(v=97, col="red")
 # Replace outlier with previous month's value
 dat10$mean_cond_uScm[dat10$site=="EFJ" & dat10$index==14] = dat10$mean_cond_uScm[dat10$site=="EFJ" & dat10$index==13] 
 
+
+# other data checks
+#Stevan's fire mapping suggests that the Gaviota fire impacted HO00
+dat_site = dat10[dat10$site=="HO00",]
+# plot
+par(mfrow=c(2,1))
+plot(dat_site$HO00_allfires~dat_site$date, type="b",
+     xlab="Date", ylab="")
+abline(v=14, col="blue")
+abline(v=74, col="red")
+abline(v=97, col="red")
+plot(dat_site$mean_cond_uScm~dat_site$index, type="b",
+     xlab="Date", ylab="SpC")
+abline(v=14, col="blue")
+abline(v=74, col="red")
+abline(v=97, col="red")
+
+
 #
 #### Export data with fire x ppt interactions and legacy effects ####
 
