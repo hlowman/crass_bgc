@@ -95,6 +95,6 @@ fire_2[,7:8][is.na(fire_2[,7:8])] = 0
 
 # And export for MARSS script
 #saveRDS(dates_fire, "data_working/SBfire_edited_072822.rds")
-saveRDS(dates_fire, "data_working/SBfire_edited_072922.rds")
+saveRDS(fire_2, "data_working/SBfire_edited_072922.rds")
 
 # End of script.
