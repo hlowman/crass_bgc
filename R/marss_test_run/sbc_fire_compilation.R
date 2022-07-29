@@ -4,6 +4,8 @@
 
 # The following script will assemble the fire datasets available for the SBC LTER stream sites into a single data file for use in the MARSS analysis for the CRASS project.
 
+# And edited on 7/29/2022 by Alex to add fire areas and burn percent of watersheds, set fire effect to one column with an effect lasting 2 months, and remove decay effects. 
+
 # Load packages
 library(plyr) # needs to be loaded prior to dplyr
 library(tidyverse) # contains dplyr
@@ -43,68 +45,56 @@ dates_watersheds <- dates %>%
     site == "MC06" ~ "Mission",
     site == "RS02" ~ "Rattlesnake")))
 
+# load fire area data
+fire_area = read.csv("data_raw/sbc_vc_ws_fire_areas.csv")
+unique(fire_area$fire_name) #use these names below
+
 # And here is a list of the wildfire events in the SBC:
 # Fire Name (Ignition Date) - affected watersheds
-# Gaviota (6/5/2004) - Arroyo Hondo, Gaviota
-# Sherpa (6/15/2016) - Refugio
-# Gap (7/1/2008) - San Pedro
 # Jesusita (5/5/2009) - Rattlesnake, Mission, Arroyo Burro, Atascadero
+# Gap (7/1/2008) - San Pedro
+# Gaviota (6/5/2004) - Arroyo Hondo, Gaviota
 # Tea (11/13/2008) - Rattlesnake, Mission
-
+# Sherpa (6/15/2016) - Refugio
 # Cave, Whittier, and Thomas Fire are too late to be included.
 
 # Now, add in columns for the fires
-# 0 - denotes no-fire months
-# 1 - denotes fire ignition months
-# Each fire will get its own column, so that effects can potentially be additive
-# Or so we can combine decay functions later
+# 1 - denotes month of ignition + one additional month
 
-dates_fire <- dates_watersheds %>%
-  mutate(AB00_Jesusita = ifelse(site == "AB00" & date == "2009-05-01", 1, 0),
-    AT07_Jesusita = ifelse(site == "AT07" & date == "2009-05-01", 1, 0),
-    GV01_Gaviota = ifelse(site == "GV01" & date == "2004-06-01", 1, 0),
-    HO00_Gaviota = ifelse(site == "HO00" & date == "2004-06-01", 1, 0),
-    MC06_Tea = ifelse(site == "MC06" & date == "2008-11-01", 1, 0),
-    MC06_Jesusita = ifelse(site == "MC06" & date == "2009-05-01", 1, 0),
-    RG01_Sherpa = ifelse(site == "RG01" & date == "2016-06-01", 1, 0),
-    RS02_Tea = ifelse(site == "RS02" & date == "2008-11-01", 1, 0),
-    RS02_Jesusita = ifelse(site == "RS02" & date == "2009-05-01", 1, 0),
-    SP02_Gap = ifelse(site == "SP02" & date == "2008-07-01" , 1, 0)) # %>%
-  # also adding in 4 year decay term for each of the fires
-  #mutate(AB00_Tea_d = NA,
-         # AB00_Jesusita_d = NA,
-         # AT07_Jesusita_d = NA,
-         # GV01_Gaviota_d = NA,
-         # HO00_Gaviota_d = NA,
-         # HO00_Sherpa_d = NA,
-         # MC06_Tea_d = NA,
-         # MC06_Jesusita_d = NA,
-         # RG01_Gaviota_d = NA,
-         # RG01_Sherpa_d = NA,
-         # RS02_Tea_d = NA,
-         # RS02_Jesusita_d = NA,
-         # SP02_Gap_d = NA)
+sites_JESUSITA = c("RS02", "MC06", "AB00", "AT07")
+dates_JESUSITA = as.Date(c("2009-05-01","2009-06-01"))
+sites_GAP = c("SP02")
+dates_GAP = as.Date(c("2008-07-01","2008-08-01"))
+sites_GAVIOTA = c("HO00","GV01")
+dates_GAVIOTA = as.Date(c("2004-06-01","2004-07-01"))
+sites_TEA = c("RS02","MC06")
+dates_TEA = as.Date(c("2008-11-01","2008-12-01"))
+sites_SHERPA = c("RG01")
+dates_SHERPA = as.Date(c("2016-06-01","2016-07-01"))
 
-# values <- rev(seq(1, 48, by = 1))
-# decay <- exp(values)
-# 
-# dates_fire$AB00_Tea_d[75:122] <- decay
-# dates_fire$AB00_Jesusita_d[81:128] <- decay
-# dates_fire$AT07_Jesusita_d[247:294] <- decay
-# dates_fire$GV01_Gaviota_d[354:401] <- decay
-# dates_fire$HO00_Gaviota_d[520:567] <- decay
-# dates_fire$HO00_Sherpa_d[664] <- decay[1]
-# dates_fire$MC06_Tea_d[739:786] <- decay
-# dates_fire$MC06_Jesusita_d[745:792] <- decay
-# dates_fire$RG01_Gaviota_d[852:899] <- decay
-# dates_fire$RG01_Sherpa_d[996] <- decay[1]
-# dates_fire$RS02_Tea_d[1071:1118] <- decay
-# dates_fire$RS02_Jesusita_d[1077:1124] <- decay
-# dates_fire$SP02_Gap_d[1233:1280] <- decay
+dates_fire <- dates %>%
+  mutate(fire_pa = ifelse(site %in% sites_JESUSITA & date %in% dates_JESUSITA, 1,
+                          ifelse(site %in% sites_GAP & date %in% sites_GAP,1,
+                                 ifelse(site %in% sites_GAVIOTA & date %in% dates_GAVIOTA,1,
+                                        ifelse(site %in% sites_TEA & date %in% dates_TEA,1,
+                                               ifelse(site %in% sites_SHERPA & date %in% dates_SHERPA,1,0))))))%>%
+  mutate(fire_ID = ifelse(site %in% sites_JESUSITA & date %in% dates_JESUSITA, "JESUSITA",
+                          ifelse(site %in% sites_GAP & date %in% sites_GAP,"GAP",
+                                 ifelse(site %in% sites_GAVIOTA & date %in% dates_GAVIOTA,"GAVIOTA",
+                                        ifelse(site %in% sites_TEA & date %in% dates_TEA,"TEA",
+                                               ifelse(site %in% sites_SHERPA & date %in% dates_SHERPA,"SHERPA",NA))))))
 
-dates_fire[is.na(dates_fire)] = 0
+# match names to dates_fire_vcnp
+names(fire_area) = c("site","ws_area_m2","fire_ID","ig_date","ws_fire_area_m2", "fire_perc_ws")
+# join watershed area to dates_fire_vcnp
+fire_1 = left_join(dates_fire, unique(fire_area[,1:2]), by=c("site"))
+# join fire area info to dates_fire_vcnp
+fire_2 = left_join(fire_1, fire_area[,c(1,3:6)], by=c("site","fire_ID"))
+# replace NAs in fire info cols with zero
+fire_2[,7:8][is.na(fire_2[,7:8])] = 0
 
 # And export for MARSS script
-saveRDS(dates_fire, "data_working/SBfire_edited_072822.rds")
+#saveRDS(dates_fire, "data_working/SBfire_edited_072822.rds")
+saveRDS(dates_fire, "data_working/SBfire_edited_072922.rds")
 
 # End of script.

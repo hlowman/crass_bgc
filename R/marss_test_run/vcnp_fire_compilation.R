@@ -16,6 +16,7 @@ library(here)
 
 # NOTE: THIS WAS ALL RE-DONE BY HEILI ON 2/24/22 HAVING FOUND A PREVIOUS ERROR
 # WITH HOW THE FIRE DUMMY VARIABLES POPULATED.
+# And edited on 7/29/2022 by Alex to add fire areas and burn percent of watersheds, set fire effect to one column with an effect lasting 2 months, and remove decay effects. 
 
 # Create base dataframe of dates and sites (from June 2005 to March 2019). This timeframe
 # was chosen based on available precipitation data.
@@ -34,16 +35,16 @@ sdf <- data.frame(s)
 dates <- cbind(d7df, sdf)
 colnames(dates) <- c("date","site")
 
+# load fire area data
+fire_area = read.csv("data_raw/sbc_vc_ws_fire_areas.csv")
+
 ## Fire names and start dates of burn - sites affected
 # Las Conchas (2011-06-26) - EFJ, RSAW, RSA, IND, IND_BB
 # Thompson Ridge (2013-05-31) - RED, EFJ, RSAW, SULF
 # Prescribed burn (2016-05-11) - EFJ [Out of time frame]
 
 ## Add in columns for the fires based on start dates:
-# 0 - denotes pre-fire months
-# 1 - denotes post-fire months
-# Each fire will get its own column, so that effects can potentially be additive
-# Or so we can combine decay functions later
+# 1 - denotes month of ignition + one additional month
 
 # currently use Date variable to determine when site is 1 or 0.
 # As of 12/6/2021 - we are adding in dummy variable (1s) only for the year
@@ -53,44 +54,30 @@ colnames(dates) <- c("date","site")
 
 # commented out those fires/sites that resulted in a column of all zeros
 # which the MARSS model doesn't like
+
+sites_THOMPSON = c("RED", "EFJ", "RSAW", "SULF")
+dates_THOMPSON = as.Date(c("2013-05-01","2013-06-01"))
+sites_CONCHAS = c("EFJ", "RSAW", "RSA", "IND", "IND_BB")
+dates_CONCHAS = as.Date(c("2011-06-01","2011-07-01"))
+
 dates_fire_vcnp <- dates %>%
-  mutate(RED_Thompson = ifelse(site == "RED" & date == "2013-05-01", 1, 0),
-         EFJ_Thompson = ifelse(site == "EFJ" & date == "2013-05-01", 1, 0),
-         EFJ_Conchas = ifelse(site == "EFJ" & date == "2011-06-01", 1, 0),
-         RSAW_Thompson = ifelse(site == "RSAW" & date == "2013-05-01", 1, 0),
-         RSAW_Conchas = ifelse(site == "RSAW" & date == "2011-06-01", 1, 0),
-         RSA_Conchas = ifelse(site == "RSA" & date == "2011-06-01", 1, 0),
-         IND_Conchas = ifelse(site == "IND" & date == "2011-06-01", 1, 0),
-         IND_BB_Conchas = ifelse(site == "IND_BB" & date == "2011-06-01", 1, 0),
-         SULF_Thompson = ifelse(site == "SULF" & date == "2013-05-01", 1, 0))
-  # # also adding in 4 year decay term for each of the fires
-  # mutate(RED_Thompson_d = NA,
-  #        EFJ_Thompson_d = NA,
-  #        EFJ_Conchas_d = NA,
-  #        RSA_Conchas_d = NA,
-  #        RSAW_Thompson_d = NA,
-  #        RSAW_Conchas_d = NA,
-  #        IND_Conchas_d = NA,
-  #        IND_BB_Conchas_d = NA,
-  #        SULF_Thompson_d = NA)
+  mutate(fire_pa = ifelse(site %in% sites_THOMPSON & date %in% dates_THOMPSON, 1,
+                          ifelse(site %in% sites_CONCHAS & date %in% dates_CONCHAS,1,0)))%>%
+  mutate(fire_ID = ifelse(site %in% sites_THOMPSON & date %in% dates_THOMPSON,"THOMPSON RIDGE",
+                          ifelse(site %in% sites_CONCHAS & date %in% dates_CONCHAS,"LAS CONCHAS",NA)))
 
-# values <- rev(seq(1, 48, by = 1))
-# decay <- exp(values)
-# 
-# dates_fire_vcnp$RED_Thompson_d[927:974] <- decay
-# dates_fire_vcnp$EFJ_Thompson_d[97:144] <- decay
-# dates_fire_vcnp$EFJ_Conchas_d[74:121] <- decay
-# dates_fire_vcnp$RSA_Conchas_d[406:453] <- decay
-# dates_fire_vcnp$RSAW_Thompson_d[263:310] <- decay
-# dates_fire_vcnp$RSAW_Conchas_d[240:287] <- decay
-# dates_fire_vcnp$IND_Conchas_d[572:619] <- decay
-# dates_fire_vcnp$IND_BB_Conchas_d[738:785] <- decay
-# dates_fire_vcnp$SULF_Thompson_d[1093:1140] <- decay
-
-dates_fire_vcnp[is.na(dates_fire_vcnp)] = 0
+# match names to dates_fire_vcnp
+names(fire_area) = c("site","ws_area_m2","fire_ID","ig_date","ws_fire_area_m2", "fire_perc_ws")
+# join watershed area to dates_fire_vcnp
+fire_vcnp_1 = left_join(dates_fire_vcnp, unique(fire_area[,1:2]), by=c("site"))
+# join fire area info to dates_fire_vcnp
+fire_vcnp_2 = left_join(fire_vcnp_1, fire_area[,c(1,3:6)], by=c("site","fire_ID"))
+# replace NAs in fire info cols with zero
+fire_vcnp_2[,7:8][is.na(fire_vcnp_2[,7:8])] = 0
 
 # And export for MARSS script
 #saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_060622.rds")
-saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_072822.rds")
+#saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_072822.rds")
+saveRDS(fire_vcnp_2, "data_working/VCNPfire_edited_072922.rds")
 
 # End of script.
