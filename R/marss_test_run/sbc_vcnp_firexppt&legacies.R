@@ -16,11 +16,6 @@
 
 # The following script will prepare data and run a MARSS analysis at SBC LTER & NM Valles Caldera sites for the CRASS project. Modeling sections each contain one model or one model comparision and restart the script and import data anew each time. 
 
-# A few notes about the process below:
-# Data was tidied in sbc_marss_model.R script and exported to file:
-# marss_data_sb_vc_072222.rds (as of July 22, 2022 when errors in NM ppt data were identified and fixed)
-# It is imported from that file into this script and futher prepared for modeling here.
-
 # The first goal of this script is to demo a MARSS model with each watershed as a unique state and the following predictive vars:
 # 1 - cum. monthly ppt
 # 2 - fire_pa_6m  (1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m, one col for all fires) OR fire_pa (1-fire ignited in this month, 0=no fire ignition this month). fire_pa is an immediate effect of the fire by itself, whereas fire_pa_6m is an effect of the fire by itself that is potentially lagged by up to 6 m. 
@@ -79,173 +74,464 @@ library(tidyverse)
 library(lubridate)
 library(MARSS)
 library(naniar) 
-
 # load fxn to replace NaNs with NAs
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
+#
+#### Compile data ####
+# Load datasets
+# Stream Chemistry - all sites
+chem <- readRDS("data_working/SBchem_edited_120321.rds")
+chem_nm <- readRDS("data_working/VCNPchem_edited_120521.rds")
+# Precipitation - all sites
+precip <- readRDS("data_working/SBprecip_edited_120121.rds")
+precip_nm <- readRDS("data_working/VCNPprecip_m_cum_edited_20220721.rds")
+# Fire Events - all sites
+fire <- readRDS("data_working/SBfire_edited_072922.rds")
+fire_nm <- readRDS("data_working/VCNPfire_edited_072922.rds")
+# Site Location information
+location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
+location_nm <- read_csv("data_raw/VCNP_sonde_site_codes_names.csv")
 
-#### Import and edit data to include fire x ppt interactions and legacy effects ####
+# I first need to identify the matching stream sites for the precip data
+precip_ed <- precip %>%
+  mutate(sitecode_match = factor(case_when(
+    sitecode == "GV202" ~ "GV01",
+    sitecode == "BARA" ~ "HO00", # HO201 doesn't start until 2002
+    sitecode == "RG202" ~ "RG01",
+    sitecode == "SMPA" ~ "SP02",
+    sitecode == "GORY" ~ "AT07",
+    sitecode == "CAWTP" ~ "AB00",
+    sitecode == "STFS" ~ "MC06", # BOGA doesn't start until 2005
+    sitecode == "ELDE" ~ "RS02"))) %>%
+  dplyr::rename(cumulative_precip_mm = c_precip_mm,
+                sitecode_precip = sitecode) %>%
+  mutate(Day = 1) %>% # new column of "days"
+  mutate(Date = make_date(Year, Month, Day))
+
+# check edited fire data
+sitez = c("AB00", "GV01", "MC06", "RG01", "RS02", "HO00",
+          "EFJ", "RED", "RSA", "RSAW")
+ggplot(fire %>% filter(site %in% sitez), 
+                   aes(x = date, y = fire_pa)) +
+    geom_point() +
+    labs(x = "Date") +
+    facet_wrap(.~site, scales = "free",
+               ncol = 1) +
+    theme_bw()
+ggplot(fire %>% filter(site %in% sitez), 
+       aes(x = date, y = fire_perc_ws)) +
+  geom_point() +
+  labs(x = "Date") +
+  facet_wrap(.~site, scales = "free",
+             ncol = 1) +
+  theme_bw()
+ggplot(fire_nm %>% filter(site %in% sitez), 
+       aes(x = date, y = fire_pa)) +
+  geom_point() +
+  labs(x = "Date") +
+  facet_wrap(.~site, scales = "free",
+             ncol = 1) +
+  theme_bw()
+ggplot(fire_nm %>% filter(site %in% sitez), 
+       aes(x = date, y = fire_perc_ws)) +
+  geom_point() +
+  labs(x = "Date") +
+  facet_wrap(.~site, scales = "free",
+             ncol = 1) +
+  theme_bw()
+
+## Timeframe Selection
+
+# Examine precip data coverage for MARSS timescale delineation
+precip_ed %>%
+  drop_na(sitecode_match) %>%
+  ggplot(aes(x = Year, y = sitecode_match, color = sitecode_match)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+# So, covariate data, which cannot be missing, can run from a maximum of 9/2002 to 7/2016.
+
+# To avoid strange gaps in data, I'm going to start with the fire data,
+# since I know it extends from 9/1/2002 to 7/1/2016. This will ensure all other datasets are
+# joined to these dates in full (which was causing problems earlier).
+fire_precip <- left_join(fire, precip_ed, by = c("site" = "sitecode_match", "date" = "Date"))
+
+fire_precip <- fire_precip %>%
+  mutate(year = year(date),
+         month = month(date)) # and the Year/Month didn't populate, so adding in new columns
+
+# Then, left join with chemistry so as not to lose any data.
+dat <- left_join(fire_precip, chem, by = c("site", "year" = "Year", "month" = "Month"))
+
+# Adding in dummy covariates by season
+n_months <- dat$date %>%
+  unique() %>%
+  length()
+
+seas_1 <- sin(2 * pi * seq(n_months) / 12)
+seas_2 <- cos(2 * pi * seq(n_months) / 12)
+
+dat <- dat %>%
+  mutate(Season1 = rep(seas_1, 8),
+         Season2 = rep(seas_2, 8),
+         index = rep(seq(1,166), 8))
+
+# AJW: replace NaNs with NAs
+dat[is.nan(dat)] = NA
+
+# And, inspect dataset for missing covariate data.
+sum(is.na(dat$fire)) # 0
+sum(is.na(dat$cumulative_precip_mm)) # 0
+# Great!
+
+#### Valles Caldera ##
+
+# Now to do the same for NM data
+precip_nm_ed <- precip_nm %>%
+  dplyr::rename(sitecode_precip = ID) %>%
+  mutate(Day = 1) %>% # new column of "days"
+  mutate(Date = as.Date(paste(year, month, "01", sep="-")))%>%
+  mutate(Year = year,
+         Month = month)
+
+## Timeframe Selection
+# Examine precip data coverage for MARSS timescale delineation
+precip_nm_ed %>%
+  ggplot(aes(x = Year, y = sitecode_precip, color = sitecode_precip)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+# So, covariate data, which cannot be missing, can run from a maximum of 2005 to 2021.
+# To avoid strange gaps in data, I'm going to start with the fire data,
+# since I know it extends from 6/1/2005 to 3/1/2019. This will ensure all other datasets are 
+# joined to these dates in full (which was causing problems earlier).
+fire_precip_nm <- left_join(fire_nm, precip_nm_ed, by = c("site" = "sitecode_precip", "date" = "Date"))
+
+# Edit chemistry dataset to permit joining
+namelist <- c("San Antonio Creek - Toledo", "San Antonio Creek- Toledo", "San Antonio Creek -Toledo")
+
+# Make abbreviations appear at appropriate sites
+chem_nm_ed <- chem_nm %>%
+  mutate(site = factor(case_when(
+    site_code == "Redondo Creek" ~ "RED",
+    site_code == "East Fork Jemez River" ~ "EFJ",
+    site_code == "San Antonio - West" ~ "RSAW",
+    site_code %in% namelist ~ "RSA",
+    site_code == "Indios Creek" ~ "IND",
+    site_code == "Indios Creek - Post Fire (Below Burn)" ~ "IND_BB",
+    site_code == "Indios Creek - above burn" ~ "IND_AB",
+    site_code == "Sulfur Creek" ~ "SULF",
+    TRUE ~ NA_character_))) %>%
+  mutate(NH4_mgL = gsub("<", "", nh4_mgL),
+         NO3_mgL = gsub("<", "", nO2_nO3_mgL),
+         PO4_mgL = gsub("<", "", po4_mgL)) # remove all "<" symbols
+
+# need to also add in LODs and convert analytes appropriately
+mylist <- c("Contaminated")
+
+chem_nm_ed2 <- chem_nm_ed %>%
+  replace_with_na_at(.vars = c("NH4_mgL", "NO3_mgL", "PO4_mgL"),
+                     condition = ~.x %in% mylist) %>% # Remove "contaminated" and replace with NA
+  mutate(NH4_mgL_lod = as.numeric(ifelse(NH4_mgL <= 0.1, 0.05, NH4_mgL)),
+         NO3_mgL_lod = as.numeric(ifelse(NO3_mgL <= 0.1, 0.05, NO3_mgL)),
+         PO4_mgL_lod = as.numeric(ifelse(PO4_mgL <= 0.1, 0.05, PO4_mgL))) # Report low values at 1/2 LOD
+
+# convert to uM and summarize by month
+chem_nm_ed3 <- chem_nm_ed2 %>%
+  mutate(nh4_uM = (NH4_mgL_lod/80.043)*1000, # convert to uM
+         no3_uM = (NO3_mgL_lod/62.0049)*1000,
+         po4_uM = (PO4_mgL_lod/94.9714)*1000) 
+
+chem_nm_monthly <- chem_nm_ed3 %>%
+  dplyr::group_by(site, Year, Month) %>%
+  dplyr::summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE),
+                   mean_no3_uM = mean(no3_uM, na.rm = TRUE),
+                   mean_po4_uM = mean(po4_uM, na.rm = TRUE),
+                   mean_cond_uScm = mean(mean_cond_uScm, na.rm = TRUE)) %>%
+  dplyr::ungroup()
+
+# Then, left join with chemistry so as not to lose any data.
+dat_nm <- left_join(fire_precip_nm, chem_nm_monthly, by = c("site", "Year", "Month"))
+
+# Adding a plot to examine analyte availability
+chem_nm_monthly[is.nan(chem_nm_monthly)] = NA
+
+# plot of chem data availability
+chem_nm_monthly %>%
+  ggplot(aes(x = Year, y = site, color = site)) +
+  geom_line() +
+  theme_bw() +
+  theme(legend.position = "none")
+
+dat_nm_trim <- dat_nm %>%
+  filter(date >= "2005-06-01") 
+# should be 166 records pre site to match "dat" above
+# 166 records x 7 sites = 1162 records
+# dates between SB and NM datasets don't need to match
+# but lengths of time series do
+table(dat_nm_trim$site)
+
+# Adding in dummy covariates by season
+n_months_nm <- dat_nm_trim$date %>%
+  unique() %>%
+  length()
+
+seas_1_nm <- sin(2 * pi * seq(n_months_nm) / 12)
+seas_2_nm <- cos(2 * pi * seq(n_months_nm) / 12)
+
+dat_nm_trim <- dat_nm_trim %>%
+  mutate(Season1 = rep(seas_1_nm, 7),
+         Season2 = rep(seas_2_nm, 7),
+         index = rep(seq(1,166), 7))
+
+# AJW: replace NaNs with NAs
+dat_nm_trim[is.nan(dat_nm_trim)] = NA
+
+# Note for future me - be VERY careful with the joining above. Something weird was happening previously where precip data that IS present was simply dropping off.
+
+# Also, because the Valles Caldera data isn't always monthly, some fire 1s were dropping off when they shouldn't, so Heili made edits 2/24/22 to rectify the situation.
+
+#### Join Full Dataset
+
+# And finally, join the Santa Barbara and New Mexico datasets
+
+# Created NM dataset for joining with SB data
+dat_nm_select <- dat_nm_trim %>%
+  # dplyr::rename(year = Year,
+  #        month = Month) %>%
+  select(year, month, index, site, ws_area_m2,
+         cumulative_precip_mm, 
+         fire_ID, ig_date, fire_pa, ws_fire_area_m2, fire_perc_ws,
+         mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
+         Season1, Season2) %>%
+  mutate(region = "VC") 
+
+dat_select <- dat %>%
+  select(year, month, index, site, ws_area_m2,
+         cumulative_precip_mm, 
+         fire_ID, ig_date, fire_pa, ws_fire_area_m2, fire_perc_ws,
+         mean_nh4_uM, mean_no3_uM, mean_po4_uM, mean_cond_uScm, 
+         Season1, Season2) %>%
+  mutate(region = "SB")
+
+#dat_agu <- rbind(dat_select, dat_nm_select)
+dat_new22 <- rbind(dat_select, dat_nm_select)
+
+# And export to save progress
+#saveRDS(dat_new22, "data_working/marss_data_sb_vc_022422.rds")
+#saveRDS(dat_new22, "data_working/marss_data_sb_vc_060622.rds")
+# with fixed NM ppt data (AJW):
+#saveRDS(dat_new22, "data_working/marss_data_sb_vc_072222.rds")
+# removed decay terms and fixed errors in sb fire data:
+#saveRDS(dat_new22, "data_working/marss_data_sb_vc_072822.rds")
+# add fire areas and make all fire data tidy/long:
+saveRDS(dat_new22, "data_working/marss_data_sb_vc_072922.rds")
+
+#### Import compiled data and add fire x ppt interactions and legacy effects ####
 
 # dat1 = readRDS("data_working/marss_data_sb_vc_060622.rds")
 # dat1 = readRDS("data_working/marss_data_sb_vc_072222.rds")
-dat1 = readRDS("data_working/marss_data_sb_vc_072822.rds")
-
-
-#### Consolidate fire effect to one col ###
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-dat2 = dat1
-
-# combine fires in each watershed so there is one fire effect column
-
-dat2$AB00_allfires = dat2$AB00_Jesusita
-dat2$AT07_allfires = dat2$AT07_Jesusita
-dat2$GV01_allfires = dat2$GV01_Gaviota
-dat2$HO00_allfires = dat2$HO00_Gaviota
-dat2$MC06_allfires = dat2$MC06_Tea + dat2$MC06_Jesusita
-dat2$RG01_allfires = dat2$RG01_Sherpa
-dat2$RGS02_allfires = dat2$RS02_Tea + dat2$RS02_Jesusita
-dat2$SP02_allfires = dat2$SP02_Gap
-#
-dat2$RED_allfires = dat2$RED_Thompson
-dat2$EFJ_allfires = dat2$EFJ_Thompson + dat2$EFJ_Conchas
-dat2$RSAW_allfires = dat2$RSAW_Thompson + dat2$RSAW_Conchas
-dat2$RSA_allfires = dat2$RSA_Conchas
-dat2$IND_allfires = dat2$IND_Conchas
-dat2$IND_BB_allfires = dat2$IND_BB_Conchas
-dat2$SULF_allfires = dat2$SULF_Thompson
+# dat1 = readRDS("data_working/marss_data_sb_vc_072822.rds")
+dat1 = readRDS("data_working/marss_data_sb_vc_072922.rds")
 
 # reorganize
-names(dat2)
-dat3 = dat2[,c(1,2,21,22,3, #"year" "month" "index" "region" "site" 
-               4, # cumulative_precip_mm
-               5:14, # sb seperate fires
-               23:31, # vc seperate fires
-               32:46, # sb and vc combined fires
-               19:20, # seasonal effects
-               15:18)] # solutes
+names(dat1)
+dat2 = dat1[,c(1,2,3,18,4,5, #"year" "month" "index" "region" "site" "ws_area_m2"
+               6, # cumulative_precip_mm
+               7:11, # fire info
+               16,17, # seasonal effects
+               12:15)] # solutes
 
-# add all fire effects to 1 col
-dat3$fires_pa<-rowSums(dat3[,26:40])
+qplot(index, fire_pa, data=dat2, colour=site, geom="path", facets = "region")
 
-# check that there are no 2s in fire effect cols
-max(dat3[,7:40])
-max(dat3$fires_pa)
-# dat3[,6:20][dat3[,6:20]==2] = 1 replace 2s with 1s if needed
-
-qplot(index, fires_pa, data=dat3, colour=site, geom="path", facets = "region")
-
-#### Add 2 m window to fire effect ###
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-# fire_pa_2m: 1=fire ignited in prior 2 m, 0=no fire ignitions in 2 m
-
-dat4 = dat3
-
-dat4$date = as.Date(paste(dat4$year, dat4$month, "01", sep="-"))
-
-firedates_2m = c(dat4$date[dat4$fires_pa == 1],
-                 dat4$date[dat4$fires_pa == 1] + 31*1)
-
-firedates_2m = data.frame(year = year(firedates_2m),
-                          month = month(firedates_2m),
-                          site = rep(dat4$site[dat4$fires_pa == 1], 2),
-                          fires_pa_2m = 1)
-dat5 = left_join(dat4, firedates_2m, by=c("year","month","site"))
-dat5$fires_pa_2m[is.na(dat5$fires_pa_2m)] = 0
-
-qplot(index, fires_pa_2m, data=dat5, colour=site, geom="path", facets = "region")
-
+# create df of sites x fire info
+firez = unique(dat1[,c(4,7,8,10,11)])
+firez = firez[complete.cases(firez),]
+firez$ig_date = gsub("/","-",firez$ig_date)
+firez$year = year(as.Date(firez$ig_date))
+firez$month = month(as.Date(firez$ig_date))
+firez$date = as.Date(paste(firez$year, firez$month, "01", sep="-"))
 
 #### Add 6 m window to fire effect ###
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+dat4 = dat2
 
 # fire_pa_6m: 1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m
 
-dat4$date = as.Date(paste(dat4$year, dat4$month, "01", sep="-"))
+#dat4$date = as.Date(paste(dat4$year, dat4$month, "01", sep="-"))
 
-firedates_6m = c(dat4$date[dat4$fires_pa == 1],
-                 dat4$date[dat4$fires_pa == 1] + 31*1,
-                 dat4$date[dat4$fires_pa == 1] + 31*2,
-                 dat4$date[dat4$fires_pa == 1] + 31*3,
-                 dat4$date[dat4$fires_pa == 1] + 31*4,
-                 dat4$date[dat4$fires_pa == 1] + 31*5)
+firedates_6m = c(firez$date,
+                 firez$date + 31*1,
+                 firez$date + 31*2,
+                 firez$date + 31*3,
+                 firez$date + 31*4,
+                 firez$date + 31*5)
 
 firedates_6m = data.frame(year = year(firedates_6m),
                           month = month(firedates_6m),
-                          site = rep(dat4$site[dat4$fires_pa == 1], 6),
-                          fires_pa_6m = 1)
-dat6 = left_join(dat5, firedates_6m, by=c("year","month","site"))
-dat6$fires_pa_6m[is.na(dat6$fires_pa_6m)] = 0
+                          site = rep(firez$site, 6),
+                          fire_pa_6m = 1,
+                          ws_fire_area_m2_6m = rep(firez$ws_fire_area_m2, 6),
+                          fire_perc_ws_6m = rep(firez$fire_perc_ws, 6))
+dat5 = left_join(dat4, firedates_6m, by=c("year","month","site"))
+dat5[,19:21][is.na(dat5[,19:21])] = 0
 
-qplot(index, fires_pa_6m, data=dat6, colour=site, geom="path", facets = "region")
+qplot(index, fire_pa_6m, data=dat5, colour=site, geom="path", facets = "region")
+qplot(index, fire_perc_ws_6m, data=dat5, colour=site, geom="point", facets = "region")
 
-#### Add fire p/a legacy effects ###
+#### Add fire 6 m window legacy effects ###
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # 1 year legacy
 firedates_6m_1ylegacy = data.frame(year = firedates_6m$year+1,
                                    month = firedates_6m$month,
                                    site = firedates_6m$site,
-                                   fire_pa_6m_1ylegacy = 1)
-dat6 = left_join(dat6, firedates_6m_1ylegacy, by=c("year","month","site"))
-dat6$fire_pa_6m_1ylegacy[is.na(dat6$fire_pa_6m_1ylegacy)] = 0
-
-qplot(index, fire_pa_6m_1ylegacy, data=dat6, colour=site, geom="path")
+                                   fire_pa_6m_1ylegacy = 1,
+                                   ws_fire_area_m2_6m_1ylegacy = rep(firez$ws_fire_area_m2, 6),
+                                   fire_perc_ws_6m_1ylegacy = rep(firez$fire_perc_ws, 6))
+dat6 = left_join(dat5, firedates_6m_1ylegacy, by=c("year","month","site"))
+dat6[,22:24][is.na(dat6[,22:24])] = 0
 
 # 2 year legacy
 firedates_6m_2ylegacy = data.frame(year = firedates_6m$year+2,
                                    month = firedates_6m$month,
                                    site = firedates_6m$site,
-                                   fire_pa_6m_2ylegacy = 1)
+                                   fire_pa_6m_2ylegacy = 1,
+                                   ws_fire_area_m2_6m_2ylegacy = rep(firez$ws_fire_area_m2, 6),
+                                   fire_perc_ws_6m_2ylegacy = rep(firez$fire_perc_ws, 6))
 dat7 = left_join(dat6, firedates_6m_2ylegacy, by=c("year","month","site"))
+dat7[,25:27][is.na(dat7[,25:27])] = 0
 
 # 3 year legacy
 firedates_6m_3ylegacy = data.frame(year = firedates_6m$year+3,
                                    month = firedates_6m$month,
                                    site = firedates_6m$site,
-                                   fire_pa_6m_3ylegacy = 1)
+                                   fire_pa_6m_3ylegacy = 1,
+                                   ws_fire_area_m2_6m_3ylegacy = rep(firez$ws_fire_area_m2, 6),
+                                   fire_perc_ws_6m_3ylegacy = rep(firez$fire_perc_ws, 6))
 dat8 = left_join(dat7, firedates_6m_3ylegacy, by=c("year","month","site"))
+dat8[,28:30][is.na(dat8[,28:30])] = 0
 
 # 4 year legacy
 firedates_6m_4ylegacy = data.frame(year = firedates_6m$year+4,
                                    month = firedates_6m$month,
                                    site = firedates_6m$site,
-                                   fire_pa_6m_4ylegacy = 1)
+                                   fire_pa_6m_4ylegacy = 1,
+                                   ws_fire_area_m2_6m_4ylegacy = rep(firez$ws_fire_area_m2, 6),
+                                   fire_perc_ws_6m_4ylegacy = rep(firez$fire_perc_ws, 6))
 dat9 = left_join(dat8, firedates_6m_4ylegacy, by=c("year","month","site"))
+dat9[,31:33][is.na(dat9[,31:33])] = 0
 
 # 5 year legacy
 firedates_6m_5ylegacy = data.frame(year = firedates_6m$year+5,
                                    month = firedates_6m$month,
                                    site = firedates_6m$site,
-                                   fire_pa_6m_5ylegacy = 1)
+                                   fire_pa_6m_5ylegacy = 1,
+                                   ws_fire_area_m2_6m_5ylegacy = rep(firez$ws_fire_area_m2, 6),
+                                   fire_perc_ws_6m_5ylegacy = rep(firez$fire_perc_ws, 6))
 dat10 = left_join(dat9, firedates_6m_5ylegacy, by=c("year","month","site"))
+dat10[,34:36][is.na(dat10[,34:36])] = 0
 
-# replace NAs with 0
-dat10[,51:55][is.na(dat10[,51:55])] = 0
 
-#### Add fire p/a x ppt legacy effects ###
+#### Add fire x ppt legacy effects ###
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-dat10$fire_pa_6m_ppt = dat10$fires_pa_6m*dat10$cumulative_precip_mm
+# for fire pa
+dat10$fire_pa_6m_ppt = dat10$fire_pa_6m*dat10$cumulative_precip_mm
 dat10$fire_pa_6m_ppt_1ylegacy = dat10$fire_pa_6m_1ylegacy*dat10$cumulative_precip_mm
 dat10$fire_pa_6m_ppt_2ylegacy = dat10$fire_pa_6m_2ylegacy*dat10$cumulative_precip_mm
 dat10$fire_pa_6m_ppt_3ylegacy = dat10$fire_pa_6m_3ylegacy*dat10$cumulative_precip_mm
 dat10$fire_pa_6m_ppt_4ylegacy = dat10$fire_pa_6m_4ylegacy*dat10$cumulative_precip_mm
 dat10$fire_pa_6m_ppt_5ylegacy = dat10$fire_pa_6m_5ylegacy*dat10$cumulative_precip_mm
 
-p1 = qplot(index, cumulative_precip_mm, data=dat10, colour=site, geom="path")
-p2 = qplot(index, fire_pa_6m_ppt, data=dat10, colour=site, geom="path")
-p3 = qplot(index, fires_pa_6m, data=dat10, colour=site, geom="path")
-gridExtra::grid.arrange(p1,p3,p2, ncol=1)
+# for fire area
+dat10$ws_fire_area_m2_6m_ppt = dat10$ws_fire_area_m2_6m*dat10$cumulative_precip_mm
+dat10$ws_fire_area_m2_6m_ppt_1ylegacy = dat10$ws_fire_area_m2_6m_1ylegacy*dat10$cumulative_precip_mm
+dat10$ws_fire_area_m2_6m_ppt_2ylegacy = dat10$ws_fire_area_m2_6m_2ylegacy*dat10$cumulative_precip_mm
+dat10$ws_fire_area_m2_6m_ppt_3ylegacy = dat10$ws_fire_area_m2_6m_3ylegacy*dat10$cumulative_precip_mm
+dat10$ws_fire_area_m2_6m_ppt_4ylegacy = dat10$ws_fire_area_m2_6m_4ylegacy*dat10$cumulative_precip_mm
+dat10$ws_fire_area_m2_6m_ppt_5ylegacy = dat10$ws_fire_area_m2_6m_5ylegacy*dat10$cumulative_precip_mm
 
+# for fire perc burn ws
+dat10$fire_perc_ws_6m_ppt = dat10$fire_perc_ws_6m*dat10$cumulative_precip_mm
+dat10$fire_perc_ws_6m_ppt_1ylegacy = dat10$fire_perc_ws_6m_1ylegacy*dat10$cumulative_precip_mm
+dat10$fire_perc_ws_6m_ppt_2ylegacy = dat10$fire_perc_ws_6m_2ylegacy*dat10$cumulative_precip_mm
+dat10$fire_perc_ws_6m_ppt_3ylegacy = dat10$fire_perc_ws_6m_3ylegacy*dat10$cumulative_precip_mm
+dat10$fire_perc_ws_6m_ppt_4ylegacy = dat10$fire_perc_ws_6m_4ylegacy*dat10$cumulative_precip_mm
+dat10$fire_perc_ws_6m_ppt_5ylegacy = dat10$fire_perc_ws_6m_5ylegacy*dat10$cumulative_precip_mm
+
+
+#### Add fire 2 m window legacy effects ###
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+firedates_2m = c(firez$date,
+                 firez$date + 31*1)
+
+firedates_2m = data.frame(year = year(firedates_2m),
+                          month = month(firedates_2m),
+                          site = rep(firez$site, 2),
+                          fire_pa_2m = 1,
+                          ws_fire_area_m2_2m = rep(firez$ws_fire_area_m2, 2),
+                          fire_perc_ws_2m = rep(firez$fire_perc_ws, 2))
+
+# 1 year legacy
+firedates_2m_1ylegacy = data.frame(year = firedates_2m$year+1,
+                                   month = firedates_2m$month,
+                                   site = firedates_2m$site,
+                                   fire_pa_2m_1ylegacy = 1,
+                                   ws_fire_area_m2_2m_1ylegacy = rep(firez$ws_fire_area_m2, 2),
+                                   fire_perc_ws_2m_1ylegacy = rep(firez$fire_perc_ws, 2))
+dat11 = left_join(dat10, firedates_2m_1ylegacy, by=c("year","month","site"))
+
+# 2 year legacy
+firedates_2m_2ylegacy = data.frame(year = firedates_2m$year+2,
+                                   month = firedates_2m$month,
+                                   site = firedates_2m$site,
+                                   fire_pa_2m_2ylegacy = 1,
+                                   ws_fire_area_m2_2m_2ylegacy = rep(firez$ws_fire_area_m2, 2),
+                                   fire_perc_ws_2m_2ylegacy = rep(firez$fire_perc_ws, 2))
+dat11 = left_join(dat11, firedates_2m_2ylegacy, by=c("year","month","site"))
+
+# 3 year legacy
+firedates_2m_3ylegacy = data.frame(year = firedates_2m$year+3,
+                                   month = firedates_2m$month,
+                                   site = firedates_2m$site,
+                                   fire_pa_2m_3ylegacy = 1,
+                                   ws_fire_area_m2_2m_3ylegacy = rep(firez$ws_fire_area_m2, 2),
+                                   fire_perc_ws_2m_3ylegacy = rep(firez$fire_perc_ws, 2))
+dat11 = left_join(dat11, firedates_2m_3ylegacy, by=c("year","month","site"))
+
+# 4 year legacy
+firedates_2m_4ylegacy = data.frame(year = firedates_2m$year+4,
+                                   month = firedates_2m$month,
+                                   site = firedates_2m$site,
+                                   fire_pa_2m_4ylegacy = 1,
+                                   ws_fire_area_m2_2m_4ylegacy = rep(firez$ws_fire_area_m2, 2),
+                                   fire_perc_ws_2m_4ylegacy = rep(firez$fire_perc_ws, 2))
+dat11 = left_join(dat11, firedates_2m_4ylegacy, by=c("year","month","site"))
+
+# 5 year legacy
+firedates_2m_5ylegacy = data.frame(year = firedates_2m$year+5,
+                                   month = firedates_2m$month,
+                                   site = firedates_2m$site,
+                                   fire_pa_2m_5ylegacy = 1,
+                                   ws_fire_area_m2_2m_5ylegacy = rep(firez$ws_fire_area_m2, 2),
+                                   fire_perc_ws_2m_5ylegacy = rep(firez$fire_perc_ws, 2))
+dat11 = left_join(dat11, firedates_2m_5ylegacy, by=c("year","month","site"))
+
+dat11[,55:69][is.na(dat11[,55:69])] = 0
+
+#
 #### Check for known fire x ppt effect in EFJ ####
 
 # Sherson et al 2015 describes the effect of the 2011 Las Conchas fire on SpC in the East Fork Jemez River using high frequency data: almost no SpC response to storms before the fire, then observations of SpC flushing after. Those observations should be apparent in this dataset as well as it is the same as site VC EFJ here. This serves as a good tests that the data used here is correct (i.e. hasn't gotten messed up in editing processes), so I am checking for that observation here before proceeding. 
 # For model results, this means we should also expect to see a ppt x fire effect at least in thr EFJ stream, in association with at least the 2011 fire. If we do not, it is a red flag that the model might be poorly specified, overfit, etc. and we should double check everything. It's possible the effect isn't strong enough to produce a significant coefficent, but it is something to look out for as a 'gut check'.
 
 # pull data from EFJ 
-EFJ = dat10[dat10$site=="EFJ",]
+EFJ = dat11[dat11$site=="EFJ",]
 # plot
 par(mfrow=c(2,1))
 plot(EFJ$cumulative_precip_mm~EFJ$index, type="b",
@@ -262,7 +548,7 @@ abline(v=97, col="red")
 
 # pull data from other sites:
 # "RSAW"  "RSA" "IND"  "IND_BB"  "RED"  "SULF"  
-dat_site = dat10[dat10$site=="IND",]
+dat_site = dat11[dat11$site=="IND",]
 # plot
 par(mfrow=c(2,1))
 plot(dat_site$cumulative_precip_mm~dat_site$index, type="b",
@@ -279,7 +565,7 @@ abline(v=97, col="red")
 # My gut tells me the 2006 high point is not real. I am going to treat it as an outlier for now, but must discuss this with group.
 
 # Replace outlier with previous month's value
-dat10$mean_cond_uScm[dat10$site=="EFJ" & dat10$index==14] = dat10$mean_cond_uScm[dat10$site=="EFJ" & dat10$index==13] 
+dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==14] = dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==13] 
 
 
 
@@ -287,8 +573,10 @@ dat10$mean_cond_uScm[dat10$site=="EFJ" & dat10$index==14] = dat10$mean_cond_uScm
 #### Export data with fire x ppt interactions and legacy effects ####
 
 #saveRDS(dat10, "data_working/marss_data_sb_vc_072222_2.rds")
-saveRDS(dat10, "data_working/marss_data_sb_vc_072822_2.rds")
+#saveRDS(dat10, "data_working/marss_data_sb_vc_072822_2.rds")
+saveRDS(dat11, "data_working/marss_data_sb_vc_072922_2.rds")
 
+#
 #### MARSS: ppt, fire pa 1m, fire pa 6m x ppt, no legacy effects ####
 
 #### Set up data for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -301,11 +589,11 @@ rm(list=ls())
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 # load data with fire x ppt interactions and legacy effects
-dat = readRDS("data_working/marss_data_sb_vc_072222_2.rds")
+dat = readRDS("data_working/marss_data_sb_vc_072822_2.rds")
 
 # select sites
 # include these sites only (10 total - these have the longest most complete ts for SpC and I have also removed HO00 because it was causing issues with missing fire effects data):
-# AB00, AT07, GV01, , MC06, RG01, RS02 = SB
+# AB00, GV01, HO00, MC06, RG01, RS02 = SB
 # EFJ, RED, RSA, & RSAW = VC
 sitez = c("AB00", "GV01", "MC06", "RG01", "RS02", "HO00",
           "EFJ", "RED", "RSA", "RSAW")
@@ -315,18 +603,21 @@ table(dat$site)
 # pivot wider for MARSS format
 dat_cond <- dat %>%
   select(
-    site, index, mean_cond_uScm, cumulative_precip_mm, fires_pa, fire_pa_6m_ppt) %>% 
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fires_pa_2m, fire_pa_6m_ppt) %>% 
   pivot_wider(
-    names_from = site, values_from = c(mean_cond_uScm, cumulative_precip_mm, 
-                                       fires_pa, 
-                                       fire_pa_6m_ppt)) 
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fires_pa_2m, fire_pa_6m_ppt)) 
 
 dat_cond[is.nan(dat_cond)] <- NA
 
 # log and scale transform response var
 names(dat_cond)
 dat_cond_log = dat_cond
-#dat_cond_log[,2:11] = log10(dat_cond_log[,2:11])
+dat_cond_log[,2:11] = log10(dat_cond_log[,2:11])
 dat_cond_log[,2:11] = scale(dat_cond_log[,2:11])
 sum(is.nan(dat_cond_log[,2:11]))
 sum(is.na(dat_cond_log[,2:11]))
@@ -344,6 +635,8 @@ sum(is.infinite(dat_cond_log[,12:41]))
 
 # Make covariate inputs
 dat_cov <- dat_cond_log[,c(12:41)]
+# check for cols with all zeros
+any(colSums(dat_cov)==0)
 # scale and transpose
 dat_cov <- t(scale(dat_cov))
 row.names(dat_cov)
@@ -351,64 +644,67 @@ row.names(dat_cov)
 sum(is.nan(dat_cov))
 sum(is.na(dat_cov))
 sum(is.infinite(dat_cov))
-# # fire_pa_6m_ppt_1ylegacy_HO00 has no values to scale, so must replace with zeros
-# dat_cov["fire_pa_6m_ppt_1ylegacy_HO00",]= 0.001
+# are any rows identical?
+dat_cov[duplicated(dat_cov),]
+#yes
 
 #### make C matrix  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # "XXXX_AB00",0,0,0,0,0,0,0,0,0,
-# 0,"XXXX_AT07",0,0,0,0,0,0,0,0,
-# 0,0,"XXXX_GV01",0,0,0,0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,0,0,0,0,0,
+# 0,0,"XXXX_HO00",0,0,0,0,0,0,0,
 # 0,0,0,"XXXX_MC06",0,0,0,0,0,0,
 # 0,0,0,0,"XXXX_RG01",0,0,0,0,0,
 # 0,0,0,0,0,"XXXX_RS02",0,0,0,0,
 # 0,0,0,0,0,0,"XXXX_EFJ", 0,0,0,
-# 0,0,0,0,0,0,0,"XXXX_RED", 0,0,
+# 0,0,0,0,0,0,0,"XXXX_RSAW",0,0,
 # 0,0,0,0,0,0,0,0,"XXXX_RSA", 0,
-# 0,0,0,0,0,0,0,0,0,"XXXX_RSAW",
+# 0,0,0,0,0,0,0,0,0,"XXXX_RED",
 
 CC <- matrix(list( 
   # precip by site
   "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,0,0,
-  0,"cumulative_precip_mm_AT07",0,0,0,0,0,0,0,0,
-  0,0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,0,0,
   0,0,0,"cumulative_precip_mm_MC06",0,0,0,0,0,0,
   0,0,0,0,"cumulative_precip_mm_RG01",0,0,0,0,0,
   0,0,0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
   0,0,0,0,0,0,"cumulative_precip_mm_EFJ", 0,0,0,
-  0,0,0,0,0,0,0,"cumulative_precip_mm_RED", 0,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
   0,0,0,0,0,0,0,0,"cumulative_precip_mm_RSA", 0,
-  0,0,0,0,0,0,0,0,0,"cumulative_precip_mm_RSAW",
-  # fires p/a
-  "fires_pa_AB00",0,0,0,0,0,0,0,0,0,
-  0,"fires_pa_AT07",0,0,0,0,0,0,0,0,
-  0,0,"fires_pa_GV01",0,0,0,0,0,0,0,
-  0,0,0,"fires_pa_MC06",0,0,0,0,0,0,
-  0,0,0,0,"fires_pa_RG01",0,0,0,0,0,
-  0,0,0,0,0,"fires_pa_RS02",0,0,0,0,
-  0,0,0,0,0,0,"fires_pa_EFJ", 0,0,0,
-  0,0,0,0,0,0,0,"fires_pa_RED", 0,0,
-  0,0,0,0,0,0,0,0,"fires_pa_RSA", 0,
-  0,0,0,0,0,0,0,0,0,"fires_pa_RSAW",
-  # interaction of cum. ppt with fire p/a in 6 m window
+  0,0,0,0,0,0,0,0,0,"cumulative_precip_mm_RED",
+  # fires_pa_2m: fire effect in 2 m window
+  "fires_pa_2m_AB00",0,0,0,0,0,0,0,0,0,
+  0,"fires_pa_2m_GV01",0,0,0,0,0,0,0,0,
+  0,0,"fires_pa_2m_HO00",0,0,0,0,0,0,0,
+  0,0,0,"fires_pa_2m_MC06",0,0,0,0,0,0,
+  0,0,0,0,"fires_pa_2m_RG01",0,0,0,0,0,
+  0,0,0,0,0,"fires_pa_2m_RS02",0,0,0,0,
+  0,0,0,0,0,0,"fires_pa_2m_EFJ", 0,0,0,
+  0,0,0,0,0,0,0,"fires_pa_2m_RSAW",0,0,
+  0,0,0,0,0,0,0,0,"fires_pa_2m_RSA", 0,
+  0,0,0,0,0,0,0,0,0,"fires_pa_2m_RED",
+  # fire_pa_6m_ppt: interaction of cum. ppt with fire p/a in 6 m window
   "fire_pa_6m_ppt_AB00",0,0,0,0,0,0,0,0,0,
-  0,"fire_pa_6m_ppt_AT07",0,0,0,0,0,0,0,0,
-  0,0,"fire_pa_6m_ppt_GV01",0,0,0,0,0,0,0,
+  0,"fire_pa_6m_ppt_GV01",0,0,0,0,0,0,0,0,
+  0,0,"fire_pa_6m_ppt_HO00",0,0,0,0,0,0,0,
   0,0,0,"fire_pa_6m_ppt_MC06",0,0,0,0,0,0,
   0,0,0,0,"fire_pa_6m_ppt_RG01",0,0,0,0,0,
   0,0,0,0,0,"fire_pa_6m_ppt_RS02",0,0,0,0,
   0,0,0,0,0,0,"fire_pa_6m_ppt_EFJ", 0,0,0,
-  0,0,0,0,0,0,0,"fire_pa_6m_ppt_RED", 0,0,
+  0,0,0,0,0,0,0,"fire_pa_6m_ppt_RSAW",0,0,
   0,0,0,0,0,0,0,0,"fire_pa_6m_ppt_RSA", 0,
-  0,0,0,0,0,0,0,0,0,"fire_pa_6m_ppt_RSAW"
-),
+  0,0,0,0,0,0,0,0,0,"fire_pa_6m_ppt_RED"),
 10,30)
 
 #### Model setup for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# x0_fixed = c(dat_dep[,1])
+# x0_fixed[4] = mean(dat_dep[4,],na.rm=T)
 
 mod_list <- list(
   ### inputs to process model ###
@@ -424,7 +720,7 @@ mod_list <- list(
   d="zero",
   R = "zero", 
   ### initial conditions ###
-  #x0 = matrix("x0"),
+  #x0 = matrix(x0_fixed),
   V0="zero" ,
   tinitx=0
 )
@@ -436,13 +732,20 @@ mod_list <- list(
 # fit BFGS with priors
 kemfit <- MARSS(y = dat_dep, model = mod_list,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+# ERROR:
+# Stopped at iter=1 in MARSSkem at U update. denom is not invertible.
+# This means some of the U (+ C) terms cannot be estimated.
+# Type MARSSinfo('denominv') for more info. 
+# par, kf, states, iter, loglike are the last values before the error.
 
 fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_07262022_10state_cond_fire1mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_07292022_10state_cond_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
+
+# the EM algorithm did not converge but still provided something to pass on to the BFGS fit so I was able to get a model fit. Unclear to me at this point whoe the BFGS model did but I should be warry. see MARSSinfo('denominv') for possibilities as to why the EM algorithm struggled. One possibility is that there are several fire and firexppt covar rows that hold the same values. Ideally that would be coded as shared covar data among states in the C matrix, but that's a pain. However I didn't have this issue until now, so could be something else. 
 
 #### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -451,7 +754,7 @@ saveRDS(fit,
 # If you start here, make sure you run the parts of the script above to prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_07262022_10state_cond_fire1mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_07292022_10state_cond_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -495,8 +798,8 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
 bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
-#fit        0.0 60
-#null.fit 221.6 30
+# fit        0.0 60
+# null.fit 206.7 30
 # RESULT: covar model is better than null
 
 ### Plot response vars ###
@@ -539,11 +842,12 @@ for(i in c(1:10)){
 # state residuals - not looking great
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
-# Press back arrow to see all 12 states
 # flat lines likely due to low variation in some sites
 
 # reset plotting window
 par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
+
+# None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -554,6 +858,7 @@ par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
 ## estimates
 # hessian method is much fast but not ideal for final results - should bootstrap for final
 est_fit <- MARSSparamCIs(fit)
+# CIs did not converge - suggests a bad model!!
 
 # formatting confidence intervals into dataframe
 CIs_fit = cbind(
