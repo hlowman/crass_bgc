@@ -74,12 +74,12 @@ dates_SHERPA = as.Date(c("2016-06-01","2016-07-01"))
 
 dates_fire <- dates %>%
   mutate(fire_pa = ifelse(site %in% sites_JESUSITA & date %in% dates_JESUSITA, 1,
-                          ifelse(site %in% sites_GAP & date %in% sites_GAP,1,
+                          ifelse(site %in% sites_GAP & date %in% dates_GAP,1,
                                  ifelse(site %in% sites_GAVIOTA & date %in% dates_GAVIOTA,1,
                                         ifelse(site %in% sites_TEA & date %in% dates_TEA,1,
                                                ifelse(site %in% sites_SHERPA & date %in% dates_SHERPA,1,0))))))%>%
   mutate(fire_ID = ifelse(site %in% sites_JESUSITA & date %in% dates_JESUSITA, "JESUSITA",
-                          ifelse(site %in% sites_GAP & date %in% sites_GAP,"GAP",
+                          ifelse(site %in% sites_GAP & date %in% dates_GAP,"GAP",
                                  ifelse(site %in% sites_GAVIOTA & date %in% dates_GAVIOTA,"GAVIOTA",
                                         ifelse(site %in% sites_TEA & date %in% dates_TEA,"TEA",
                                                ifelse(site %in% sites_SHERPA & date %in% dates_SHERPA,"SHERPA",NA))))))

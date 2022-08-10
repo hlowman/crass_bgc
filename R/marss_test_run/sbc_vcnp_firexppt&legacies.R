@@ -564,12 +564,22 @@ abline(v=97, col="red")
 
 # My gut tells me the 2006 high point is not real. I am going to treat it as an outlier for now, but must discuss this with group.
 
-# Replace outlier with previous month's value
-dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==14] = dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==13] 
 
 
 
 #
+#### Remove outliers ####
+
+# See notes in previous section
+# Replace outlier with previous month's value
+dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==14] = dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==13] 
+
+# winter-time unrealistic ppt values in RSAW:
+# Replace outlier with previous month's value
+dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2016 & dat11$month==12] = dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2016 & dat11$month==11]
+dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2017 & dat11$month==1] = dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2017 & dat11$month==2]
+
+
 #### Export data with fire x ppt interactions and legacy effects ####
 
 #saveRDS(dat10, "data_working/marss_data_sb_vc_072222_2.rds")
@@ -577,6 +587,288 @@ dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==14] = dat11$mean_cond_uScm
 saveRDS(dat11, "data_working/marss_data_sb_vc_072922_2.rds")
 
 #
+#### Plot data ####
+
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
+
+str(dat)
+
+# add date
+dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
+
+# SpC in all sites
+ggplot(dat, aes(x = date, y = mean_cond_uScm)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Date")+
+  facet_wrap(region~site, scales = "free") +
+  theme_bw()+
+  geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="EFJ" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND_BB" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RED" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSA" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSAW" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
+             colour="red")
+
+# Fire area in all sites
+ggplot(dat, aes(x = date, y = ws_fire_area_m2)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Date")+
+  facet_wrap(region~site, scales = "free") +
+  theme_bw()+
+  geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="EFJ" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND_BB" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RED" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSA" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSAW" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
+             colour="red")
+
+# Fire % of watershed burned in all sites
+ggplot(dat, aes(x = date, y = fire_perc_ws)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Date")+
+  facet_wrap(region~site, scales = "free") +
+  theme_bw()+
+  geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="EFJ" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND_BB" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RED" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSA" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSAW" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
+             colour="red")
+
+# ppt in all sites
+ggplot(dat, aes(x = date, y = cumulative_precip_mm)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Date")+
+  facet_wrap(region~site, scales = "free") +
+  theme_bw()+
+  geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="EFJ" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND_BB" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RED" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSA" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSAW" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
+             colour="red")
+
+# Fire p/a X ppt in all sites
+ggplot(dat, aes(x = date, y = fire_pa_6m_ppt)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Date")+
+  facet_wrap(region~site, scales = "free") +
+  theme_bw()+
+  geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="EFJ" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND_BB" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RED" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSA" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSAW" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
+             colour="red")
+
+# Fire area X ppt in all sites
+ggplot(dat, aes(x = date, y = ws_fire_area_m2_6m_ppt)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Date")+
+  facet_wrap(region~site, scales = "free") +
+  theme_bw()+
+  geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="EFJ" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND_BB" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RED" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSA" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSAW" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
+             colour="red")
+
+# Fire % watershed burned X ppt in all sites
+ggplot(dat, aes(x = date, y = fire_perc_ws_6m_ppt)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Date")+
+  facet_wrap(region~site, scales = "free") +
+  theme_bw()+
+  geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="EFJ" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="IND_BB" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RED" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSA" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="RSAW" & fire_pa==1), aes(xintercept=date), 
+             colour="red")+
+  geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
+             colour="red")
+
+
 #### MARSS: ppt, fire pa 1m, fire pa 6m x ppt, no legacy effects ####
 
 #### Set up data for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -589,7 +881,7 @@ rm(list=ls())
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 # load data with fire x ppt interactions and legacy effects
-dat = readRDS("data_working/marss_data_sb_vc_072822_2.rds")
+dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
 
 # select sites
 # include these sites only (10 total - these have the longest most complete ts for SpC and I have also removed HO00 because it was causing issues with missing fire effects data):
