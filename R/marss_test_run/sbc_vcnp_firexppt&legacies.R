@@ -513,7 +513,9 @@ dat11 = left_join(dat11, firedates_2m_5ylegacy, by=c("year","month","site"))
 dat11[,55:69][is.na(dat11[,55:69])] = 0
 
 #
-#### Check for known fire x ppt effect in EFJ ####
+#### Examine data closely ####
+
+### Check for known fire x ppt effect in EFJ ###
 
 # Sherson et al 2015 describes the effect of the 2011 Las Conchas fire on SpC in the East Fork Jemez River using high frequency data: almost no SpC response to storms before the fire, then observations of SpC flushing after. Those observations should be apparent in this dataset as well as it is the same as site VC EFJ here. This serves as a good tests that the data used here is correct (i.e. hasn't gotten messed up in editing processes), so I am checking for that observation here before proceeding. 
 # For model results, this means we should also expect to see a ppt x fire effect at least in thr EFJ stream, in association with at least the 2011 fire. If we do not, it is a red flag that the model might be poorly specified, overfit, etc. and we should double check everything. It's possible the effect isn't strong enough to produce a significant coefficent, but it is something to look out for as a 'gut check'.
@@ -534,9 +536,12 @@ abline(v=97, col="red")
 # I wish I knew whether that high SpC value at index 14 (in 2006) was an outlier or not. It does not look like a real C-Q response because there is no falling limb despite the elevated precip occuring for more than 1 month, unlike later in the dataset. However, precip. IS high that month so it could be real. Looking in other sites, there seems to be a similar event in IND but not in RSA or RSAW; data is not available on those dates in RED, IND_BB, or SULF. 
 # Other than that point, this data does seem to corroborate Sherson 2015's observations. Similar precip elsewhere in the timeseries does not have a SpC flush until after the fires. 
 
+# My gut tells me the 2006 high point is not real. I am going to treat it as an outlier for now, but must discuss this with group.
+
+
 # pull data from other sites:
 # "RSAW"  "RSA" "IND"  "IND_BB"  "RED"  "SULF"  
-dat_site = dat11[dat11$site=="IND",]
+dat_site = dat11[dat11$site=="RSAW",]
 # plot
 par(mfrow=c(2,1))
 plot(dat_site$cumulative_precip_mm~dat_site$index, type="b",
@@ -550,10 +555,7 @@ abline(v=14, col="blue")
 abline(v=74, col="red")
 abline(v=97, col="red")
 
-# My gut tells me the 2006 high point is not real. I am going to treat it as an outlier for now, but must discuss this with group.
-
-
-
+# In RED (Redondo Creek), there is an unusually low value the same month of the Thompson Ridge fire. Same thing on same date in RSAW. Both values are much lower than any other SpC values in the records of any other site. They also occured in May, which is typically a dry month in this area, and precip. records confirm that this couldn't be dilution. No other snowmelt periods in either record have low values at this time either. I think these low values are malfunction associated with the fire or lack of mantinance or something. I'm going to remove them. 
 
 #
 #### Remove outliers ####
@@ -561,6 +563,10 @@ abline(v=97, col="red")
 # See notes in previous section
 # Replace outlier with previous month's value
 dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==14] = dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==13] 
+
+# Replace with NAs
+dat11$mean_cond_uScm[dat11$site=="RED" & dat11$index==96] =NA
+dat11$mean_cond_uScm[dat11$site=="RSAW" & dat11$index==96] =NA
 
 # winter-time unrealistic ppt values in RSAW:
 # Replace outlier with previous month's value
@@ -1054,22 +1060,13 @@ mod_list <- list(
 # fit BFGS with priors
 kemfit <- MARSS(y = dat_dep, model = mod_list,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
-# Convergence warnings
-# 102 warnings. First 10 shown.  Type cat(object$errors) to see the full list.
-# Warning: the  logLik  parameter value has not converged.
-# Type MARSSinfo("convergence") for more info on this warning.
-# 
-# MARSSkem warnings. Type MARSSinfo() for help.
-# iter=2,t=1 B update is outside the unit circle......
 
 fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_08102022_9state_cond_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
-
-# the EM algorithm did not converge but still provided something to pass on to the BFGS fit so I was able to get a model fit. Unclear to me at this point whoe the BFGS model did but I should be warry. see MARSSinfo('denominv') for possibilities as to why the EM algorithm struggled. One possibility is that there are several fire and firexppt covar rows that hold the same values. Ideally that would be coded as shared covar data among states in the C matrix, but that's a pain. However I didn't have this issue until now, so could be something else. 
+        file = "data_working/marss_test_run/fit_08152022_9state_cond_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
 
 #### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1078,7 +1075,7 @@ saveRDS(fit,
 # If you start here, make sure you run the parts of the script above to prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_08102022_9state_cond_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_08152022_9state_cond_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -1123,53 +1120,23 @@ bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
 # fit        0.0 54
-# null.fit 281.1 27
+# null.fit 252.9 27
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
 # What you don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
+# Should definitely examine these without seasonal effect to see how necessary this is
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-          xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-   qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1231,7 +1198,7 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),4*3)) # *****CHECK ORDER OF 
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 07/26/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 08/15/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
@@ -1360,8 +1327,8 @@ CC <- matrix(list(
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# x0_fixed = c(dat_dep[,1])
-# x0_fixed[4] = mean(dat_dep[4,],na.rm=T)
+#x0_fixed = c(dat_dep[,1, drop = FALSE])
+#x0_fixed[4] = mean(dat_dep[4,],na.rm=T)
 
 mod_list <- list(
   ### inputs to process model ###
@@ -1378,8 +1345,8 @@ mod_list <- list(
   R = "zero", 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
-  V0="zero" ,
-  tinitx=0
+  tinitx=0,
+  V0="zero"
 )
 
 #### Fit MARSS model +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1389,22 +1356,13 @@ mod_list <- list(
 # fit BFGS with priors
 kemfit <- MARSS(y = dat_dep, model = mod_list,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
-# Convergence warnings
-# 102 warnings. First 10 shown.  Type cat(object$errors) to see the full list.
-# Warning: the  logLik  parameter value has not converged.
-# Type MARSSinfo("convergence") for more info on this warning.
-# 
-# MARSSkem warnings. Type MARSSinfo() for help.
-# iter=2,t=1 B update is outside the unit circle......
 
 fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_08102022_9state_cond_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
-
-# the EM algorithm had warnings but still provided something to pass on to the BFGS fit so I was able to get a model fit. 
+        file = "data_working/marss_test_run/fit_08152022_9state_cond_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
 
 #### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1413,7 +1371,7 @@ saveRDS(fit,
 # NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_08102022_9state_cond_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_08152022_9state_cond_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -1445,9 +1403,9 @@ mod_list_null <- list(
   d="zero",
   R = "zero", 
   ### initial conditions ###
-  #x0 = matrix("x0"),
-  V0="zero" ,
-  tinitx=0
+  #x0 = matrix(x0_fixed),
+  tinitx=0,
+  V0="zero"
 )
 null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
                      control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
@@ -1458,53 +1416,25 @@ bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
 # fit        0.0 54
-# null.fit 271.5 27
+# null.fit 248.6 27
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+### Do fitted values seem reasonable and fall within the 95% CIs?
+# yes
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
-# What you don't want is a consistent lag at 1, 6, or 12.
+# What you REALLY don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1566,7 +1496,7 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),4*3)) # *****CHECK ORDER OF 
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 08/10/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 08/15/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
@@ -1588,10 +1518,11 @@ is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
 
 # select sites
-# include these sites only (9 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
-# AB00, GV01, HO00, MC06, RS02 = SB
+# include these sites only (8 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
+# *** FOR MODELS WITH FIREXPPT INTERACTIONS WITH ONE YEAR LEGACY, HO00 CANNOT BE INCLUDED BECAUSE THERE  was no precip. in the months where the 1y fire legacy falls, CAUSING NANS IN THE COVARIATES *** #
+# AB00, GV01, MC06, RS02 = SB
 # EFJ, RED, RSA, & RSAW = VC
-sitez = c("AB00", "GV01", "HO00", "MC06", "RS02",
+sitez = c("AB00", "GV01", "MC06", "RS02",
           "EFJ", "RED", "RSA", "RSAW")
 dat = dat[dat$site %in% sitez,]
 table(dat$site)
@@ -1612,8 +1543,8 @@ dat_cond <- dat %>%
 
 # indicate column #s of response and predictor vars
 names(dat_cond)
-resp_cols = c(2:10)
-cov_cols = c(11:55)
+resp_cols = c(2:9)
+cov_cols = c(10:49)
 
 # log and scale transform response var
 dat_cond_log = dat_cond
@@ -1642,10 +1573,6 @@ dat_cov <- t(scale(dat_cov))
 row.names(dat_cov)
 # check for nas, nans, or infs
 sum(is.nan(dat_cov))
-
-# fire_perc_ws_6m_ppt_1ylegacy_HO00 is all NaNs because there was no precip. in the months where the 1y fire legacy falls. I will replace with all zeros and ignore results from this effect.
-dat_cov["fire_perc_ws_6m_ppt_1ylegacy_HO00",] = 0
-
 sum(is.na(dat_cov))
 sum(is.infinite(dat_cov))
 # are any rows identical? this can cause model convergence issues
@@ -1656,67 +1583,61 @@ dat_cov[duplicated(dat_cov),]
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# "XXXX_AB00",0,0,0,0,0,0,0,0,
-# 0,"XXXX_GV01",0,0,0,0,0,0,0,
-# 0,0,"XXXX_HO00",0,0,0,0,0,0,
-# 0,0,0,"XXXX_MC06",0,0,0,0,0,
-# 0,0,0,0,"XXXX_RS02",0,0,0,0,
-# 0,0,0,0,0,"XXXX_EFJ" ,0,0,0,
-# 0,0,0,0,0,0,"XXXX_RSAW",0,0,
-# 0,0,0,0,0,0,0,"XXXX_RSA" ,0,
-# 0,0,0,0,0,0,0,0,"XXXX_RED" ,
+# "XXXX_AB00",0,0,0,0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,0,0,0,
+# 0,0,"XXXX_MC06",0,0,0,0,0,
+# 0,0,0,"XXXX_RS02",0,0,0,0,
+# 0,0,0,0,"XXXX_EFJ" ,0,0,0,
+# 0,0,0,0,0,"XXXX_RSAW",0,0,
+# 0,0,0,0,0,0,"XXXX_RSA" ,0,
+# 0,0,0,0,0,0,0,"XXXX_RED" ,
 
 CC <- matrix(list( 
   # precip by site: cumulative_precip_mm
-  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,0,
-  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,0,
-  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,0,
-  0,0,0,"cumulative_precip_mm_MC06",0,0,0,0,0,
-  0,0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
-  0,0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
-  0,0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
-  0,0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_MC06",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
   # fire_perc_ws: fire effect in 2 m window
-  "fire_perc_ws_AB00",0,0,0,0,0,0,0,0,
-  0,"fire_perc_ws_GV01",0,0,0,0,0,0,0,
-  0,0,"fire_perc_ws_HO00",0,0,0,0,0,0,
-  0,0,0,"fire_perc_ws_MC06",0,0,0,0,0,
-  0,0,0,0,"fire_perc_ws_RS02",0,0,0,0,
-  0,0,0,0,0,"fire_perc_ws_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"fire_perc_ws_RSAW",0,0,
-  0,0,0,0,0,0,0,"fire_perc_ws_RSA" ,0,
-  0,0,0,0,0,0,0,0,"fire_perc_ws_RED" ,
+  "fire_perc_ws_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_MC06",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_RED" ,
   # fire_perc_ws_6m_1ylegacy
-  "fire_perc_ws_6m_1ylegacy_AB00",0,0,0,0,0,0,0,0,
-  0,"fire_perc_ws_6m_1ylegacy_GV01",0,0,0,0,0,0,0,
-  0,0,"fire_perc_ws_6m_1ylegacy_HO00",0,0,0,0,0,0,
-  0,0,0,"fire_perc_ws_6m_1ylegacy_MC06",0,0,0,0,0,
-  0,0,0,0,"fire_perc_ws_6m_1ylegacy_RS02",0,0,0,0,
-  0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RED" ,
+  "fire_perc_ws_6m_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_6m_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_6m_1ylegacy_MC06",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_6m_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_6m_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RED" ,
   # fire_perc_ws_6m_ppt: interaction of cum. ppt with fire % burn in 6 m window
-  "fire_perc_ws_6m_ppt_AB00",0,0,0,0,0,0,0,0,
-  0,"fire_perc_ws_6m_ppt_GV01",0,0,0,0,0,0,0,
-  0,0,"fire_perc_ws_6m_ppt_HO00",0,0,0,0,0,0,
-  0,0,0,"fire_perc_ws_6m_ppt_MC06",0,0,0,0,0,
-  0,0,0,0,"fire_perc_ws_6m_ppt_RS02",0,0,0,0,
-  0,0,0,0,0,"fire_perc_ws_6m_ppt_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"fire_perc_ws_6m_ppt_RSAW",0,0,
-  0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_RSA" ,0,
-  0,0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_RED" ,
+  "fire_perc_ws_6m_ppt_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_6m_ppt_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_6m_ppt_MC06",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_6m_ppt_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_6m_ppt_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_6m_ppt_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_6m_ppt_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_RED" ,
   # fire_perc_ws_6m_ppt_1ylegacy
-  "fire_perc_ws_6m_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,0,
-  0,"fire_perc_ws_6m_ppt_1ylegacy_GV01",0,0,0,0,0,0,0,
-  0,0,"fire_perc_ws_6m_ppt_1ylegacy_HO00",0,0,0,0,0,0,
-  0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_MC06",0,0,0,0,0,
-  0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RS02",0,0,0,0,
-  0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RED" ), 9,45)
+  "fire_perc_ws_6m_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_6m_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_6m_ppt_1ylegacy_MC06",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RED" ), 8,40)
 
 #### Model setup for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1751,17 +1672,16 @@ mod_list <- list(
 # fit BFGS with priors
 kemfit <- MARSS(y = dat_dep, model = mod_list,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
-# Stopped at iter=1 in MARSSkem at U update. denom is not invertible.
-This means some of the U (+ C) terms cannot be estimated.
-Type MARSSinfo('denominv') for more info. 
-par, kf, states, iter, loglike are the last values before the error.
+# Convergence warnings
+# Warning: the  x0.X.mean_cond_uScm_RSA  parameter value has not converged.
+# Type MARSSinfo("convergence") for more info on this warning.
 
 fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_08102022_9state_cond_percburn2m_percburn6mxppt_1ylegacies_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_08152022_8state_cond_percburn2m_percburn6mxppt_1ylegacies_mBFGS.rds")
 
 # the EM algorithm did not converge but still provided something to pass on to the BFGS fit so I was able to get a model fit. 
 
@@ -1772,7 +1692,7 @@ saveRDS(fit,
 # NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_08102022_9state_cond_percburn2m_percburn6mxppt_1ylegacies_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_08152022_8state_cond_percburn2m_percburn6mxppt_1ylegacies_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -1816,54 +1736,24 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
 bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
-# fit        0.0 54
-# null.fit 291.9 27
+# fit        0.0 64
+# null.fit 264.8 24
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
 # What you don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
+# Should definitely examine these without seasonal effect to see how necessary this is
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -1899,7 +1789,7 @@ rownames(CIs_fit) =gsub("RSAW","SAW",rownames(CIs_fit))
 CIs_AB00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("AB00", CIs_fit$parm),])
 
 # Now to iterate over all sites
-my_list <- c("AB00","GV01","HO00","MC06","RS02","EFJ","RED","RSA","SAW")
+my_list <- c("AB00","GV01","MC06","RS02","EFJ","RED","RSA","SAW")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -1915,8 +1805,8 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
   rename(Parameter = parm) # rename site column
 CIs_fit_ed$Parameter = rep(c("Cum. Ppt", 
                              "% Burn", "% Burn 1y",
-                             "Cum. Ppt * % Burn (6m)","Cum. Ppt * % Burn (6m) 1y"), 9)
-CIs_fit_ed$Region = c(rep(c("SB"),5*5), rep(c("VC"),4*5)) # *****CHECK ORDER OF SITES FOR THIS!!*****
+                             "Cum. Ppt * % Burn (6m)","Cum. Ppt * % Burn (6m) 1y"), 8)
+CIs_fit_ed$Region = c(rep(c("SB"),4*5), rep(c("VC"),4*5)) # *****CHECK ORDER OF SITES FOR THIS!!*****
 
 # plot results
 (RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
@@ -1928,7 +1818,7 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*5), rep(c("VC"),4*5)) # *****CHECK ORDER OF 
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 08/10/2022") +
+         title = "Sp. Conductivity MARSS modeling results - 08/15/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
@@ -2181,50 +2071,20 @@ bbmle::AICtab(fit, null.fit)
 # null.fit 293  27
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
 # What you don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
+# Should definitely examine these without seasonal effect to see how necessary this is
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2419,8 +2279,8 @@ CC <- matrix(list(
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-# x0_fixed = c(dat_dep[,1])
-# x0_fixed[4] = mean(dat_dep[4,],na.rm=T)
+x0_fixed = c(dat_dep[,1])
+x0_fixed[4] = mean(dat_dep[4,],na.rm=T)
 
 mod_list <- list(
   ### inputs to process model ###
@@ -2436,8 +2296,8 @@ mod_list <- list(
   d="zero",
   R = "zero", 
   ### initial conditions ###
-  #x0 = matrix(x0_fixed),
-  V0="zero" ,
+  x0 = matrix(x0_fixed),
+  #V0="zero" ,
   tinitx=0
 )
 
@@ -2511,50 +2371,20 @@ bbmle::AICtab(fit, null.fit)
 # null.fit 261.1 27
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
 # What you don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
+# Should definitely examine these without seasonal effect to see how necessary this is
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2841,50 +2671,20 @@ bbmle::AICtab(fit, null.fit)
 # null.fit 226.1 27
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
 # What you don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
+# Should definitely examine these without seasonal effect to see how necessary this is
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3174,50 +2974,20 @@ bbmle::AICtab(fit, null.fit)
 # null.fit 232.2 27
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
 # What you don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
+# Should definitely examine these without seasonal effect to see how necessary this is
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good other than last two sites
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -3507,51 +3277,22 @@ bbmle::AICtab(fit, null.fit)
 # null.fit 232.2 27
 # RESULT: covar model is better than null
 
-### Plot response vars ###
-par(mfrow=c(5,2),oma = c(0, 0, 0, 0))
-plot(dat_dep[1,], type="o")
-plot(dat_dep[2,], type="o")
-plot(dat_dep[3,], type="o")
-plot(dat_dep[4,], type="o")
-plot(dat_dep[5,], type="o")
-plot(dat_dep[6,], type="o")
-plot(dat_dep[7,], type="o")
-plot(dat_dep[8,], type="o")
-plot(dat_dep[9,], type="o")
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
 
 ### Do resids have temporal autocorrelation? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1, 0))
-for(i in c(1:9)){
-  #forecast::Acf(resids$model.residuals[i,], main=paste(i, "model residuals"), na.action=na.pass, lag.max = 24)
-  forecast::Acf(resids$state.residuals[i,], main=paste(i, "state residuals"), na.action=na.pass, lag.max = 24)
-  mtext("Do resids have temporal autocorrelation?", outer = TRUE, cex = 1)
-}
-# These look ok.
 # What you don't want is a consistent lag at 1, 6, or 12.
 # Patterns are bad (esp. sinusoidal), random is good.
-# Should definitely examine these without seasonal effect to see how necessary this is.
+# Should definitely examine these without seasonal effect to see how necessary this is
 
 ### Are resids normal? ###
-par(mfrow=c(5,2),oma = c(0, 0, 1.5, 0))
-for(i in c(1:9)){
-  # qqnorm(resids$model.residuals[i,], main=paste(i, "model residuals"),
-  #        pch=16,
-  #        xlab=paste("shapiro test: ", shapiro.test(resids$model.residuals[i,])[1]))
-  # qqline(resids$model.residuals[i,])
-  qqnorm(resids$state.residuals[i,], main=paste(i, "state residuals"), pch=16, 
-         xlab=paste("shapiro test: ", shapiro.test(resids$state.residuals[i,])[1]))
-  qqline(resids$state.residuals[i,])
-  mtext("Are resids normal?", outer = TRUE, cex = 1)
-}
-# state residuals - looking pretty good other than last two sites
 # they are qq plots that should look like a straight line
 # shapiro test scores should be closer to 1
 # flat lines likely due to low variation in some sites
 
-# reset plotting window
-par(mfrow=c(1,1),oma = c(0, 0, 0, 0))
-
+### Overall ###
 # None of these diagnoses look prohibitively bad
+
 
 #  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
