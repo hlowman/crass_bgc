@@ -62,6 +62,7 @@ library(tidyverse)
 library(lubridate)
 library(MARSS)
 library(naniar) 
+library(beepr)
 # load fxn to replace NaNs with NAs
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
@@ -1998,23 +1999,14 @@ mod_list <- list(
 # fit BFGS with priors
 kemfit <- MARSS(y = dat_dep, model = mod_list,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
-# Convergence warnings
-# 102 warnings. First 10 shown.  Type cat(object$errors) to see the full list.
-# Warning: the  logLik  parameter value has not converged.
-# Type MARSSinfo("convergence") for more info on this warning.
-# 
-# MARSSkem warnings. Type MARSSinfo() for help.
-# iter=2,t=1 B update is outside the unit circle.
-# iter=3,t=1 B update is outside the unit circle....
 
 fit <- MARSS(y = dat_dep, model = mod_list,
-             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par); beep(2)
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_08112022_9state_cond_percburn2m_percburn6mxppt_2ylegacies_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_08152022_9state_cond_percburn2m_percburn6mxppt_2ylegacies_mBFGS.rds")
 
-# the EM algorithm did not fully converge but still provided something to pass on to the BFGS fit so I was able to get a model fit. 
 
 #### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2023,7 +2015,7 @@ saveRDS(fit,
 # NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_08112022_9state_cond_percburn2m_percburn6mxppt_2ylegacies_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_08152022_9state_cond_percburn2m_percburn6mxppt_2ylegacies_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -2033,11 +2025,11 @@ fit[["errors"]]
 
 ## Script for diagnoses ###
 
-dat = dat_dep
-time = c(1:ncol(dat_dep))
-# don't use residuals() - this will pull an entirely different df
-resids <- MARSSresiduals(fit)
-kf=print(fit, what="kfs") # Kalman filter and smoother output
+# dat = dat_dep
+# time = c(1:ncol(dat_dep))
+# # don't use residuals() - this will pull an entirely different df
+# resids <- MARSSresiduals(fit)
+# kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
 # make sure this matches the fitted model in all ways besides the inclusion of C and c
@@ -2068,11 +2060,14 @@ bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
 # fit        0  72
-# null.fit 293  27
+# null.fit 271  27
 # RESULT: covar model is better than null
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
+
+### Do fitted values seem reasonable and fall within the 95% CIs?
+# RSA and RED go a little crazy
 
 ### Do resids have temporal autocorrelation? ###
 # What you don't want is a consistent lag at 1, 6, or 12.
@@ -2150,6 +2145,298 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*5), rep(c("VC"),4*5)) # *****CHECK ORDER OF 
     coord_flip() +
     labs(y = "",
          title = "Sp. Conductivity MARSS modeling results - 08/11/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_wrap(Region~Site, scales = "free"))
+
+
+#
+#### MARSS: ppt, % burn (6m win) 1y legacy, % burn (6m win) x ppt 1y legacy NO HO00 ####
+
+#### Set up data for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
+
+# select sites
+# include these sites only (9 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
+# *** FOR MODELS WITH FIREXPPT INTERACTIONS WITH ONE YEAR LEGACY, HO00 CANNOT BE INCLUDED BECAUSE THERE  was no precip. in the months where the 1y fire legacy falls, CAUSING NANS IN THE COVARIATES *** #
+# AB00, GV01, HO00, MC06, RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "MC06", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_6m_1ylegacy, 
+    fire_perc_ws_6m_ppt_1ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_6m_1ylegacy,
+                    fire_perc_ws_6m_ppt_1ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols]))
+sum(is.na(dat_cond_log[,resp_cols]))
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols]))
+sum(is.na(dat_cond_log[,cov_cols]))
+sum(is.infinite(dat_cond_log[,cov_cols]))
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov))
+sum(is.na(dat_cov))
+sum(is.infinite(dat_cov))
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0)
+
+#### make C matrix  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# "XXXX_AB00",0,0,0,0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,0,0,0,
+# 0,0,"XXXX_MC06",0,0,0,0,0,
+# 0,0,0,"XXXX_RS02",0,0,0,0,
+# 0,0,0,0,"XXXX_EFJ" ,0,0,0,
+# 0,0,0,0,0,"XXXX_RSAW",0,0,
+# 0,0,0,0,0,0,"XXXX_RSA" ,0,
+# 0,0,0,0,0,0,0,"XXXX_RED" ,
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_MC06",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_6m_1ylegacy
+  "fire_perc_ws_6m_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_6m_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_6m_1ylegacy_MC06",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_6m_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_6m_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_6m_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_1ylegacy
+  "fire_perc_ws_6m_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_6m_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_6m_ppt_1ylegacy_MC06",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_1ylegacy_RED" ), 8,24)
+
+#### Model setup for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#x0_fixed = c(dat_dep[,1])
+#x0_fixed[4] = mean(dat_dep[4,],na.rm=T)
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+#### Fit MARSS model +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par); beep(2)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_test_run/fit_08152022_8state_cond_percburn1ylegacy_percburn6mxppt1ylegacy_mBFGS.rds")
+
+#### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
+
+# import model fit
+fit = readRDS(file = "data_working/marss_test_run/fit_08152022_8state_cond_percburn1ylegacy_percburn6mxppt1ylegacy_mBFGS.rds")
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+## Script for diagnoses ###
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#            dAIC df
+# fit        0.0 48
+# null.fit 214.2 24
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+### Do fitted values seem reasonable and fall within the 95% CIs?
+# yes
+
+### Do resids have temporal autocorrelation? ###
+# What you don't want is a consistent lag at 1, 6, or 12.
+# Patterns are bad (esp. sinusoidal), random is good.
+# Should definitely examine these without seasonal effect to see how necessary this is
+
+### Are resids normal? ###
+# they are qq plots that should look like a straight line
+# flat lines likely due to low variation in some sites
+
+### Overall ###
+# None of these diagnoses look prohibitively bad
+
+#  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# only do this if diagnoses look acceptable! 
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results - should bootstrap for final
+est_fit <- MARSSparamCIs(fit); beep(2)
+
+# formatting confidence intervals into dataframe
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+
+# RSA and RSAW get mixed up in plotting, so replacing RSAW with SAW
+CIs_fit$parm =gsub("RSAW","SAW",CIs_fit$parm)
+rownames(CIs_fit) =gsub("RSAW","SAW",rownames(CIs_fit))
+
+# This works for AB00 alone
+CIs_AB00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("AB00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00","GV01","MC06","RS02","EFJ","RED","RSA","SAW")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  dplyr::rename(Site = i) %>%
+  rename(Parameter = parm) # rename site column
+CIs_fit_ed$Parameter = rep(c("Cum. Ppt", 
+                             "% Burn 1y",
+                             "Cum. Ppt * % Burn 1y"), 8)
+CIs_fit_ed$Region = c(rep(c("SB"),4*3), rep(c("VC"),4*3)) # *****CHECK ORDER OF SITES FOR THIS!!*****
+
+# plot results
+(RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",NO HO00
+         title = "Sp. Conductivity MARSS modeling results - 08/15/2022") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
@@ -2310,11 +2597,11 @@ kemfit <- MARSS(y = dat_dep, model = mod_list,
                 control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
 
 fit <- MARSS(y = dat_dep, model = mod_list,
-             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par); beep(2)
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_08112022_9state_cond_percburn2ylegacy_percburn6mxppt2ylegacy_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_08152022_9state_cond_percburn2ylegacy_percburn6mxppt2ylegacy_mBFGS.rds")
 
 #### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -2323,7 +2610,7 @@ saveRDS(fit,
 # NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_08112022_9state_cond_percburn2ylegacy_percburn6mxppt2ylegacy_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_08152022_9state_cond_percburn2ylegacy_percburn6mxppt2ylegacy_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -2332,12 +2619,6 @@ fit[["errors"]]
 # NULL - Yay!
 
 ## Script for diagnoses ###
-
-dat = dat_dep
-time = c(1:ncol(dat_dep))
-# don't use residuals() - this will pull an entirely different df
-resids <- MARSSresiduals(fit)
-kf=print(fit, what="kfs") # Kalman filter and smoother output
 
 ### Compare to null model ###
 # make sure this matches the fitted model in all ways besides the inclusion of C and c
@@ -2366,9 +2647,9 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
 
 bbmle::AICtab(fit, null.fit)
 
-#           dAIC df
-# fit        0.0 54
-# null.fit 261.1 27
+#            dAIC df
+# fit        0.0 45
+# null.fit 274.1 27
 # RESULT: covar model is better than null
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
@@ -2438,6 +2719,295 @@ CIs_fit_ed$Parameter = rep(c("Cum. Ppt",
                             "% Burn 2y",
                              "Cum. Ppt * % Burn 2y"), 9)
 CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),4*3)) # *****CHECK ORDER OF SITES FOR THIS!!*****
+
+# plot results
+(RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 08/11/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_wrap(Region~Site, scales = "free"))
+
+
+#
+#### MARSS: ppt, % burn (6m win) 2y legacy, % burn (6m win) x ppt 2y legacy NO RED ####
+
+#### Set up data for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
+
+# select sites
+# include these sites only (9 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, MC06, RS02 = SB
+# EFJ, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "MC06", "RS02",
+          "EFJ", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_6m_2ylegacy, 
+    fire_perc_ws_6m_ppt_2ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_6m_2ylegacy,
+                    fire_perc_ws_6m_ppt_2ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols]))
+sum(is.na(dat_cond_log[,resp_cols]))
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols]))
+sum(is.na(dat_cond_log[,cov_cols]))
+sum(is.infinite(dat_cond_log[,cov_cols]))
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov))
+sum(is.na(dat_cov))
+sum(is.infinite(dat_cov))
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0)
+
+#### make C matrix  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# "XXXX_AB00",0,0,0,0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,0,0,0,
+# 0,0,"XXXX_HO00",0,0,0,0,0,
+# 0,0,0,"XXXX_MC06",0,0,0,0,
+# 0,0,0,0,"XXXX_RS02",0,0,0,
+# 0,0,0,0,0,"XXXX_EFJ" ,0,0,
+# 0,0,0,0,0,0,"XXXX_RSAW",0,
+# 0,0,0,0,0,0,0,"XXXX_RSA" ,
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_MC06",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_RS02",0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSAW",0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,
+  # fire_perc_ws_6m_2ylegacy
+  "fire_perc_ws_6m_2ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_6m_2ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_6m_2ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_6m_2ylegacy_MC06",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_6m_2ylegacy_RS02",0,0,0,
+  0,0,0,0,0,"fire_perc_ws_6m_2ylegacy_EFJ" ,0,0,
+  0,0,0,0,0,0,"fire_perc_ws_6m_2ylegacy_RSAW",0,
+  0,0,0,0,0,0,0,"fire_perc_ws_6m_2ylegacy_RSA" ,
+  # fire_perc_ws_6m_ppt_2ylegacy
+  "fire_perc_ws_6m_ppt_2ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_6m_ppt_2ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_6m_ppt_2ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_6m_ppt_2ylegacy_MC06",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_6m_ppt_2ylegacy_RS02",0,0,0,
+  0,0,0,0,0,"fire_perc_ws_6m_ppt_2ylegacy_EFJ" ,0,0,
+  0,0,0,0,0,0,"fire_perc_ws_6m_ppt_2ylegacy_RSAW",0,
+  0,0,0,0,0,0,0,"fire_perc_ws_6m_ppt_2ylegacy_RSA"), 8,24)
+
+#### Model setup for MARSS +++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+#x0_fixed = c(dat_dep[,1])
+#x0_fixed[4] = mean(dat_dep[4,],na.rm=T)
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+#### Fit MARSS model +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par); beep(2)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_test_run/fit_08152022_8state_cond_percburn2ylegacy_percburn6mxppt2ylegacy_mBFGS.rds")
+
+#### DIAGNOSES +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+# NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
+
+# import model fit
+fit = readRDS(file = "data_working/marss_test_run/fit_08152022_8state_cond_percburn2ylegacy_percburn6mxppt2ylegacy_mBFGS.rds")
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+## Script for diagnoses ###
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#            dAIC df
+# fit        0.0 45
+# null.fit 274.1 27
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+### Do resids have temporal autocorrelation? ###
+# What you don't want is a consistent lag at 1, 6, or 12.
+# Patterns are bad (esp. sinusoidal), random is good.
+# Should definitely examine these without seasonal effect to see how necessary this is
+
+### Are resids normal? ###
+# they are qq plots that should look like a straight line
+# shapiro test scores should be closer to 1
+# flat lines likely due to low variation in some sites
+
+### Overall ###
+# None of these diagnoses look prohibitively bad
+
+#  PLOT RESULTS ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+#  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+# only do this if diagnoses look acceptable! 
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results - should bootstrap for final
+est_fit <- MARSSparamCIs(fit)
+
+# formatting confidence intervals into dataframe
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+
+# RSA and RSAW get mixed up in plotting, so replacing RSAW with SAW
+CIs_fit$parm =gsub("RSAW","SAW",CIs_fit$parm)
+rownames(CIs_fit) =gsub("RSAW","SAW",rownames(CIs_fit))
+
+# This works for AB00 alone
+CIs_AB00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("AB00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00","GV01","HO00","MC06","RS02","EFJ","RSA","SAW")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  dplyr::rename(Site = i) %>%
+  rename(Parameter = parm) # rename site column
+CIs_fit_ed$Parameter = rep(c("Cum. Ppt", 
+                             "% Burn 2y",
+                             "Cum. Ppt * % Burn 2y"), 8)
+CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),3*3)) # *****CHECK ORDER OF SITES FOR THIS!!*****
 
 # plot results
 (RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
