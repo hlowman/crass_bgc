@@ -620,4 +620,127 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 saveRDS(fit, 
         file = "data_working/marss_test_run/fit_08262022_6state_nh4_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
 
+#### Diagnoses ####
+
+# If you start here, make sure you run the parts of the script above to prepare data for MARSS. It is needed for diagnoses along with the model fit!
+
+# import model fit
+fit = readRDS(file = "data_working/marss_test_run/fit_08262022_6state_nh4_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#           dAIC df
+# fit        0.0 36
+# null.fit 68.7 18
+# RESULT: covar model is better than null, thank goodness
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No and Yes
+
+# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+
+# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. I mean some fall outside the CIs, but overall look ok.
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
+# Meh, for the most part. HO00 looks worst.
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
+# No patterns.
+
+### Overall ###
+# None of these diagnoses look prohibitively bad.
+
+#### Plot Results ####
+
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is faster but not ideal for final results - should bootstrap for final
+est_fit <- MARSSparamCIs(fit)
+
+# formatting confidence intervals into dataframe
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+### Plot Results for All Sites ###
+
+# First, create dataset of all outputs
+my_list <- c("AB00","AT07", "GV01","HO00","MC06","RS02")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  dplyr::rename(Site = i) %>%
+  rename(Parameter = parm) # rename site column
+
+CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "Fire p/a","Cum. Ppt * Fire p/a (6m)"),6)
+
+CIs_fit_ed$Region = c(rep(c("SB"),6*3)) # **CHECK ORDER OF SITES FOR THIS!!**
+
+# plot results
+(RESULTS_ALL_nh4 <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),
+                  position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Ammonium (NH4) MARSS modeling results - 08/26/2022") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_wrap(Region~Site, scales = "free"))
+
 # End of script.
