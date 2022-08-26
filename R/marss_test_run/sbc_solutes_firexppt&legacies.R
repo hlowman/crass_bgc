@@ -242,7 +242,7 @@ rm(list=ls())
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
-# load data with fire x ppt interactions and legacy effects
+# load data with fire x ppt interactions
 dat <- readRDS("data_working/marss_data_sb_082622.rds")
 
 # add date
@@ -331,6 +331,9 @@ ggplot(dat, aes(x = date, y = mean_po4_uM)) +
 # AB00, AT07, GV01, HO00, MC06, RS02
 sitez = c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")
 dat = dat[dat$site %in% sitez,]
+
+# Export data for later.
+saveRDS(dat, "data_working/marss_data_sb_6sites_082622.rds")
 
 # Examine remaining covariates with the filtered dataset
 
@@ -478,6 +481,143 @@ ggplot(dat, aes(x = date, y = fire_perc_ws_6m_ppt)) +
   # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
   #            colour="red")+
 
+#### MARSS NH4: ppt, % burn (2m win), % burn (6m win) x ppt, no legacy effects ####
 
+# Set up data for MARSS
+
+# remove data
+rm(list=ls())
+
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_082622.rds")
+
+# select sites
+# include these sites only (6 total - these have the longest most complete ts):
+# AB00, AT07, GV01, HO00, MC06, RS02 = SB
+sitez = c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+table(dat$site,dat$fire_pa)
+
+# pivot wider for MARSS format
+dat_nh4 <- dat %>%
+  select(
+    site, index, 
+    mean_nh4_uM, 
+    cumulative_precip_mm, 
+    fire_pa, fire_pa_6m_ppt) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_nh4_uM, cumulative_precip_mm, 
+                    fire_pa, fire_pa_6m_ppt))
+
+# indicate column #s of response and predictor vars
+names(dat_nh4)
+resp_cols = c(2:7)
+cov_cols = c(8:25)
+
+# log and scale transform response var
+dat_nh4_log = dat_nh4
+dat_nh4_log[,resp_cols] = log10(dat_nh4_log[,resp_cols])
+dat_nh4_log[,resp_cols] = scale(dat_nh4_log[,resp_cols])
+
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_nh4_log[,resp_cols])) # 0
+sum(is.na(dat_nh4_log[,resp_cols])) # 264
+range(dat_nh4_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_nh4_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs (none allowed)
+sum(is.nan(dat_nh4_log[,cov_cols])) # 0
+sum(is.na(dat_nh4_log[,cov_cols])) # 0
+sum(is.infinite(dat_nh4_log[,cov_cols])) # 0
+
+# Make covariate inputs
+dat_cov <- dat_nh4_log[,c(cov_cols)]
+# check for cols with all zeros
+any(colSums(dat_cov)==0) # FALSE
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs
+sum(is.nan(dat_cov)) # 0
+sum(is.na(dat_cov)) # 0
+sum(is.infinite(dat_cov)) # 0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# yes
+
+#### Make C Matrix ####
+
+# "XXXX_AB00",0,0,0,0,0,
+# 0,"XXXX_AT07",0,0,0,0,
+# 0,0,"XXXX_GV01",0,0,0,
+# 0,0,0,"XXXX_HO00",0,0,
+# 0,0,0,0,"XXXX_MC06",0,
+# 0,0,0,0,0,"XXXX_RS02"
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,
+  0,"cumulative_precip_mm_AT07",0,0,0,0,
+  0,0,"cumulative_precip_mm_GV01",0,0,0,
+  0,0,0,"cumulative_precip_mm_HO00",0,0,
+  0,0,0,0,"cumulative_precip_mm_MC06",0,
+  0,0,0,0,0,"cumulative_precip_mm_RS02",
+  # fire_pa: fire effect in 2 m window
+  "fire_pa_AB00",0,0,0,0,0,
+  0,"fire_pa_AT07",0,0,0,0,
+  0,0,"fire_pa_GV01",0,0,0,
+  0,0,0,"fire_pa_HO00",0,0,
+  0,0,0,0,"fire_pa_MC06",0,
+  0,0,0,0,0,"fire_pa_RS02",
+  # fire_pa_6m_ppt: interaction of cum. ppt with fire p/a in 6 m window
+  "fire_pa_6m_ppt_AB00",0,0,0,0,0,
+  0,"fire_pa_6m_ppt_AT07",0,0,0,0,
+  0,0,"fire_pa_6m_ppt_GV01",0,0,0,
+  0,0,0,"fire_pa_6m_ppt_HO00",0,0,
+  0,0,0,0,"fire_pa_6m_ppt_MC06",0,
+  0,0,0,0,0,"fire_pa_6m_ppt_RS02"), 6,18)
+
+#### Model setup for MARSS ####
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+#### Fit MARSS model ####
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_test_run/fit_08262022_6state_nh4_fire2mpa_fire6mpaxPPT_nolegacies_mBFGS.rds")
 
 # End of script.
