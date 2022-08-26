@@ -350,6 +350,26 @@ firez$date = as.Date(paste(firez$year, firez$month, "01", sep="-"))
 
 firez$effect_date = firez$date
 
+# 0.5 year legacy (this is to allow a window for the fire x ppt interaction only)
+firedates_0.5ylegacy = rbind(firez, 
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(1)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(2)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(3)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(4)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(5))
+)
+firedates_0.5ylegacy = data.frame(year = year(firedates_0.5ylegacy$effect_date),
+                                month = month(firedates_0.5ylegacy$effect_date),
+                                site = firedates_0.5ylegacy$site,
+                                fire_pa_0.5ylegacy = 1,
+                                ws_fire_area_m2_0.5ylegacy = firedates_0.5ylegacy$ws_fire_area_m2,
+                                fire_perc_ws_0.5ylegacy = firedates_0.5ylegacy$fire_perc_ws)
+firedates_0.5ylegacy = 
+  firedates_0.5ylegacy %>% 
+  group_by(year, month, site, fire_pa_0.5ylegacy) %>% 
+  summarise(ws_fire_area_m2_0.5ylegacy = sum(ws_fire_area_m2_0.5ylegacy),
+            fire_perc_ws_0.5ylegacy = sum(fire_perc_ws_0.5ylegacy))
+
 # 1 year legacy
 firedates_1ylegacy = rbind(firez, 
                            cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(1)),
@@ -603,16 +623,17 @@ firedates_5ylegacy =
             fire_perc_ws_5ylegacy = sum(fire_perc_ws_5ylegacy))
 
 # join legacy dates to data
-dat10 = left_join(dat2, firedates_1ylegacy, by=c("year","month","site"))
+dat9 = left_join(dat2, firedates_0.5ylegacy, by=c("year","month","site"))
+dat10 = left_join(dat9, firedates_1ylegacy, by=c("year","month","site"))
 dat11 = left_join(dat10, firedates_2ylegacy, by=c("year","month","site"))
 dat12 = left_join(dat11, firedates_3ylegacy, by=c("year","month","site"))
 dat13 = left_join(dat12, firedates_4ylegacy, by=c("year","month","site"))
 dat14 = left_join(dat13, firedates_5ylegacy, by=c("year","month","site"))
 
-dat14[,19:33][is.na(dat14[,19:33])] = 0
+dat14[,19:34][is.na(dat14[,19:34])] = 0
 
 # plot legacy effects
-qplot(index, fire_pa_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, fire_pa_0.5ylegacy, data=dat14, colour=site, geom="path", facets = "region")
 qplot(index, ws_fire_area_m2_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
 qplot(index, fire_perc_ws_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
 
@@ -626,7 +647,7 @@ qplot(index, fire_perc_ws_5ylegacy, data=dat14, colour=site, geom="path", facets
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # for fire pa
-dat14$fire_pa_ppt = dat14$fire_pa*dat14$cumulative_precip_mm
+dat14$fire_pa_ppt = dat14$fire_pa_0.5ylegacy*dat14$cumulative_precip_mm
 dat14$fire_pa_ppt_1ylegacy = dat14$fire_pa_1ylegacy*dat14$cumulative_precip_mm
 dat14$fire_pa_ppt_2ylegacy = dat14$fire_pa_2ylegacy*dat14$cumulative_precip_mm
 dat14$fire_pa_ppt_3ylegacy = dat14$fire_pa_3ylegacy*dat14$cumulative_precip_mm
@@ -634,7 +655,7 @@ dat14$fire_pa_ppt_4ylegacy = dat14$fire_pa_4ylegacy*dat14$cumulative_precip_mm
 dat14$fire_pa_ppt_5ylegacy = dat14$fire_pa_5ylegacy*dat14$cumulative_precip_mm
 
 # for fire area
-dat14$ws_fire_area_m2_ppt = dat14$ws_fire_area_m2*dat14$cumulative_precip_mm
+dat14$ws_fire_area_m2_ppt = dat14$ws_fire_area_m2_0.5ylegacy*dat14$cumulative_precip_mm
 dat14$ws_fire_area_m2_ppt_1ylegacy = dat14$ws_fire_area_m2_1ylegacy*dat14$cumulative_precip_mm
 dat14$ws_fire_area_m2_ppt_2ylegacy = dat14$ws_fire_area_m2_2ylegacy*dat14$cumulative_precip_mm
 dat14$ws_fire_area_m2_ppt_3ylegacy = dat14$ws_fire_area_m2_3ylegacy*dat14$cumulative_precip_mm
@@ -642,7 +663,7 @@ dat14$ws_fire_area_m2_ppt_4ylegacy = dat14$ws_fire_area_m2_4ylegacy*dat14$cumula
 dat14$ws_fire_area_m2_ppt_5ylegacy = dat14$ws_fire_area_m2_5ylegacy*dat14$cumulative_precip_mm
 
 # for fire perc burn ws
-dat14$fire_perc_ws_ppt = dat14$fire_perc_ws*dat14$cumulative_precip_mm
+dat14$fire_perc_ws_ppt = dat14$fire_perc_ws_0.5ylegacy*dat14$cumulative_precip_mm
 dat14$fire_perc_ws_ppt_1ylegacy = dat14$fire_perc_ws_1ylegacy*dat14$cumulative_precip_mm
 dat14$fire_perc_ws_ppt_2ylegacy = dat14$fire_perc_ws_2ylegacy*dat14$cumulative_precip_mm
 dat14$fire_perc_ws_ppt_3ylegacy = dat14$fire_perc_ws_3ylegacy*dat14$cumulative_precip_mm
@@ -1067,7 +1088,7 @@ rm(list=ls())
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 # load data with fire x ppt interactions and legacy effects
-dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
+dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
 
 # select sites
 # include these sites only (9 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
@@ -1085,11 +1106,11 @@ dat_cond <- dat %>%
     site, index, 
     mean_cond_uScm, 
     cumulative_precip_mm, 
-    fire_pa, fire_pa_6m_ppt) %>% 
+    fire_pa, fire_pa_ppt) %>% 
   pivot_wider(
     names_from = site, 
     values_from = c(mean_cond_uScm, cumulative_precip_mm, 
-                    fire_pa, fire_pa_6m_ppt)) 
+                    fire_pa, fire_pa_ppt)) 
 
 # indicate column #s of response and predictor vars
 names(dat_cond)
@@ -1360,7 +1381,7 @@ rm(list=ls())
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 # load data with fire x ppt interactions and legacy effects
-dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
+dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
 
 # select sites
 # include these sites only (9 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
@@ -1377,11 +1398,11 @@ dat_cond <- dat %>%
     site, index, 
     mean_cond_uScm, 
     cumulative_precip_mm, 
-    fire_perc_ws, fire_perc_ws_6m_ppt) %>% 
+    fire_perc_ws, fire_perc_ws_ppt) %>% 
   pivot_wider(
     names_from = site, 
     values_from = c(mean_cond_uScm, cumulative_precip_mm, 
-                    fire_perc_ws, fire_perc_ws_6m_ppt)) 
+                    fire_perc_ws, fire_perc_ws_ppt)) 
 
 # indicate column #s of response and predictor vars
 names(dat_cond)
@@ -1410,6 +1431,7 @@ sum(is.infinite(dat_cond_log[,cov_cols]))
 dat_cov <- dat_cond_log[,c(cov_cols)]
 # check for cols with all zeros
 any(colSums(dat_cov)==0)
+which(colSums(dat_cov)==0)
 # scale and transpose
 dat_cov <- t(scale(dat_cov))
 row.names(dat_cov)
