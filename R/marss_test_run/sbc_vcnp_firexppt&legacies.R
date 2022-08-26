@@ -345,174 +345,319 @@ firez$year = year(as.Date(firez$ig_date))
 firez$month = month(as.Date(firez$ig_date))
 firez$date = as.Date(paste(firez$year, firez$month, "01", sep="-"))
 
-#### Add 6 m window to fire effect ###
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-dat4 = dat2
+#### Add fire persistance legacy effects ###
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-# fire_pa_6m: 1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m
-
-#dat4$date = as.Date(paste(dat4$year, dat4$month, "01", sep="-"))
-
-firedates_6m = c(firez$date,
-                 firez$date + 31*1,
-                 firez$date + 31*2,
-                 firez$date + 31*3,
-                 firez$date + 31*4,
-                 firez$date + 31*5)
-
-firedates_6m = data.frame(year = year(firedates_6m),
-                          month = month(firedates_6m),
-                          site = rep(firez$site, 6),
-                          fire_pa_6m = 1,
-                          ws_fire_area_m2_6m = rep(firez$ws_fire_area_m2, 6),
-                          fire_perc_ws_6m = rep(firez$fire_perc_ws, 6))
-dat5 = left_join(dat4, firedates_6m, by=c("year","month","site"))
-dat5[,19:21][is.na(dat5[,19:21])] = 0
-
-qplot(index, fire_pa_6m, data=dat5, colour=site, geom="path", facets = "region")
-qplot(index, fire_perc_ws_6m, data=dat5, colour=site, geom="point", facets = "region")
-
-#### Add fire 6 m window legacy effects ###
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+firez$effect_date = firez$date
 
 # 1 year legacy
-firedates_6m_1ylegacy = data.frame(year = firedates_6m$year+1,
-                                   month = firedates_6m$month,
-                                   site = firedates_6m$site,
-                                   fire_pa_6m_1ylegacy = 1,
-                                   ws_fire_area_m2_6m_1ylegacy = rep(firez$ws_fire_area_m2, 6),
-                                   fire_perc_ws_6m_1ylegacy = rep(firez$fire_perc_ws, 6))
-dat6 = left_join(dat5, firedates_6m_1ylegacy, by=c("year","month","site"))
-dat6[,22:24][is.na(dat6[,22:24])] = 0
+firedates_1ylegacy = rbind(firez, 
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(1)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(2)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(3)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(4)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(5)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(6)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(7)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(8)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(9)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(10)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(11))
+                           )
+firedates_1ylegacy = data.frame(year = year(firedates_1ylegacy$effect_date),
+                                month = month(firedates_1ylegacy$effect_date),
+                                site = firedates_1ylegacy$site,
+                                fire_pa_1ylegacy = 1,
+                                ws_fire_area_m2_1ylegacy = firedates_1ylegacy$ws_fire_area_m2,
+                                fire_perc_ws_1ylegacy = firedates_1ylegacy$fire_perc_ws)
+firedates_1ylegacy = 
+  firedates_1ylegacy %>% 
+  group_by(year, month, site, fire_pa_1ylegacy) %>% 
+  summarise(ws_fire_area_m2_1ylegacy = sum(ws_fire_area_m2_1ylegacy),
+            fire_perc_ws_1ylegacy = sum(fire_perc_ws_1ylegacy))
+
 
 # 2 year legacy
-firedates_6m_2ylegacy = data.frame(year = firedates_6m$year+2,
-                                   month = firedates_6m$month,
-                                   site = firedates_6m$site,
-                                   fire_pa_6m_2ylegacy = 1,
-                                   ws_fire_area_m2_6m_2ylegacy = rep(firez$ws_fire_area_m2, 6),
-                                   fire_perc_ws_6m_2ylegacy = rep(firez$fire_perc_ws, 6))
-dat7 = left_join(dat6, firedates_6m_2ylegacy, by=c("year","month","site"))
-dat7[,25:27][is.na(dat7[,25:27])] = 0
+firedates_2ylegacy = rbind(firez, 
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(1)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(2)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(3)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(4)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(5)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(6)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(7)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(8)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(9)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(10)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(11)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(12)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(13)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(14)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(15)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(16)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(17)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(18)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(19)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(20)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(21)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(22)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(23))
+)
+firedates_2ylegacy = data.frame(year = year(firedates_2ylegacy$effect_date),
+                                month = month(firedates_2ylegacy$effect_date),
+                                site = firedates_2ylegacy$site,
+                                fire_pa_2ylegacy = 1,
+                                ws_fire_area_m2_2ylegacy = firedates_2ylegacy$ws_fire_area_m2,
+                                fire_perc_ws_2ylegacy = firedates_2ylegacy$fire_perc_ws)
+firedates_2ylegacy = 
+  firedates_2ylegacy %>% 
+  group_by(year, month, site, fire_pa_2ylegacy) %>% 
+  summarise(ws_fire_area_m2_2ylegacy = sum(ws_fire_area_m2_2ylegacy),
+            fire_perc_ws_2ylegacy = sum(fire_perc_ws_2ylegacy))
+
 
 # 3 year legacy
-firedates_6m_3ylegacy = data.frame(year = firedates_6m$year+3,
-                                   month = firedates_6m$month,
-                                   site = firedates_6m$site,
-                                   fire_pa_6m_3ylegacy = 1,
-                                   ws_fire_area_m2_6m_3ylegacy = rep(firez$ws_fire_area_m2, 6),
-                                   fire_perc_ws_6m_3ylegacy = rep(firez$fire_perc_ws, 6))
-dat8 = left_join(dat7, firedates_6m_3ylegacy, by=c("year","month","site"))
-dat8[,28:30][is.na(dat8[,28:30])] = 0
+firedates_3ylegacy = rbind(firez, 
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(1)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(2)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(3)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(4)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(5)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(6)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(7)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(8)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(9)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(10)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(11)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(12)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(13)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(14)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(15)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(16)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(17)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(18)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(19)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(20)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(21)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(22)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(23)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(24)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(25)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(26)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(27)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(28)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(29)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(30)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(31)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(32)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(33)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(34)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(35))
+)
+firedates_3ylegacy = data.frame(year = year(firedates_3ylegacy$effect_date),
+                                month = month(firedates_3ylegacy$effect_date),
+                                site = firedates_3ylegacy$site,
+                                fire_pa_3ylegacy = 1,
+                                ws_fire_area_m2_3ylegacy = firedates_3ylegacy$ws_fire_area_m2,
+                                fire_perc_ws_3ylegacy = firedates_3ylegacy$fire_perc_ws)
+firedates_3ylegacy = 
+  firedates_3ylegacy %>% 
+  group_by(year, month, site, fire_pa_3ylegacy) %>% 
+  summarise(ws_fire_area_m2_3ylegacy = sum(ws_fire_area_m2_3ylegacy),
+            fire_perc_ws_3ylegacy = sum(fire_perc_ws_3ylegacy))
 
 # 4 year legacy
-firedates_6m_4ylegacy = data.frame(year = firedates_6m$year+4,
-                                   month = firedates_6m$month,
-                                   site = firedates_6m$site,
-                                   fire_pa_6m_4ylegacy = 1,
-                                   ws_fire_area_m2_6m_4ylegacy = rep(firez$ws_fire_area_m2, 6),
-                                   fire_perc_ws_6m_4ylegacy = rep(firez$fire_perc_ws, 6))
-dat9 = left_join(dat8, firedates_6m_4ylegacy, by=c("year","month","site"))
-dat9[,31:33][is.na(dat9[,31:33])] = 0
+firedates_4ylegacy = rbind(firez, 
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(1)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(2)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(3)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(4)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(5)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(6)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(7)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(8)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(9)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(10)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(11)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(12)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(13)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(14)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(15)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(16)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(17)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(18)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(19)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(20)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(21)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(22)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(23)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(24)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(25)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(26)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(27)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(28)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(29)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(30)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(31)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(32)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(33)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(34)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(35)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(36)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(37)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(38)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(39)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(40)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(41)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(42)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(43)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(44)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(45)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(46)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(47))
+)
+firedates_4ylegacy = data.frame(year = year(firedates_4ylegacy$effect_date),
+                                month = month(firedates_4ylegacy$effect_date),
+                                site = firedates_4ylegacy$site,
+                                fire_pa_4ylegacy = 1,
+                                ws_fire_area_m2_4ylegacy = firedates_4ylegacy$ws_fire_area_m2,
+                                fire_perc_ws_4ylegacy = firedates_4ylegacy$fire_perc_ws)
+firedates_4ylegacy = 
+  firedates_4ylegacy %>% 
+  group_by(year, month, site, fire_pa_4ylegacy) %>% 
+  summarise(ws_fire_area_m2_4ylegacy = sum(ws_fire_area_m2_4ylegacy),
+            fire_perc_ws_4ylegacy = sum(fire_perc_ws_4ylegacy))
 
 # 5 year legacy
-firedates_6m_5ylegacy = data.frame(year = firedates_6m$year+5,
-                                   month = firedates_6m$month,
-                                   site = firedates_6m$site,
-                                   fire_pa_6m_5ylegacy = 1,
-                                   ws_fire_area_m2_6m_5ylegacy = rep(firez$ws_fire_area_m2, 6),
-                                   fire_perc_ws_6m_5ylegacy = rep(firez$fire_perc_ws, 6))
-dat10 = left_join(dat9, firedates_6m_5ylegacy, by=c("year","month","site"))
-dat10[,34:36][is.na(dat10[,34:36])] = 0
+firedates_5ylegacy = rbind(firez, 
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(1)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(2)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(3)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(4)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(5)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(6)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(7)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(8)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(9)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(10)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(11)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(12)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(13)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(14)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(15)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(16)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(17)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(18)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(19)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(20)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(21)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(22)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(23)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(24)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(25)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(26)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(27)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(28)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(29)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(30)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(31)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(32)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(33)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(34)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(35)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(36)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(37)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(38)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(39)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(40)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(41)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(42)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(43)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(44)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(45)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(46)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(47)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(48)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(49)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(50)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(51)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(52)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(53)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(54)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(55)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(56)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(57)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(58)),
+                           cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(59))
+)
+firedates_5ylegacy = data.frame(year = year(firedates_5ylegacy$effect_date),
+                                month = month(firedates_5ylegacy$effect_date),
+                                site = firedates_5ylegacy$site,
+                                fire_pa_5ylegacy = 1,
+                                ws_fire_area_m2_5ylegacy = firedates_5ylegacy$ws_fire_area_m2,
+                                fire_perc_ws_5ylegacy = firedates_5ylegacy$fire_perc_ws)
+firedates_5ylegacy = 
+  firedates_5ylegacy %>% 
+  group_by(year, month, site, fire_pa_5ylegacy) %>% 
+  summarise(ws_fire_area_m2_5ylegacy = sum(ws_fire_area_m2_5ylegacy),
+            fire_perc_ws_5ylegacy = sum(fire_perc_ws_5ylegacy))
+
+# join legacy dates to data
+dat10 = left_join(dat2, firedates_1ylegacy, by=c("year","month","site"))
+dat11 = left_join(dat10, firedates_2ylegacy, by=c("year","month","site"))
+dat12 = left_join(dat11, firedates_3ylegacy, by=c("year","month","site"))
+dat13 = left_join(dat12, firedates_4ylegacy, by=c("year","month","site"))
+dat14 = left_join(dat13, firedates_5ylegacy, by=c("year","month","site"))
+
+dat14[,19:33][is.na(dat14[,19:33])] = 0
+
+# plot legacy effects
+qplot(index, fire_pa_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, ws_fire_area_m2_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, fire_perc_ws_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+
+# plot legacy effects
+qplot(index, fire_pa_5ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, ws_fire_area_m2_5ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, fire_perc_ws_5ylegacy, data=dat14, colour=site, geom="path", facets = "region")
 
 
 #### Add fire x ppt legacy effects ###
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # for fire pa
-dat10$fire_pa_6m_ppt = dat10$fire_pa_6m*dat10$cumulative_precip_mm
-dat10$fire_pa_6m_ppt_1ylegacy = dat10$fire_pa_6m_1ylegacy*dat10$cumulative_precip_mm
-dat10$fire_pa_6m_ppt_2ylegacy = dat10$fire_pa_6m_2ylegacy*dat10$cumulative_precip_mm
-dat10$fire_pa_6m_ppt_3ylegacy = dat10$fire_pa_6m_3ylegacy*dat10$cumulative_precip_mm
-dat10$fire_pa_6m_ppt_4ylegacy = dat10$fire_pa_6m_4ylegacy*dat10$cumulative_precip_mm
-dat10$fire_pa_6m_ppt_5ylegacy = dat10$fire_pa_6m_5ylegacy*dat10$cumulative_precip_mm
+dat14$fire_pa_ppt = dat14$fire_pa*dat14$cumulative_precip_mm
+dat14$fire_pa_ppt_1ylegacy = dat14$fire_pa_1ylegacy*dat14$cumulative_precip_mm
+dat14$fire_pa_ppt_2ylegacy = dat14$fire_pa_2ylegacy*dat14$cumulative_precip_mm
+dat14$fire_pa_ppt_3ylegacy = dat14$fire_pa_3ylegacy*dat14$cumulative_precip_mm
+dat14$fire_pa_ppt_4ylegacy = dat14$fire_pa_4ylegacy*dat14$cumulative_precip_mm
+dat14$fire_pa_ppt_5ylegacy = dat14$fire_pa_5ylegacy*dat14$cumulative_precip_mm
 
 # for fire area
-dat10$ws_fire_area_m2_6m_ppt = dat10$ws_fire_area_m2_6m*dat10$cumulative_precip_mm
-dat10$ws_fire_area_m2_6m_ppt_1ylegacy = dat10$ws_fire_area_m2_6m_1ylegacy*dat10$cumulative_precip_mm
-dat10$ws_fire_area_m2_6m_ppt_2ylegacy = dat10$ws_fire_area_m2_6m_2ylegacy*dat10$cumulative_precip_mm
-dat10$ws_fire_area_m2_6m_ppt_3ylegacy = dat10$ws_fire_area_m2_6m_3ylegacy*dat10$cumulative_precip_mm
-dat10$ws_fire_area_m2_6m_ppt_4ylegacy = dat10$ws_fire_area_m2_6m_4ylegacy*dat10$cumulative_precip_mm
-dat10$ws_fire_area_m2_6m_ppt_5ylegacy = dat10$ws_fire_area_m2_6m_5ylegacy*dat10$cumulative_precip_mm
+dat14$ws_fire_area_m2_ppt = dat14$ws_fire_area_m2*dat14$cumulative_precip_mm
+dat14$ws_fire_area_m2_ppt_1ylegacy = dat14$ws_fire_area_m2_1ylegacy*dat14$cumulative_precip_mm
+dat14$ws_fire_area_m2_ppt_2ylegacy = dat14$ws_fire_area_m2_2ylegacy*dat14$cumulative_precip_mm
+dat14$ws_fire_area_m2_ppt_3ylegacy = dat14$ws_fire_area_m2_3ylegacy*dat14$cumulative_precip_mm
+dat14$ws_fire_area_m2_ppt_4ylegacy = dat14$ws_fire_area_m2_4ylegacy*dat14$cumulative_precip_mm
+dat14$ws_fire_area_m2_ppt_5ylegacy = dat14$ws_fire_area_m2_5ylegacy*dat14$cumulative_precip_mm
 
 # for fire perc burn ws
-dat10$fire_perc_ws_6m_ppt = dat10$fire_perc_ws_6m*dat10$cumulative_precip_mm
-dat10$fire_perc_ws_6m_ppt_1ylegacy = dat10$fire_perc_ws_6m_1ylegacy*dat10$cumulative_precip_mm
-dat10$fire_perc_ws_6m_ppt_2ylegacy = dat10$fire_perc_ws_6m_2ylegacy*dat10$cumulative_precip_mm
-dat10$fire_perc_ws_6m_ppt_3ylegacy = dat10$fire_perc_ws_6m_3ylegacy*dat10$cumulative_precip_mm
-dat10$fire_perc_ws_6m_ppt_4ylegacy = dat10$fire_perc_ws_6m_4ylegacy*dat10$cumulative_precip_mm
-dat10$fire_perc_ws_6m_ppt_5ylegacy = dat10$fire_perc_ws_6m_5ylegacy*dat10$cumulative_precip_mm
+dat14$fire_perc_ws_ppt = dat14$fire_perc_ws*dat14$cumulative_precip_mm
+dat14$fire_perc_ws_ppt_1ylegacy = dat14$fire_perc_ws_1ylegacy*dat14$cumulative_precip_mm
+dat14$fire_perc_ws_ppt_2ylegacy = dat14$fire_perc_ws_2ylegacy*dat14$cumulative_precip_mm
+dat14$fire_perc_ws_ppt_3ylegacy = dat14$fire_perc_ws_3ylegacy*dat14$cumulative_precip_mm
+dat14$fire_perc_ws_ppt_4ylegacy = dat14$fire_perc_ws_4ylegacy*dat14$cumulative_precip_mm
+dat14$fire_perc_ws_ppt_5ylegacy = dat14$fire_perc_ws_5ylegacy*dat14$cumulative_precip_mm
 
+# plot interaction effects
+qplot(index, fire_pa_ppt, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, ws_fire_area_m2_ppt, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, fire_perc_ws_ppt, data=dat14, colour=site, geom="path", facets = "region")
 
-#### Add fire 2 m window legacy effects ###
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+qplot(index, fire_pa_ppt_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, ws_fire_area_m2_ppt_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
+qplot(index, fire_perc_ws_ppt_1ylegacy, data=dat14, colour=site, geom="path", facets = "region")
 
-firedates_2m = c(firez$date,
-                 firez$date + 31*1)
-
-firedates_2m = data.frame(year = year(firedates_2m),
-                          month = month(firedates_2m),
-                          site = rep(firez$site, 2),
-                          fire_pa_2m = 1,
-                          ws_fire_area_m2_2m = rep(firez$ws_fire_area_m2, 2),
-                          fire_perc_ws_2m = rep(firez$fire_perc_ws, 2))
-
-# 1 year legacy
-firedates_2m_1ylegacy = data.frame(year = firedates_2m$year+1,
-                                   month = firedates_2m$month,
-                                   site = firedates_2m$site,
-                                   fire_pa_2m_1ylegacy = 1,
-                                   ws_fire_area_m2_2m_1ylegacy = rep(firez$ws_fire_area_m2, 2),
-                                   fire_perc_ws_2m_1ylegacy = rep(firez$fire_perc_ws, 2))
-dat11 = left_join(dat10, firedates_2m_1ylegacy, by=c("year","month","site"))
-
-# 2 year legacy
-firedates_2m_2ylegacy = data.frame(year = firedates_2m$year+2,
-                                   month = firedates_2m$month,
-                                   site = firedates_2m$site,
-                                   fire_pa_2m_2ylegacy = 1,
-                                   ws_fire_area_m2_2m_2ylegacy = rep(firez$ws_fire_area_m2, 2),
-                                   fire_perc_ws_2m_2ylegacy = rep(firez$fire_perc_ws, 2))
-dat11 = left_join(dat11, firedates_2m_2ylegacy, by=c("year","month","site"))
-
-# 3 year legacy
-firedates_2m_3ylegacy = data.frame(year = firedates_2m$year+3,
-                                   month = firedates_2m$month,
-                                   site = firedates_2m$site,
-                                   fire_pa_2m_3ylegacy = 1,
-                                   ws_fire_area_m2_2m_3ylegacy = rep(firez$ws_fire_area_m2, 2),
-                                   fire_perc_ws_2m_3ylegacy = rep(firez$fire_perc_ws, 2))
-dat11 = left_join(dat11, firedates_2m_3ylegacy, by=c("year","month","site"))
-
-# 4 year legacy
-firedates_2m_4ylegacy = data.frame(year = firedates_2m$year+4,
-                                   month = firedates_2m$month,
-                                   site = firedates_2m$site,
-                                   fire_pa_2m_4ylegacy = 1,
-                                   ws_fire_area_m2_2m_4ylegacy = rep(firez$ws_fire_area_m2, 2),
-                                   fire_perc_ws_2m_4ylegacy = rep(firez$fire_perc_ws, 2))
-dat11 = left_join(dat11, firedates_2m_4ylegacy, by=c("year","month","site"))
-
-# 5 year legacy
-firedates_2m_5ylegacy = data.frame(year = firedates_2m$year+5,
-                                   month = firedates_2m$month,
-                                   site = firedates_2m$site,
-                                   fire_pa_2m_5ylegacy = 1,
-                                   ws_fire_area_m2_2m_5ylegacy = rep(firez$ws_fire_area_m2, 2),
-                                   fire_perc_ws_2m_5ylegacy = rep(firez$fire_perc_ws, 2))
-dat11 = left_join(dat11, firedates_2m_5ylegacy, by=c("year","month","site"))
-
-dat11[,55:69][is.na(dat11[,55:69])] = 0
 
 #
 #### Examine data closely ####
@@ -523,7 +668,7 @@ dat11[,55:69][is.na(dat11[,55:69])] = 0
 # For model results, this means we should also expect to see a ppt x fire effect at least in thr EFJ stream, in association with at least the 2011 fire. If we do not, it is a red flag that the model might be poorly specified, overfit, etc. and we should double check everything. It's possible the effect isn't strong enough to produce a significant coefficent, but it is something to look out for as a 'gut check'.
 
 # pull data from EFJ 
-EFJ = dat11[dat11$site=="EFJ",]
+EFJ = dat14[dat14$site=="EFJ",]
 # plot
 par(mfrow=c(2,1))
 plot(EFJ$cumulative_precip_mm~EFJ$index, type="b",
@@ -543,7 +688,7 @@ abline(v=97, col="red")
 
 # pull data from other sites:
 # "RSAW"  "RSA" "IND"  "IND_BB"  "RED"  "SULF"  
-dat_site = dat11[dat11$site=="RSAW",]
+dat_site = dat14[dat14$site=="RSAW",]
 # plot
 par(mfrow=c(2,1))
 plot(dat_site$cumulative_precip_mm~dat_site$index, type="b",
@@ -564,23 +709,24 @@ abline(v=97, col="red")
 
 # See notes in previous section
 # Replace outlier with previous month's value
-dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==14] = dat11$mean_cond_uScm[dat11$site=="EFJ" & dat11$index==13] 
+dat14$mean_cond_uScm[dat14$site=="EFJ" & dat14$index==14] = dat14$mean_cond_uScm[dat14$site=="EFJ" & dat14$index==13] 
 
 # Replace with NAs
-dat11$mean_cond_uScm[dat11$site=="RED" & dat11$index==96] =NA
-dat11$mean_cond_uScm[dat11$site=="RSAW" & dat11$index==96] =NA
+dat14$mean_cond_uScm[dat14$site=="RED" & dat14$index==96] =NA
+dat14$mean_cond_uScm[dat14$site=="RSAW" & dat14$index==96] =NA
 
 # winter-time unrealistic ppt values in RSAW:
 # Replace outlier with previous month's value
-dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2016 & dat11$month==12] = dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2016 & dat11$month==11]
-dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2017 & dat11$month==1] = dat11$cumulative_precip_mm[dat11$site=="RSAW" & dat11$year==2017 & dat11$month==2]
+dat14$cumulative_precip_mm[dat14$site=="RSAW" & dat14$year==2016 & dat14$month==12] = dat14$cumulative_precip_mm[dat14$site=="RSAW" & dat14$year==2016 & dat14$month==11]
+dat14$cumulative_precip_mm[dat14$site=="RSAW" & dat14$year==2017 & dat14$month==1] = dat14$cumulative_precip_mm[dat14$site=="RSAW" & dat14$year==2017 & dat14$month==2]
 
 
 #### Export data ready for modeling ####
 
 #saveRDS(dat10, "data_working/marss_data_sb_vc_072222_2.rds")
 #saveRDS(dat10, "data_working/marss_data_sb_vc_072822_2.rds")
-saveRDS(dat11, "data_working/marss_data_sb_vc_072922_2.rds")
+#saveRDS(dat11, "data_working/marss_data_sb_vc_072922_2.rds")
+saveRDS(dat14, "data_working/marss_data_sb_vc_082622.rds")
 
 #
 #### Plot data ready for modeling ####
@@ -591,7 +737,7 @@ rm(list=ls())
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 # load data with fire x ppt interactions and legacy effects
-dat = readRDS("data_working/marss_data_sb_vc_072922_2.rds")
+dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
 
 # select sites that are currently included in modeling, or skip this to plot all sites
 # these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
@@ -757,7 +903,7 @@ ggplot(dat, aes(x = date, y = cumulative_precip_mm)) +
              colour="red")
 
 # Fire p/a X ppt in all sites
-ggplot(dat, aes(x = date, y = fire_pa_6m_ppt)) +
+ggplot(dat, aes(x = date, y = fire_pa_ppt)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -795,7 +941,7 @@ ggplot(dat, aes(x = date, y = fire_pa_6m_ppt)) +
              colour="red")
 
 # Fire area X ppt in all sites
-ggplot(dat, aes(x = date, y = ws_fire_area_m2_6m_ppt)) +
+ggplot(dat, aes(x = date, y = ws_fire_area_m2_ppt)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -833,7 +979,7 @@ ggplot(dat, aes(x = date, y = ws_fire_area_m2_6m_ppt)) +
              colour="red")
 
 # Fire % watershed burned X ppt in all sites
-ggplot(dat, aes(x = date, y = fire_perc_ws_6m_ppt)) +
+ggplot(dat, aes(x = date, y = fire_perc_ws_ppt)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -871,7 +1017,7 @@ ggplot(dat, aes(x = date, y = fire_perc_ws_6m_ppt)) +
              colour="red")
 
 # Fire % watershed burned X ppt 2y legacy
-ggplot(dat, aes(x = date, y = fire_perc_ws_6m_2ylegacy)) +
+ggplot(dat, aes(x = date, y = fire_perc_ws_2ylegacy)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
