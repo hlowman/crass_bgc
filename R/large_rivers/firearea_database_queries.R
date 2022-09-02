@@ -97,3 +97,13 @@ FROM discharge_daily
 INNER JOIN catchments ON (catchments.usgs_site = discharge_daily.usgs_site)
 ;
 "
+
+
+# constraining wwtp to delineated catchments
+query_catchments_wwtp <- "
+  SELECT
+    wwtp.*
+  FROM wwtp
+  INNER JOIN catchments ON (catchments.usgs_site = wwtp.usgs_site)
+  ;
+"

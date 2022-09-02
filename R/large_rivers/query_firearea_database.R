@@ -18,6 +18,7 @@ source("firearea_database_queries.R")
 ## connect to database
 path_to_database <- "path_to_directory_where_you_have_downloaded_the_database"
 firearea_db      <- DBI::dbConnect(RSQLite::SQLite(), here::here(path_to_database, "firearea.db"), shutdown=TRUE)
+DBI::dbExecute(firearea_db, "PRAGMA foreign_keys = ON ;") # enforce foreign keys
 
 ## get database details
 DBI::dbGetInfo(firearea_db)
@@ -52,3 +53,9 @@ catchments_daily_discharge <- DBI::dbGetQuery(
   conn      = firearea_db,
   statement = query_discharge_daily
 )
+
+catchments_wwtp <- DBI::dbGetQuery(
+  conn      = firearea_db,
+  statement = query_catchments_wwtp
+) |>
+dplyr::select(-geometry)
