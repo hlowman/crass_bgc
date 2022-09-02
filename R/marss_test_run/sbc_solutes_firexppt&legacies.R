@@ -814,7 +814,7 @@ sum(is.na(dat_cov)) # 0
 sum(is.infinite(dat_cov)) # 0
 # are any rows identical? this can cause model convergence issues
 dat_cov[duplicated(dat_cov),]
-# yes
+# no
 
 ##### Make C Matrix 
 
