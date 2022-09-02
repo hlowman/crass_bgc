@@ -1,10 +1,11 @@
 # README -----------------------------------------------------------------------
 
-# Calls raw SQL queries to extract themed, formatted data from the SQLite
-# firearea database (firearea.db). These queries do not access spatial data.
+# Calls raw SQL queries detailed in `firearea_database_queries.R` to extract
+# themed, formatted data from the SQLite firearea database (firearea.db). These
+# queries do not access spatial data.
 
-# Users should set the database location to the path where the firearea.db
-# resides on their machine.
+# Users should set path_to_database to the path of the directory where the
+# firearea.db resides on their machine.
 
 
 # source SQL queries -----------------------------------------------------------
@@ -15,7 +16,8 @@ source("firearea_database_queries.R")
 # database utilities -----------------------------------------------------------
 
 ## connect to database
-firearea_db <- DBI::dbConnect(RSQLite::SQLite(), "path-to-file/firearea.db")
+path_to_database <- "path_to_directory_where_you_have_downloaded_the_database"
+firearea_db      <- DBI::dbConnect(RSQLite::SQLite(), here::here(path_to_database, "firearea.db"), shutdown=TRUE)
 
 ## get database details
 DBI::dbGetInfo(firearea_db)
@@ -44,4 +46,9 @@ catchments_lulc <- DBI::dbGetQuery(
 catchments_water_chemistry <- DBI::dbGetQuery(
   conn      = firearea_db,
   statement = query_catchments_chemistry
+)
+
+catchments_daily_discharge <- DBI::dbGetQuery(
+  conn      = firearea_db,
+  statement = query_discharge_daily
 )

@@ -76,12 +76,24 @@ LEFT JOIN lulc ON (catchments.usgs_site = lulc.usgs_site)
 "
 
 
+# constraining water chemistry to delineated catchments
 query_catchments_chemistry <- "
 SELECT
-  catchments.usgs_site,
-  ROUND(catchments.area_km2, 1) AS catchment_area,
   water_chem.*
-FROM catchments
-LEFT JOIN water_chem ON (catchments.usgs_site = water_chem.usgs_site)
+FROM water_chem
+INNER JOIN catchments ON (catchments.usgs_site = water_chem.usgs_site)
+;
+"
+
+
+# constraining daily discharge to delineated catchments
+query_discharge_daily <- "
+SELECT
+  catchments.usgs_site,
+  discharge_daily.Date,
+  discharge_daily.Flow,
+  discharge_daily.Flow_cd
+FROM discharge_daily
+INNER JOIN catchments ON (catchments.usgs_site = discharge_daily.usgs_site)
 ;
 "
