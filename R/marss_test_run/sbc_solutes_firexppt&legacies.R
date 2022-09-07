@@ -546,13 +546,12 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions
-dat <- readRDS("data_working/marss_data_sb_082622.rds")
+dat <- readRDS("data_working/marss_data_sb_090722.rds")
 
 # add date
 dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
 
-# examine data to determine which sites to use for modeling
-
+# examine data once more to be sure sites are appropriate to model
 # NH4 in all sites
 ggplot(dat, aes(x = date, y = mean_nh4_uM)) +
   geom_point() +
@@ -626,17 +625,15 @@ ggplot(dat, aes(x = date, y = mean_po4_uM)) +
              colour="red")
 
 # select sites for modeling
-# these have the longest most complete ts for NH4/NO3/PO4 and have coverage before and after fires): 
-
-# RG01 has a fire on the last data point
-# SP02 has only 6 pre-fire data points
-
+# these have the longest most complete ts for NH4/NO3/PO4 and have coverage before and after fires: 
 # AB00, AT07, GV01, HO00, MC06, RS02
 sitez = c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")
 dat = dat[dat$site %in% sitez,]
+# RG01 has a fire on the last data point
+# SP02 has only 6 pre-fire data points
 
 # Export data for later.
-saveRDS(dat, "data_working/marss_data_sb_6sites_082622.rds")
+saveRDS(dat, "data_working/marss_data_sb_6sites_090722.rds")
 
 # Examine remaining covariates with the filtered dataset
 
@@ -657,13 +654,9 @@ ggplot(dat, aes(x = date, y = ws_fire_area_m2)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date),
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
              colour="red")
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")
-
+  
 # Fire % of watershed burned in all sites - check to be sure lines up with fire dates
 ggplot(dat, aes(x = date, y = fire_perc_ws)) +
   geom_point() +
@@ -681,12 +674,8 @@ ggplot(dat, aes(x = date, y = fire_perc_ws)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
              colour="red")
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
 
 # ppt in all sites - check for outliers
 ggplot(dat, aes(x = date, y = cumulative_precip_mm)) +
@@ -705,15 +694,11 @@ ggplot(dat, aes(x = date, y = cumulative_precip_mm)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
              colour="red")
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
 
 # Fire p/a X ppt in all sites - check if ppt interacts w/ fire in 6 mo timeframe
-ggplot(dat, aes(x = date, y = fire_pa_6m_ppt)) +
+ggplot(dat, aes(x = date, y = fire_pa_ppt)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -729,15 +714,11 @@ ggplot(dat, aes(x = date, y = fire_pa_6m_ppt)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
              colour="red")
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
 
 # Fire area X ppt in all sites - again check for interaction with precip
-ggplot(dat, aes(x = date, y = ws_fire_area_m2_6m_ppt)) +
+ggplot(dat, aes(x = date, y = ws_fire_area_m2_ppt)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -753,15 +734,11 @@ ggplot(dat, aes(x = date, y = ws_fire_area_m2_6m_ppt)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
              colour="red")
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
 
 # Fire % watershed burned X ppt in all sites - again check for interaction
-ggplot(dat, aes(x = date, y = fire_perc_ws_6m_ppt)) +
+ggplot(dat, aes(x = date, y = fire_perc_ws_ppt)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -777,12 +754,8 @@ ggplot(dat, aes(x = date, y = fire_perc_ws_6m_ppt)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
              colour="red")
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")+
 
 #### MARSS NH4: ppt, fire pa (2m win), fire pa (6m win) x ppt, no legacy effects ####
 
@@ -1057,8 +1030,8 @@ rm(list=ls())
 is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
-# load data with fire x ppt interactions and legacy effects
-dat = readRDS("data_working/marss_data_sb_082622.rds")
+# load data with fire x ppt interactions and legacy effects for selected sites
+dat = readRDS("data_working/marss_data_sb_6sites_090722.rds")
 
 # select sites
 # include these sites only (6 total - these have the longest most complete ts):
