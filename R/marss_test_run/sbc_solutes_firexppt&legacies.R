@@ -511,13 +511,30 @@ ggplot(dat8, aes(x = index, y = mean_po4_uM, color = site)) +
   facet_wrap(.~site) +
   theme(legend.position = "none")
 
+# SP02 coverage is pretty poor overall.
+
 #### Remove outliers ####
+
+# Examined chem_reg file from the sbc_chem_compilation.R script to compare weekly solute values to
+# measured monthly means to make sure the values made sense and they appear to.
+
+# Raw, unaveraged values for the watersheds in question ranged from:
+# 0 - 600 uM for NH4 (GV01 has max value)
+# 0 - 2000 uM for NO3 (RS02 has max value, with RG01 close behind)
+# 0 - 120 uM for PO4 (AT07 has max value)
+
+# In most cases the monthly averages were a dampened mirror of the trends displayed in the raw values.
+# A few additional notes:
+# The fire effect on NH4 in Gaviota appears VERY strong in the raw data.
+# There is a period towards the end of the RG01 PO4 data where there are less values, so one "monthly"
+# value is in fact just a raw data point, so it seems a bit higher/like an outlier, but I'm choosing to
+# keep it in since it's still a real data point.
 
 # Keeping all data points for now.
 
 #### Export data ready for modeling ####
 
-saveRDS(dat3, "data_working/marss_data_sb_082622.rds")
+saveRDS(dat8, "data_working/marss_data_sb_090722.rds")
 
 #### Plot data ready for modeling ####
 
