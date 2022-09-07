@@ -448,78 +448,65 @@ qplot(index, ws_fire_area_m2_5ylegacy, data=dat8, colour=site, geom="path", face
 qplot(index, fire_perc_ws_5ylegacy, data=dat8, colour=site, geom="path", facets = "region")
 # looking good!
 
-#### Add 6 m window to fire effect ####
-
-# fire_pa_6m: 1=fire ignited in prior 6 m, 0=no fire ignitions in 6 m
-# creating 6 months of dates
-firedates_6m = c(firez$date,
-                 firez$date + 31*1,
-                 firez$date + 31*2,
-                 firez$date + 31*3,
-                 firez$date + 31*4,
-                 firez$date + 31*5)
-
-# creating dataset with fire data repeated for 6 months
-firedates_6m = data.frame(year = year(firedates_6m),
-                          month = month(firedates_6m),
-                          site = rep(firez$site, 6),
-                          fire_pa_6m = 1,
-                          ws_fire_area_m2_6m = rep(firez$ws_fire_area_m2, 6),
-                          fire_perc_ws_6m = rep(firez$fire_perc_ws, 6))
-
-# join with original data
-dat3 = left_join(dat2, firedates_6m, by=c("year","month","site"))
-
-# remove NAs to be zeros in fire info columns so they can be used as covariates
-dat3[,18:20][is.na(dat3[,18:20])] = 0
-
-qplot(index, fire_pa_6m, data=dat3, colour=site, geom="path", facets = "region")
-qplot(index, fire_perc_ws_6m, data=dat3, colour=site, geom="point", facets = "region")
-
-# And export to save progress
-saveRDS(dat3, "data_working/marss_data_sb_N_P_6mon_082622.rds")
-
-#### Add fire 6 m window legacy effects ####
-
-# Waiting for Alex's code re: persistent legacy effects
-
 #### Add fire x ppt legacy effects ####
 
 # for fire pa
-dat3$fire_pa_6m_ppt = dat3$fire_pa_6m*dat3$cumulative_precip_mm
+dat8$fire_pa_ppt = dat8$fire_pa_0.5ylegacy*dat8$cumulative_precip_mm
+dat8$fire_pa_ppt_1ylegacy = dat8$fire_pa_1ylegacy*dat8$cumulative_precip_mm
+dat8$fire_pa_ppt_2ylegacy = dat8$fire_pa_2ylegacy*dat8$cumulative_precip_mm
+dat8$fire_pa_ppt_3ylegacy = dat8$fire_pa_3ylegacy*dat8$cumulative_precip_mm
+dat8$fire_pa_ppt_4ylegacy = dat8$fire_pa_4ylegacy*dat8$cumulative_precip_mm
+dat8$fire_pa_ppt_5ylegacy = dat8$fire_pa_5ylegacy*dat8$cumulative_precip_mm
 
 # for fire area
-dat3$ws_fire_area_m2_6m_ppt = dat3$ws_fire_area_m2_6m*dat3$cumulative_precip_mm
+dat8$ws_fire_area_m2_ppt = dat8$ws_fire_area_m2_0.5ylegacy*dat8$cumulative_precip_mm
+dat8$ws_fire_area_m2_ppt_1ylegacy = dat8$ws_fire_area_m2_1ylegacy*dat8$cumulative_precip_mm
+dat8$ws_fire_area_m2_ppt_2ylegacy = dat8$ws_fire_area_m2_2ylegacy*dat8$cumulative_precip_mm
+dat8$ws_fire_area_m2_ppt_3ylegacy = dat8$ws_fire_area_m2_3ylegacy*dat8$cumulative_precip_mm
+dat8$ws_fire_area_m2_ppt_4ylegacy = dat8$ws_fire_area_m2_4ylegacy*dat8$cumulative_precip_mm
+dat8$ws_fire_area_m2_ppt_5ylegacy = dat8$ws_fire_area_m2_5ylegacy*dat8$cumulative_precip_mm
 
 # for fire perc burn ws
-dat3$fire_perc_ws_6m_ppt = dat3$fire_perc_ws_6m*dat3$cumulative_precip_mm
+dat8$fire_perc_ws_ppt = dat8$fire_perc_ws_0.5ylegacy*dat8$cumulative_precip_mm
+dat8$fire_perc_ws_ppt_1ylegacy = dat8$fire_perc_ws_1ylegacy*dat8$cumulative_precip_mm
+dat8$fire_perc_ws_ppt_2ylegacy = dat8$fire_perc_ws_2ylegacy*dat8$cumulative_precip_mm
+dat8$fire_perc_ws_ppt_3ylegacy = dat8$fire_perc_ws_3ylegacy*dat8$cumulative_precip_mm
+dat8$fire_perc_ws_ppt_4ylegacy = dat8$fire_perc_ws_4ylegacy*dat8$cumulative_precip_mm
+dat8$fire_perc_ws_ppt_5ylegacy = dat8$fire_perc_ws_5ylegacy*dat8$cumulative_precip_mm
 
-#### Add fire 2 m window legacy effects ####
+# plot 6 mo interaction effects
+qplot(index, fire_pa_ppt, data=dat8, colour=site, geom="path", facets = "region")
+qplot(index, ws_fire_area_m2_ppt, data=dat8, colour=site, geom="path", facets = "region")
+qplot(index, fire_perc_ws_ppt, data=dat8, colour=site, geom="path", facets = "region")
 
-# Also skipping for now.
+# plot 1 yr interaction effects
+qplot(index, fire_pa_ppt_1ylegacy, data=dat8, colour=site, geom="path", facets = "region")
+qplot(index, ws_fire_area_m2_ppt_1ylegacy, data=dat8, colour=site, geom="path", facets = "region")
+qplot(index, fire_perc_ws_ppt_1ylegacy, data=dat8, colour=site, geom="path", facets = "region")
+# yay, this looks fantastic :)
 
 #### Examine data closely ####
 
 # precip
-ggplot(dat3, aes(x = index, y = cumulative_precip_mm, color = site)) +
+ggplot(dat8, aes(x = index, y = cumulative_precip_mm, color = site)) +
   geom_point() +
   facet_wrap(.~site) +
   theme(legend.position = "none")
 
 # NH4 (0-60 uM)
-ggplot(dat3, aes(x = index, y = mean_nh4_uM, color = site)) +
+ggplot(dat8, aes(x = index, y = mean_nh4_uM, color = site)) +
   geom_point() +
   facet_wrap(.~site) +
   theme(legend.position = "none")
 
 # NO3 (0-600 uM)
-ggplot(dat3, aes(x = index, y = mean_no3_uM, color = site)) +
+ggplot(dat8, aes(x = index, y = mean_no3_uM, color = site)) +
   geom_point() +
   facet_wrap(.~site) +
   theme(legend.position = "none")
 
 # PO4 (0-15 uM)
-ggplot(dat3, aes(x = index, y = mean_po4_uM, color = site)) +
+ggplot(dat8, aes(x = index, y = mean_po4_uM, color = site)) +
   geom_point() +
   facet_wrap(.~site) +
   theme(legend.position = "none")
