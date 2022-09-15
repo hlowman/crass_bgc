@@ -2613,6 +2613,137 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3))
 #        units = "cm"
 # )
 
+#### Summary fig of NH4 results ####
+
+# import model fits
+noleg_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
+leg1y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
+leg2y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn2ylegacy_percburnxppt2ylegacy_mBFGS.rds") # dropped AT07
+leg3y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn3ylegacy_percburnxppt3ylegacy_mBFGS.rds")
+leg4y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn4ylegacy_percburnxppt4ylegacy_mBFGS.rds")
+leg5y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
+
+# extract necessary confidence interval info
+noleg_est <- MARSSparamCIs(noleg_fit)
+leg1y_est <- MARSSparamCIs(leg1y_fit)
+leg2y_est <- MARSSparamCIs(leg2y_fit)
+leg3y_est <- MARSSparamCIs(leg3y_fit)
+leg4y_est <- MARSSparamCIs(leg4y_fit)
+leg5y_est <- MARSSparamCIs(leg5y_fit)
+
+# formatting confidence intervals into dataframe
+noleg_CI = data.frame(
+  "Est." = noleg_est$par$U,
+  "Lower" = noleg_est$par.lowCI$U,
+  "Upper" = noleg_est$par.upCI$U)
+noleg_CI$Parameter = rownames(noleg_CI)
+noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
+noleg_CI$Model = "0 year window"
+
+leg1y_CI = data.frame(
+  "Est." = leg1y_est$par$U,
+  "Lower" = leg1y_est$par.lowCI$U,
+  "Upper" = leg1y_est$par.upCI$U)
+leg1y_CI$Parameter = rownames(leg1y_CI)
+leg1y_CI[,1:3] = round(leg1y_CI[,1:3], 3)
+leg1y_CI$Model = "1 year window"
+
+leg2y_CI = data.frame(
+  "Est." = leg2y_est$par$U,
+  "Lower" = leg2y_est$par.lowCI$U,
+  "Upper" = leg2y_est$par.upCI$U)
+leg2y_CI$Parameter = rownames(leg2y_CI)
+leg2y_CI[,1:3] = round(leg2y_CI[,1:3], 3)
+leg2y_CI$Model = "2 year window"
+
+leg3y_CI = data.frame(
+  "Est." = leg3y_est$par$U,
+  "Lower" = leg3y_est$par.lowCI$U,
+  "Upper" = leg3y_est$par.upCI$U)
+leg3y_CI$Parameter = rownames(leg3y_CI)
+leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
+leg3y_CI$Model = "3 year window"
+
+leg4y_CI = data.frame(
+  "Est." = leg4y_est$par$U,
+  "Lower" = leg4y_est$par.lowCI$U,
+  "Upper" = leg4y_est$par.upCI$U)
+leg4y_CI$Parameter = rownames(leg4y_CI)
+leg4y_CI[,1:3] = round(leg4y_CI[,1:3], 3)
+leg4y_CI$Model = "4 year window"
+
+leg5y_CI = data.frame(
+  "Est." = leg5y_est$par$U,
+  "Lower" = leg5y_est$par.lowCI$U,
+  "Upper" = leg5y_est$par.upCI$U)
+leg5y_CI$Parameter = rownames(leg5y_CI)
+leg5y_CI[,1:3] = round(leg5y_CI[,1:3], 3)
+leg5y_CI$Model = "5 year window"
+
+# Bind all together
+CIs = rbind(
+  noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI, leg4y_CI, leg5y_CI
+)
+
+# add col for site names
+CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
+
+# simplify parm names
+CIs$Parm_simple = c(rep("Ppt",6),
+                    rep("Perc. burn",6),
+                    rep("Ppt x Perc. burn",6),
+                    
+                    rep("Ppt",6),
+                    rep("Perc. burn",6),
+                    rep("Ppt x Perc. burn",6),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5))
+
+# plot results
+(RESULTS_ALL_d <- ggplot(CIs, aes(x=factor(Parm_simple, 
+                                           levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
+                                  Est., color=Stream)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
+    geom_point(position=position_dodge(width=0.3), size=3) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 20),
+          strip.text.y = element_text(size = 20)) +
+    geom_hline(aes(yintercept=0), linetype="dashed") +
+    coord_flip(ylim = c(-1.25, 1.25)) + 
+    labs(y = "", 
+         x="",
+         title = expression(paste(NH[4]^{"+"}," MARSS modeling results for Santa Barbara sites"))) +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_wrap(.~Model, scales = "free", nrow = 1))
+
+# Export plot.
+# ggsave(("MARSS_SB_NH4_091522.png"),
+#        path = "figures",
+#        width = 80,
+#        height = 10,
+#        units = "cm"
+#        )
+
+# Save these CIs as NH4 specific, so that we can create an enormous facetted plot at the very end.
+CIs_NH4 <- CIs
+CIs_NH4$Solute <- "NH4"
+
 #### MARSS NO3: ppt, fire pa (2m win), fire pa (6m win) x ppt, no legacy effects ####
 
 # Set up data for MARSS
@@ -4467,6 +4598,137 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3))
 #        height = 15,
 #        units = "cm"
 # )
+
+#### Summary fig of NO3 results ####
+
+# import model fits
+noleg_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_no3_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
+leg1y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_no3_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
+leg2y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_no3_percburn2ylegacy_percburnxppt2ylegacy_mBFGS.rds") # dropped AT07
+leg3y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_no3_percburn3ylegacy_percburnxppt3ylegacy_mBFGS.rds")
+leg4y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_no3_percburn4ylegacy_percburnxppt4ylegacy_mBFGS.rds")
+leg5y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_no3_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
+
+# extract necessary confidence interval info
+noleg_est <- MARSSparamCIs(noleg_fit)
+leg1y_est <- MARSSparamCIs(leg1y_fit)
+leg2y_est <- MARSSparamCIs(leg2y_fit)
+leg3y_est <- MARSSparamCIs(leg3y_fit)
+leg4y_est <- MARSSparamCIs(leg4y_fit)
+leg5y_est <- MARSSparamCIs(leg5y_fit)
+
+# formatting confidence intervals into dataframe
+noleg_CI = data.frame(
+  "Est." = noleg_est$par$U,
+  "Lower" = noleg_est$par.lowCI$U,
+  "Upper" = noleg_est$par.upCI$U)
+noleg_CI$Parameter = rownames(noleg_CI)
+noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
+noleg_CI$Model = "0 year window"
+
+leg1y_CI = data.frame(
+  "Est." = leg1y_est$par$U,
+  "Lower" = leg1y_est$par.lowCI$U,
+  "Upper" = leg1y_est$par.upCI$U)
+leg1y_CI$Parameter = rownames(leg1y_CI)
+leg1y_CI[,1:3] = round(leg1y_CI[,1:3], 3)
+leg1y_CI$Model = "1 year window"
+
+leg2y_CI = data.frame(
+  "Est." = leg2y_est$par$U,
+  "Lower" = leg2y_est$par.lowCI$U,
+  "Upper" = leg2y_est$par.upCI$U)
+leg2y_CI$Parameter = rownames(leg2y_CI)
+leg2y_CI[,1:3] = round(leg2y_CI[,1:3], 3)
+leg2y_CI$Model = "2 year window"
+
+leg3y_CI = data.frame(
+  "Est." = leg3y_est$par$U,
+  "Lower" = leg3y_est$par.lowCI$U,
+  "Upper" = leg3y_est$par.upCI$U)
+leg3y_CI$Parameter = rownames(leg3y_CI)
+leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
+leg3y_CI$Model = "3 year window"
+
+leg4y_CI = data.frame(
+  "Est." = leg4y_est$par$U,
+  "Lower" = leg4y_est$par.lowCI$U,
+  "Upper" = leg4y_est$par.upCI$U)
+leg4y_CI$Parameter = rownames(leg4y_CI)
+leg4y_CI[,1:3] = round(leg4y_CI[,1:3], 3)
+leg4y_CI$Model = "4 year window"
+
+leg5y_CI = data.frame(
+  "Est." = leg5y_est$par$U,
+  "Lower" = leg5y_est$par.lowCI$U,
+  "Upper" = leg5y_est$par.upCI$U)
+leg5y_CI$Parameter = rownames(leg5y_CI)
+leg5y_CI[,1:3] = round(leg5y_CI[,1:3], 3)
+leg5y_CI$Model = "5 year window"
+
+# Bind all together
+CIs = rbind(
+  noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI, leg4y_CI, leg5y_CI
+)
+
+# add col for site names
+CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
+
+# simplify parm names
+CIs$Parm_simple = c(rep("Ppt",6),
+                    rep("Perc. burn",6),
+                    rep("Ppt x Perc. burn",6),
+                    
+                    rep("Ppt",6),
+                    rep("Perc. burn",6),
+                    rep("Ppt x Perc. burn",6),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5))
+
+# plot results
+(RESULTS_ALL_e <- ggplot(CIs, aes(x=factor(Parm_simple, 
+                                           levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
+                                  Est., color=Stream)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
+    geom_point(position=position_dodge(width=0.3), size=3) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 20),
+          strip.text.y = element_text(size = 20)) +
+    geom_hline(aes(yintercept=0), linetype="dashed") +
+    coord_flip(ylim = c(-1.25, 1.25)) + 
+    labs(y = "", 
+         x="",
+         title = expression(paste(NO[3]^{"-"}," MARSS modeling results for Santa Barbara sites"))) +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_wrap(.~Model, scales = "free", nrow = 1))
+
+# Export plot.
+# ggsave(("MARSS_SB_NO3_091522.png"),
+#        path = "figures",
+#        width = 80,
+#        height = 10,
+#        units = "cm"
+#        )
+
+# Save these CIs as NO3 specific, so that we can create an enormous facetted plot at the very end.
+CIs_NO3 <- CIs
+CIs_NO3$Solute <- "NO3"
 
 #### MARSS PO4: ppt, fire pa (2m win), fire pa (6m win) x ppt, no legacy effects ####
 
@@ -6329,5 +6591,172 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3))
 #        height = 15,
 #        units = "cm"
 # )
+
+#### Summary fig of PO4 results ####
+
+# import model fits
+noleg_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_po4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
+leg1y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_po4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
+leg2y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_po4_percburn2ylegacy_percburnxppt2ylegacy_mBFGS.rds") # dropped AT07
+leg3y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_po4_percburn3ylegacy_percburnxppt3ylegacy_mBFGS.rds")
+leg4y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_po4_percburn4ylegacy_percburnxppt4ylegacy_mBFGS.rds")
+leg5y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_po4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
+
+# extract necessary confidence interval info
+noleg_est <- MARSSparamCIs(noleg_fit)
+leg1y_est <- MARSSparamCIs(leg1y_fit)
+leg2y_est <- MARSSparamCIs(leg2y_fit)
+leg3y_est <- MARSSparamCIs(leg3y_fit)
+leg4y_est <- MARSSparamCIs(leg4y_fit)
+leg5y_est <- MARSSparamCIs(leg5y_fit)
+
+# formatting confidence intervals into dataframe
+noleg_CI = data.frame(
+  "Est." = noleg_est$par$U,
+  "Lower" = noleg_est$par.lowCI$U,
+  "Upper" = noleg_est$par.upCI$U)
+noleg_CI$Parameter = rownames(noleg_CI)
+noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
+noleg_CI$Model = "0 year window"
+
+leg1y_CI = data.frame(
+  "Est." = leg1y_est$par$U,
+  "Lower" = leg1y_est$par.lowCI$U,
+  "Upper" = leg1y_est$par.upCI$U)
+leg1y_CI$Parameter = rownames(leg1y_CI)
+leg1y_CI[,1:3] = round(leg1y_CI[,1:3], 3)
+leg1y_CI$Model = "1 year window"
+
+leg2y_CI = data.frame(
+  "Est." = leg2y_est$par$U,
+  "Lower" = leg2y_est$par.lowCI$U,
+  "Upper" = leg2y_est$par.upCI$U)
+leg2y_CI$Parameter = rownames(leg2y_CI)
+leg2y_CI[,1:3] = round(leg2y_CI[,1:3], 3)
+leg2y_CI$Model = "2 year window"
+
+leg3y_CI = data.frame(
+  "Est." = leg3y_est$par$U,
+  "Lower" = leg3y_est$par.lowCI$U,
+  "Upper" = leg3y_est$par.upCI$U)
+leg3y_CI$Parameter = rownames(leg3y_CI)
+leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
+leg3y_CI$Model = "3 year window"
+
+leg4y_CI = data.frame(
+  "Est." = leg4y_est$par$U,
+  "Lower" = leg4y_est$par.lowCI$U,
+  "Upper" = leg4y_est$par.upCI$U)
+leg4y_CI$Parameter = rownames(leg4y_CI)
+leg4y_CI[,1:3] = round(leg4y_CI[,1:3], 3)
+leg4y_CI$Model = "4 year window"
+
+leg5y_CI = data.frame(
+  "Est." = leg5y_est$par$U,
+  "Lower" = leg5y_est$par.lowCI$U,
+  "Upper" = leg5y_est$par.upCI$U)
+leg5y_CI$Parameter = rownames(leg5y_CI)
+leg5y_CI[,1:3] = round(leg5y_CI[,1:3], 3)
+leg5y_CI$Model = "5 year window"
+
+# Bind all together
+CIs = rbind(
+  noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI, leg4y_CI, leg5y_CI
+)
+
+# add col for site names
+CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
+
+# simplify parm names
+CIs$Parm_simple = c(rep("Ppt",6),
+                    rep("Perc. burn",6),
+                    rep("Ppt x Perc. burn",6),
+                    
+                    rep("Ppt",6),
+                    rep("Perc. burn",6),
+                    rep("Ppt x Perc. burn",6),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5),
+                    
+                    rep("Ppt",5),
+                    rep("Perc. burn",5),
+                    rep("Ppt x Perc. burn",5))
+
+# plot results
+(RESULTS_ALL_f <- ggplot(CIs, aes(x=factor(Parm_simple, 
+                                           levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
+                                  Est., color=Stream)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
+    geom_point(position=position_dodge(width=0.3), size=3) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 20),
+          strip.text.y = element_text(size = 20)) +
+    geom_hline(aes(yintercept=0), linetype="dashed") +
+    coord_flip(ylim = c(-1.25, 1.25)) + 
+    labs(y = "", 
+         x="",
+         title = expression(paste(PO[4]^{"-3"}," MARSS modeling results for Santa Barbara sites"))) +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_wrap(.~Model, scales = "free", nrow = 1))
+
+# Export plot.
+# ggsave(("MARSS_SB_PO4_091522.png"),
+#        path = "figures",
+#        width = 80,
+#        height = 10,
+#        units = "cm"
+#        )
+
+# Save these CIs as NO3 specific, so that we can create an enormous facetted plot at the very end.
+CIs_PO4 <- CIs
+CIs_PO4$Solute <- "PO4"
+
+#### Summary fig of ALL results ####
+
+# NOTE: You must have run the full sections of all 3 previous "Summary fig" code chunks before proceeding with the below.
+
+# Bind all solutes together
+CIs_ALL = rbind(
+  CIs_NH4, CIs_NO3, CIs_PO4
+)
+
+# plot results
+(RESULTS_ALL <- ggplot(CIs_ALL, aes(x=factor(Parm_simple, 
+                                           levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
+                                  Est., color=Stream)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
+    geom_point(position=position_dodge(width=0.3), size=3) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 20),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 20),
+          strip.text.y = element_text(size = 20)) +
+    geom_hline(aes(yintercept=0), linetype="dashed") +
+    coord_flip(ylim = c(-1.25, 1.25)) + 
+    labs(y = "", 
+         x="",
+         title = "All MARSS modeling results for Santa Barbara sites") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_grid(Solute~Model, scales = "free"))
+
+# Export plot.
+# ggsave(("MARSS_SB_NH4_NO3_PO4_091522.png"),
+#        path = "figures",
+#        width = 50,
+#        height = 20,
+#        units = "cm"
+#        )
 
 # End of script.
