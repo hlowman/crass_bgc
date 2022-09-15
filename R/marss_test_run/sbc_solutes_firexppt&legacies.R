@@ -553,7 +553,8 @@ dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
 
 # examine data once more to be sure sites are appropriate to model
 # NH4 in all sites
-ggplot(dat, aes(x = date, y = mean_nh4_uM)) +
+(nh4fig <- ggplot(dat %>% filter(site %in% c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")), 
+                  aes(x = date, y = mean_nh4_uM)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -569,15 +570,24 @@ ggplot(dat, aes(x = date, y = mean_nh4_uM)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
-             colour="red")+
+  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
+  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
-  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-             colour="red")
+             colour="red"))#+
+  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+  #            colour="red")
+
+# Export for CRASS slides
+# ggsave(("SB_NH4_091522.png"),
+#        path = "figures",
+#        width = 30,
+#        height = 15,
+#        units = "cm"
+#        )
 
 # NO3 in all sites
-ggplot(dat, aes(x = date, y = mean_no3_uM)) +
+(no3fig <- ggplot(dat %>% filter(site %in% c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")), 
+                  aes(x = date, y = mean_no3_uM)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -593,15 +603,24 @@ ggplot(dat, aes(x = date, y = mean_no3_uM)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
-             colour="red")+
+  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
+  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
-  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-             colour="red")
+             colour="red"))#+
+  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+  #            colour="red")
+
+# Export for CRASS slides
+# ggsave(("SB_NO3_091522.png"),
+#        path = "figures",
+#        width = 30,
+#        height = 15,
+#        units = "cm"
+#        )
 
 # PO4 in all sites
-ggplot(dat, aes(x = date, y = mean_po4_uM)) +
+(po4fig <- ggplot(dat %>% filter(site %in% c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")), 
+                 aes(x = date, y = mean_po4_uM)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -617,12 +636,20 @@ ggplot(dat, aes(x = date, y = mean_po4_uM)) +
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
-             colour="red")+
+  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
+  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
-  geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-             colour="red")
+             colour="red"))#+
+  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
+  #            colour="red")
+
+# Export for CRASS slides
+# ggsave(("SB_PO4_091522.png"),
+#        path = "figures",
+#        width = 30,
+#        height = 15,
+#        units = "cm"
+#        )
 
 # select sites for modeling
 # these have the longest most complete ts for NH4/NO3/PO4 and have coverage before and after fires: 
@@ -6736,7 +6763,7 @@ CIs_ALL = rbind(
 (RESULTS_ALL <- ggplot(CIs_ALL, aes(x=factor(Parm_simple, 
                                            levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
                                   Est., color=Stream)) + 
-    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.3), width=0) +
     geom_point(position=position_dodge(width=0.3), size=3) + 
     theme_bw()+
     theme(plot.title = element_text(size = 20),
@@ -6744,15 +6771,15 @@ CIs_ALL = rbind(
           strip.text.x = element_text(size = 20),
           strip.text.y = element_text(size = 20)) +
     geom_hline(aes(yintercept=0), linetype="dashed") +
-    coord_flip(ylim = c(-1.25, 1.25)) + 
+    coord_flip(ylim = c(-0.5, 0.5)) + 
     labs(y = "", 
          x="",
          title = "All MARSS modeling results for Santa Barbara sites") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
-    facet_grid(Solute~Model, scales = "free"))
+    facet_grid(Solute~Model))
 
 # Export plot.
-# ggsave(("MARSS_SB_NH4_NO3_PO4_091522.png"),
+# ggsave(("MARSS_SB_NH4_NO3_PO4_091522_zoomin.png"),
 #        path = "figures",
 #        width = 50,
 #        height = 20,
