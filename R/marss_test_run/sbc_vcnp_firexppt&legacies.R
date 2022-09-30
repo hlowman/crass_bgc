@@ -13,7 +13,7 @@
 # [X] Alex BY Aug 8 : Once all above is done, create demo models with and w/o legacy effects and w and w/o fire area. These should be ready to iterate in structure to a) different numbers of legacy effects for model comparisions, b) other solutes in SB, and c) to modified Q matrices to test hypotheses about different numbers of state processes. 
     # Done...ish. Models with only immediate fire and fireXppt effects are converging well. Including immediate + any legacy effects does not provide acceptable model convergence. Replacing immediate effects with legacy effects works, but you have to be careful with sites included. HO00 cannot be included with 1 y legcy effects for the firexppt interaction because there is no rain where the 1y legacy fire effect falls and this produces a all-zeros covariate row that MARSS does not like. RED cannot be included in 2y or greater legacy effects because there are too few data points after the fire, much less when you push the fire effect into the future.
 # [X] Alex: replace legacy effects that ask if a fire effect *developed* years after the fire with legacy effects that ask if a fire effect *persisted* years after the fire. I think we'll get fewer spurious results with this approach. 
-# [] Alex: summary figure of results
+# [...] Alex: summary figure of results
 
 #### READ ME ####
 
@@ -3714,7 +3714,7 @@ noleg_CI = data.frame(
   "Upper" = noleg_est$par.upCI$U)
 noleg_CI$Parameter = rownames(noleg_CI)
 noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
-noleg_CI$Model = "0 year legacy"
+noleg_CI$Model = "0 year window"
 
 leg1y_CI = data.frame(
   "Est." = leg1y_est$par$U,
@@ -3722,7 +3722,7 @@ leg1y_CI = data.frame(
   "Upper" = leg1y_est$par.upCI$U)
 leg1y_CI$Parameter = rownames(leg1y_CI)
 leg1y_CI[,1:3] = round(leg1y_CI[,1:3], 3)
-leg1y_CI$Model = "1 year legacy"
+leg1y_CI$Model = "1 year window"
 
 leg2y_CI = data.frame(
   "Est." = leg2y_est$par$U,
@@ -3730,7 +3730,7 @@ leg2y_CI = data.frame(
   "Upper" = leg2y_est$par.upCI$U)
 leg2y_CI$Parameter = rownames(leg2y_CI)
 leg2y_CI[,1:3] = round(leg2y_CI[,1:3], 3)
-leg2y_CI$Model = "2 year legacy"
+leg2y_CI$Model = "2 year window"
 
 leg3y_CI = data.frame(
   "Est." = leg3y_est$par$U,
@@ -3738,7 +3738,7 @@ leg3y_CI = data.frame(
   "Upper" = leg3y_est$par.upCI$U)
 leg3y_CI$Parameter = rownames(leg3y_CI)
 leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
-leg3y_CI$Model = "3 year legacy"
+leg3y_CI$Model = "3 year window"
 
 CIs = rbind(
   noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI
@@ -3787,8 +3787,13 @@ CIs$Parm_simple = c(rep("Ppt",9),
     facet_grid(Region~Model, scales = "free"))
 # 1400 x 550
 
-(RESULTS_ALL_d <- ggplot(CIs, aes(x=factor(Parm_simple, levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
-                                  Est., color=Stream)) + 
+CIs_temp=CIs
+CIs_temp$Region_f = factor(CIs_temp$Region, levels=c("VC","SB"))
+CIs_temp$Parm_simple_f = factor(CIs_temp$Parm_simple, levels=c("Ppt x Perc. burn","Perc. burn","Ppt"))
+CIs_temp$Stream_f = factor(CIs_temp$Stream, levels=c("EFJ","RED","RSA","SAW",
+                                                     "AB00","GV01","HO00","MC06","RS02"))
+RESULTS_ALL_d <- ggplot(CIs_temp, 
+                        aes(x=Parm_simple_f, y=Est., color=Stream_f)) + 
     geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
     geom_point(position=position_dodge(width=0.3), size=3) + 
     theme_bw()+
@@ -3796,10 +3801,78 @@ CIs$Parm_simple = c(rep("Ppt",9),
           axis.text = element_text(size = 20),
           strip.text.x = element_text(size = 20),
           strip.text.y = element_text(size = 20)) +
-    geom_hline(aes(yintercept=0), linetype="dashed")+ #coord_cartesian(ylim = c(-1.25, 1.25)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+ 
     coord_flip(ylim = c(-.8, .8)) + 
     labs(y = "", x="",
          title = "Sp. Conductivity MARSS modeling results") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
-    facet_grid(Region~Model, scales = "free"))
+    facet_grid(Region_f~Model, scales = "free") 
 # 1400 x 550
+ggsave("figures/Fig_MARSS_SpC_SB_VC.pdf", plot=RESULTS_ALL_d,
+       width=13, height=6)
+
+### add ts of predictors to top ###
+
+
+ppt_mn = (noleg_fit[["call"]][["model"]][["c"]][6,])
+fire_mn = (noleg_fit[["call"]][["model"]][["c"]][15,])
+pptxfire_mn = (noleg_fit[["call"]][["model"]][["c"]][24,])
+noleg_dat = data.frame(t = 1:166,
+                       ppt = ppt_mn,
+                       fire = fire_mn,
+                       pptxfire = pptxfire_mn)
+ppt_mn = (leg1y_fit[["call"]][["model"]][["c"]][6,])
+fire_mn = (leg1y_fit[["call"]][["model"]][["c"]][15,])
+pptxfire_mn = (leg1y_fit[["call"]][["model"]][["c"]][24,])
+leg1y_dat = data.frame(t = 1:166,
+                       ppt = ppt_mn,
+                       fire = fire_mn,
+                       pptxfire = pptxfire_mn)
+ppt_mn = (leg2y_fit[["call"]][["model"]][["c"]][6,])
+fire_mn = (leg2y_fit[["call"]][["model"]][["c"]][14,])
+pptxfire_mn = (leg2y_fit[["call"]][["model"]][["c"]][22,])
+leg2y_dat = data.frame(t = 1:166,
+                       ppt = ppt_mn,
+                       fire = fire_mn,
+                       pptxfire = pptxfire_mn)
+ppt_mn = (leg3y_fit[["call"]][["model"]][["c"]][6,])
+fire_mn = (leg3y_fit[["call"]][["model"]][["c"]][14,])
+pptxfire_mn = (leg3y_fit[["call"]][["model"]][["c"]][22,])
+leg3y_dat = data.frame(t = 1:166,
+                       ppt = ppt_mn,
+                       fire = fire_mn,
+                       pptxfire = pptxfire_mn)
+
+
+par(mfrow=c(3,4), mai = c(0.05, .6, 0.05, 0.05))
+plot(noleg_dat$t, noleg_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="Ppt",axes=F)
+plot(leg1y_dat$t, leg1y_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
+plot(leg2y_dat$t, leg2y_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
+plot(leg3y_dat$t, leg3y_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
+plot(noleg_dat$t, noleg_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="Perc. burn",axes=F)
+plot(leg1y_dat$t, leg1y_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F)
+plot(leg2y_dat$t, leg2y_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F)
+plot(leg3y_dat$t, leg3y_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F)
+plot(noleg_dat$t, noleg_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="Ppt x Perc. burn",axes=F)
+plot(leg1y_dat$t, leg1y_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="",axes=F)
+plot(leg2y_dat$t, leg2y_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="",axes=F)
+plot(leg3y_dat$t, leg3y_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="",axes=F)
+
+
+
+dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
+sitez = c("EFJ")
+dat = dat[dat$site %in% sitez,]
+par(mfrow=c(3,4), mai = c(0.05, .6, 0.05, 0.05))
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="Ppt",axes=F)
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
+plot(dat$index, dat$fire_perc_ws, type="l", col="red", xlab="", xaxt='n', ylab="Perc. burn",axes=F, ylim = c(0,60))
+plot(dat$index, dat$fire_perc_ws_1ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60))
+plot(dat$index, dat$fire_perc_ws_2ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60))
+plot(dat$index, dat$fire_perc_ws_3ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60))
+plot(dat$index, dat$fire_perc_ws_ppt, type="l", col="purple", xaxt='n', ylab="Ppt x Perc. burn",axes=F, ylim = c(0,14000))
+plot(dat$index, dat$fire_perc_ws_ppt_1ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000))
+plot(dat$index, dat$fire_perc_ws_ppt_2ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000))
+plot(dat$index, dat$fire_perc_ws_ppt_3ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000))
