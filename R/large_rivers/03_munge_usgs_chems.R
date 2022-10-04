@@ -123,8 +123,13 @@ select.chems %>% filter(CharacteristicName == "Turbidity") %>%
   facet_wrap(~usgs_site, scales = "free_y")
 # much less turbidity
 
+dir.create(here("USGS_data"))
+
+write.csv(select.chems, here("USGS_data", "USGS_select_chems.csv"), row.names = FALSE)
+
 ### Next scripts:
 ### Pull Q for all catchments that have any chems ###
+# filter out catchments w/ NA for all constituents in select.chems
 
 ### Merge w/ fire ###
 # fire: merge w/ catchment chars and calc % catchment burned
