@@ -12,7 +12,7 @@ library(here)
 
 # source SQL queries -----------------------------------------------------------
 
-source(here("R", "large_rivers", "firearea_database_queries.R"))
+source(here("R", "large_rivers", "01_firearea_database_queries.R"))
 
 
 # database utilities -----------------------------------------------------------
