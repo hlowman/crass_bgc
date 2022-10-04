@@ -767,6 +767,7 @@ dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
 # EFJ, RED, RSA, & RSAW = VC
 sitez = c("AB00", "GV01", "HO00", "MC06", "RS02",
           "EFJ", "RED", "RSA", "RSAW")
+sitez = "RSA"
 dat = dat[dat$site %in% sitez,]
 
 # add date
@@ -1448,6 +1449,23 @@ sum(is.infinite(dat_cov))
 dat_cov[duplicated(dat_cov),]
 # check for cols with all zeros. this can cause model convergence issues
 any(colSums(dat_cov)==0)
+
+# check RSA data
+par(mfrow=c(2,1))
+dat_RSA = dat_cov[c(8,17,26),]
+dat_RSA = rbind(dat_RSA, dat_dep[8,])
+dat_RSA = as.data.frame(t(dat_RSA))
+plot(dat_RSA$fire_perc_ws_ppt_1ylegacy_RSA, type="l", col="purple", ylim=c(-2,10))
+lines(dat_RSA$cumulative_precip_mm_RSA, type="l", col="blue")
+lines(dat_RSA$fire_perc_ws_1ylegacy_RSA, type="l", col="red")
+lines(dat_RSA$V4, type="o", col="black")
+dat_SAW = dat_cov[c(7,16,25),]
+dat_SAW = rbind(dat_SAW, dat_dep[7,])
+dat_SAW = as.data.frame(t(dat_SAW))
+plot(dat_SAW$fire_perc_ws_ppt_1ylegacy_RSAW, type="l", col="purple", ylim=c(-2,10))
+lines(dat_SAW$cumulative_precip_mm_RSAW, type="l", col="blue")
+lines(dat_SAW$fire_perc_ws_1ylegacy_RSAW, type="l", col="red")
+lines(dat_SAW$V4, type="o", col="black")
 
 #### make C matrix  ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 #  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
