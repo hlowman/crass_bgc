@@ -1,7 +1,11 @@
-### Exploratory plotting of USGS database ###
+### Munging USGS chemistry data ###
+## Harmonize units
 
-## 
-## Join Q, chem, & spatial data queried from firearea_db in 02_query_firearea_database.R
+## Inputs:
+    # catchments_water_chemistry output from database query in script 02
+
+## Outputs:
+    # Subset of constituents, with common units: USGS_select_chems.csv
 
 library(tidyverse)
 library(here)
@@ -31,6 +35,7 @@ chems <- chems %>% mutate(CharacteristicName = ifelse(CharacteristicName == "Spe
 chems <- chems %>% mutate(datetimeUTC = as.POSIXct(ActivityStartDateTime, format = "%Y-%m-%d %H:%M:%S", tz = "UTC"))
 
 ### Harmonize units ###
+## Note: working with a subset of constituents to generate preliminary figures
 print(n = 100, chems %>% group_by(CharacteristicName, ResultMeasure.MeasureUnitCode) %>% summarize(count = n()))
 
 # column for converted units
@@ -119,23 +124,39 @@ select.chems %>% filter(CharacteristicName == "Turbidity") %>%
   filter(grepl("092", usgs_site)) %>%
   ggplot(aes(x = datetimeUTC, y = value_std)) +
   geom_point() +
-  ylab("TSS") +
+  ylab("Turbidity") +
   facet_wrap(~usgs_site, scales = "free_y")
 # much less turbidity
+
+# filter out catchments w/ all NA for any of the selected constituents in select.chems
+select.chems <- select.chems %>% group_by(usgs_site, CharacteristicName) %>%
+                                 filter(all(!is.na(value_std)))
 
 dir.create(here("USGS_data"))
 
 write.csv(select.chems, here("USGS_data", "USGS_select_chems.csv"), row.names = FALSE)
 
-### Next scripts:
-### Pull Q for all catchments that have any chems ###
-# filter out catchments w/ NA for all constituents in select.chems
+## Check whether sensor data are in the USGS chems database here
 
-### Merge w/ fire ###
-# fire: merge w/ catchment chars and calc % catchment burned
+# CA nitrate sensor site: 0381142122015801
+select.chems %>% filter(CharacteristicName == "NO3_NO2") %>%
+  filter(grepl("0381142122015801", usgs_site)) %>%
+  ggplot(aes(x = datetimeUTC, y = value_std)) +
+  geom_point() +
+  ylab("Nitrate") +
+  facet_wrap(~usgs_site, scales = "free_y")
 
-## Plot C-Q
+# AZ turbidity sensor site: 09497830
+select.chems %>% filter(CharacteristicName == "Turbidity") %>%
+  filter(grepl("09497830", usgs_site)) %>%
+  ggplot(aes(x = datetimeUTC, y = value_std)) +
+  geom_point() +
+  ylab("Turbidity")
 
-## Now add LULC filter & replot C-Q
-
-
+# AZ SPC sensor site: 09380000
+select.chems %>% filter(CharacteristicName == "SPC") %>%
+  filter(grepl("09380000", usgs_site)) %>%
+  ggplot(aes(x = datetimeUTC, y = value_std)) +
+  geom_point() +
+  ylab("SPC")
+# None of these are present in the dataset
