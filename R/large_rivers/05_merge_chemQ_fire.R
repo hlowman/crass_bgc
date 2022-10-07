@@ -8,20 +8,66 @@
       # Merged chems & Q: USGS_chem_Q.csv
       # Output of catchments_fires from script 02: catchment area and area burned for each fire
 
+library(here)
+library(tidyverse)
+
+### Read in chemQ
+chemQ <- read.csv(here("USGS_data", "USGS_chem_Q.csv"))
+  
 ### Fire summary attributes ###
 # Is Ig_Date local time or UTC? Assuming UTC here.
 catchments_fires$Ig_Date <- as.Date(catchments_fires$Ig_Date, format = "%Y-%m-%d", tz = "UTC")
 
 # Fraction catchment burned in each fire
-catchments_fires <- catchments_fires %>% mutate(burn_ext = catchment_area/ws_burn_area_km2) 
+catchments_fires <- catchments_fires %>% mutate(burn_ext = ws_burn_area_km2/catchment_area) 
+
+# First handle singletons. The mutate summary commands will drop sites with a single observation, so first singletons (= only burned in one year) are found and rct & lg columns are created for them
+singletons <- catchments_fires %>% group_by(usgs_site) %>%
+  filter(n() == 1) %>%
+  mutate(Date_rct = Ig_Date) %>%
+  mutate(pctburn_rct = burn_ext) %>%
+  mutate(areaburn_rct = ws_burn_area_km2) %>%
+  mutate(Date_lg = Ig_Date) %>%
+  mutate(pctburn_lg = burn_ext) %>%
+  mutate(areaburn_lg = ws_burn_area_km2) %>%
+  mutate(Event_ID_lg = Event_ID) %>%
+  mutate(Event_ID_rct = Event_ID) %>%
+  mutate(Incid_Name_lg = Incid_Name) %>%
+  mutate(Incid_Name_rct = Incid_Name) %>%
+  select(-c(Ig_Date, ws_burn_area_km2, burn_ext, total_burn_area_km2, Event_ID, Incid_Name))
+# 527 catchments one fires
 
 # Subset most recent fire each catchment
+recent <- catchments_fires %>% group_by(usgs_site) %>%
+  filter(n() > 1) %>%
+  filter(Ig_Date == max(Ig_Date)) %>%
+  select(-c(total_burn_area_km2))
+# 499 catchments burned 2 or more times
 
 # Subset largest fire each catchment
+largest <- catchments_fires %>% group_by(usgs_site) %>%
+  filter(n() > 1) %>%
+  filter(burn_ext == max(burn_ext)) %>%
+  select(-c(total_burn_area_km2))
+# 4 missing catchments here... must be due to NAs in burn_ext
+
+#rename to reflect max and recent burn years & burn areas
+names(recent) <- c("usgs_site", "catchment_area", "Event_ID_rct", "Incid_Name_rct", "Date_rct", "areaburn_rct", "pctburn_rct")
+
+names(largest) <- c("usgs_site", "catchment_area", "Event_ID_lg", "Incid_Name_lg", "Date_lg", "areaburn_lg", "pctburn_lg")
 
 # Join most recent and largest
+fires <- merge(recent, largest, by = c("usgs_site", "catchment_area"))
+fires <- bind_rows(singletons, fires)
 
 # Join to catchments_summary for cumulative burn extent
+fires <- left_join(fires, catchments_summary)
+
+# Set fire year to 1940 for unburned catchments. This is the temporal extent of the BLM fire perimeter map source of fire data
+fires <- fires %>% mutate_at(c("fireyear_rct", "fireyear_lg"), ~ifelse(fireyear_rct == 0, 1940, .)) %>%
+  mutate_at(vars(fireyear_lg), ~ifelse(fireyear_lg == 0, 1940, .))
+
+write.csv(fires, "spatial_munged.csv", row.names = FALSE)
 
 ### Plot C-Q pre/post burn ###
 
