@@ -12,17 +12,17 @@ library(tidyverse) # contains dplyr
 library(lubridate)
 library(here)
 
-# Create base dataframe of dates and sites (from September 2002 to July 2016). This timeframe
-# was chosen based on available precipitation data.
+# Create base dataframe of dates and sites (from September 2002 to October 2017). This timeframe
+# was edited based on available precipitation data.
 # Create sequence of dates
-d <- seq(as.Date("2002/9/1"), by = "month", length.out = 166)
+d <- seq(as.Date("2002/9/1"), by = "month", length.out = 182)
 
 # Repeat 8 times for each site
 d8 <- rep(d, times = 8)
 d8df <- data.frame(d8)
 
 # Create repeated sequence of sites
-s <- rep(c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02"), each=166)
+s <- rep(c("AB00", "AT07", "GV01", "HO00", "MC06", "RG01", "RS02", "SP02"), each=182)
 sdf <- data.frame(s)
 
 # Bind dates and sites together
@@ -95,6 +95,7 @@ fire_2[,7:8][is.na(fire_2[,7:8])] = 0
 
 # And export for MARSS script
 #saveRDS(dates_fire, "data_working/SBfire_edited_072822.rds")
-saveRDS(fire_2, "data_working/SBfire_edited_072922.rds")
+#saveRDS(fire_2, "data_working/SBfire_edited_072922.rds")
+saveRDS(fire_2, "data_working/SBfire_edited_011323.rds")
 
 # End of script.
