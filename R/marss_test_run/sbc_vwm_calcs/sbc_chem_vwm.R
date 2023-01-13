@@ -315,8 +315,177 @@ nh4_all <- nh4_all %>%
 
 #### NO3 ####
 
+# Take original dataset from Rosana and trim times off dates.
+no3_storm_filtered <- no3_storm_filtered %>%
+  mutate(startpt = with_tz(startutc, "US/Pacific"),
+         endpt = with_tz(endutc, "US/Pacific")) %>%
+  mutate(start_date = date(startpt),
+         end_date = date(endpt)) %>%
+  mutate(interval = interval(start = start_date, 
+                             end = end_date, 
+                             tzone = tz("US/Pacific")))
+
+# Then create smaller dataset with only sites and intervals.
+no3_site_storms <- no3_storm_filtered %>%
+  select(Site, interval)
+
+# Rosana's data is slightly different for each analyte, so I also need
+# to split up the chem data by analyte.
 no3_chem_filtered <- all_chem_filtered %>%
-  select(site_code, timestamp_local, no3_uM)
+  select(site_code, timestamp_local, no3_uM) %>%  
+  mutate(date = as_datetime(as.character(date(timestamp_local))))
+
+# Iterate over sites and then over intervals
+overlap_no3 <- data.frame() # New, blank df to receive inputs.
+
+for(sitevar in c("AB00", "GV01", "HO00", "MC06", "RS02")) {
+  
+  # filter data by site desired
+  df <- no3_chem_filtered %>%
+    filter(site_code == sitevar) # SB data
+  
+  rdf <- no3_site_storms %>%
+    filter(Site == sitevar) # Rosana's data
+  
+  # assign vectors of dates and storm intervals and compare
+  dates <- df$date
+  lst <- as.list(rdf$interval)
+  overlap_storm <- dates %within% lst
+  
+  # create df of output
+  overlap_df <- data.frame(overlap_storm)
+  
+  # carry over date information for easier binding later
+  overlap_df$date <- dates
+  
+  # assign site column to output
+  overlap_df$Site <- c(rep(paste0(sitevar), 
+                           length(overlap_df$overlap_storm)))
+  
+  # bind with previous outputs
+  overlap_no3 <- rbind(overlap_no3, overlap_df)
+  
+} # Yes!!
+
+# Arrange nutrient dataset by site.
+no3_chem_filtered <- arrange(no3_chem_filtered, site_code)
+
+# Add results of for loop.
+no3_chem_combined <- cbind(no3_chem_filtered, overlap_no3)
+
+# Now to detect storm overlap with available discharge data.
+# Note, I'll be doing this separately for each analyte since the data/storms
+# in Rosana's dataset differ by analyte.
+
+overlap_no3_Q <- data.frame() # New, blank df to receive inputs.
+
+for(sitevar in c("AB00", "GV01", "HO00", "MC06", "RS02")) {
+  
+  # filter data by site desired
+  df <- Q_all_daily %>%
+    filter(site_code == sitevar) # SB data
+  
+  rdf <- no3_site_storms %>%
+    filter(Site == sitevar) # Rosana's data
+  
+  # assign vectors of dates and storm intervals and compare
+  dates <- df$timestamp_date
+  lst <- as.list(rdf$interval)
+  overlap_storm <- dates %within% lst
+  
+  # create df of output
+  overlap_df <- data.frame(overlap_storm)
+  
+  # carry over date information for easier binding later
+  overlap_df$date <- dates
+  
+  # assign site column to output
+  overlap_df$Site <- c(rep(paste0(sitevar), 
+                           length(overlap_df$overlap_storm)))
+  
+  # bind with previous outputs
+  overlap_no3_Q <- rbind(overlap_no3_Q, overlap_df)
+  
+} # Yay!
+
+# Add results of for loop.
+Q_all_combined_no3 <- cbind(Q_all_daily, overlap_no3_Q)
+
+# Next, filter out overlapping days from nh4 and Q datasets.
+
+no3_not_storm <- no3_chem_combined[,c(1,2,4,3,5)] %>%
+  filter(overlap_storm == FALSE)
+
+Q_not_storm_no3 <- Q_all_combined_no3[,c(3,1,2,4)] %>%
+  filter(overlap_storm == FALSE) %>%
+  mutate(discharge_L = discharge_lps*86400) # number of seconds/day
+
+# Calculate mean monthly averages of NO3 for non-storm SB days.
+no3_not_storm_monthly <- no3_not_storm %>%
+  mutate(Year = year(date),
+         Month = month(date)) %>%
+  group_by(site_code, Year, Month) %>%
+  summarize(mean_no3_uM = mean(no3_uM, na.rm = TRUE)) %>%
+  ungroup()
+
+# Calculate cumulative monthly discharges for non-storm SB days.
+Q_not_storm_monthly_no3 <- Q_not_storm_no3 %>%
+  mutate(Year = year(timestamp_date),
+         Month = month(timestamp_date)) %>%
+  group_by(site_code, Year, Month) %>%
+  summarize(cum_Q_L = sum(discharge_L)) %>%
+  ungroup()
+
+# Combine nh4 and Q datasets.
+SB_no3_Q <- left_join(no3_not_storm_monthly, Q_not_storm_monthly_no3) %>%
+  mutate(c_x_Q = mean_no3_uM*cum_Q_L)
+
+# And now to summarize Rosana's data.
+# First, need to pull out columns of interest, and add the vwm*Q calculation.
+no3_storm_trim <- no3_storm_filtered %>%
+  select(Site, start_date, Storm_name, vwm_micromol, totalQ_L) %>%
+  mutate(vwm_x_Q = vwm_micromol*totalQ_L)
+
+# Next, need to calculate monthly totals for both numerator (c*V) and 
+# denominator (V) of Williams equation.
+no3_storm_summ <- no3_storm_trim %>%
+  mutate(Year = year(start_date),
+         Month = month(start_date)) %>%
+  group_by(Site, Year, Month) %>%
+  summarize(cum_no3_storms = sum(vwm_x_Q),
+            cum_Q_storms = sum(totalQ_L)) %>%
+  ungroup() %>%
+  rename("site_code" = "Site")
+
+# Combine LTER non-storm data with Rosana's storm data.
+no3_all <- full_join(SB_no3_Q, no3_storm_summ,
+                     by = c("site_code", "Year", "Month"))
+
+# But need to replace all the storm NA values with 0 because it's throwing
+# off the vwm calculation below.
+no3_all$cum_no3_storms[is.na(no3_all$cum_no3_storms)] <- 0
+no3_all$cum_Q_storms[is.na(no3_all$cum_Q_storms)] <- 0 
+
+# Calculate VOLUME WEIGHTED MEANS.
+no3_all <- no3_all %>%
+  mutate(vwm_monthly = (cum_no3_storms + c_x_Q)/(cum_Q_storms + cum_Q_L))
+
+# Quick plot to see how this looks:
+(plot2 <- ggplot(no3_all %>%
+                   mutate(Day = 1) %>%
+                   mutate(Date = make_date(Year, Month, Day)), 
+                 aes(x = Date, y = vwm_monthly)) +
+    geom_point() +
+    geom_line() +
+    labs(y = "V.W.M. NO3 uM") +
+    theme_bw() +
+    facet_wrap(.~site_code, nrow = 2, scales = "free"))
+
+# ggsave(plot2,
+#        filename = "figures/SB_NO3_VWM_011323.jpg",
+#        width = 30,
+#        height = 15,
+#        units = "cm")
 
 #### PO4 ####
 
