@@ -1339,24 +1339,24 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_6sites_090722.rds")
+dat = readRDS("data_working/marss_data_sb_5sites_011723.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
   select(
     site, index, 
-    mean_nh4_uM, 
+    vwm_nh4, 
     cumulative_precip_mm, 
     fire_perc_ws_1ylegacy, fire_perc_ws_ppt_1ylegacy) %>% 
   pivot_wider(
     names_from = site, 
-    values_from = c(mean_nh4_uM, cumulative_precip_mm, 
+    values_from = c(vwm_nh4, cumulative_precip_mm, 
                     fire_perc_ws_1ylegacy, fire_perc_ws_ppt_1ylegacy))
 
 # indicate column #s of response and predictor vars
 names(dat_nh4)
-resp_cols = c(2:7)
-cov_cols = c(8:25)
+resp_cols = c(2:6)
+cov_cols = c(7:21)
 
 # log and scale transform response var
 dat_nh4_log = dat_nh4
@@ -1365,7 +1365,7 @@ dat_nh4_log[,resp_cols] = scale(dat_nh4_log[,resp_cols])
 
 # check for NaNs (not allowed) and NAs (allowed in response but not predictors)
 sum(is.nan(dat_nh4_log[,resp_cols])) # 0
-sum(is.na(dat_nh4_log[,resp_cols])) # 264
+sum(is.na(dat_nh4_log[,resp_cols])) # 299
 range(dat_nh4_log[,resp_cols], na.rm = T)
 
 # Pull out only response var
@@ -1395,35 +1395,31 @@ dat_cov[duplicated(dat_cov),]
 
 ##### Make C Matrix 
 
-# "XXXX_AB00",0,0,0,0,0,
-# 0,"XXXX_AT07",0,0,0,0,
-# 0,0,"XXXX_GV01",0,0,0,
-# 0,0,0,"XXXX_HO00",0,0,
-# 0,0,0,0,"XXXX_MC06",0,
-# 0,0,0,0,0,"XXXX_RS02"
+# "XXXX_AB00",0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,
+# 0,0,"XXXX_HO00",0,0,
+# 0,0,0,"XXXX_MC06",0,
+# 0,0,0,0,"XXXX_RS02"
 
 CC <- matrix(list( 
   # precip by site: cumulative_precip_mm
-  "cumulative_precip_mm_AB00",0,0,0,0,0,
-  0,"cumulative_precip_mm_AT07",0,0,0,0,
-  0,0,"cumulative_precip_mm_GV01",0,0,0,
-  0,0,0,"cumulative_precip_mm_HO00",0,0,
-  0,0,0,0,"cumulative_precip_mm_MC06",0,
-  0,0,0,0,0,"cumulative_precip_mm_RS02",
+  "cumulative_precip_mm_AB00",0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,
+  0,0,0,"cumulative_precip_mm_MC06",0,
+  0,0,0,0,"cumulative_precip_mm_RS02",
   # fire_pa: fire effect in 2 m window
-  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,
-  0,"fire_perc_ws_1ylegacy_AT07",0,0,0,0,
-  0,0,"fire_perc_ws_1ylegacy_GV01",0,0,0,
-  0,0,0,"fire_perc_ws_1ylegacy_HO00",0,0,
-  0,0,0,0,"fire_perc_ws_1ylegacy_MC06",0,
-  0,0,0,0,0,"fire_perc_ws_1ylegacy_RS02",
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_MC06",0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_RS02",
   # fire_pa_6m_ppt: interaction of cum. ppt with fire p/a in 6 m window
-  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,
-  0,"fire_perc_ws_ppt_1ylegacy_AT07",0,0,0,0,
-  0,0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,
-  0,0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,
-  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_MC06",0,
-  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02"),6,18)
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_MC06",0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02"),5,15)
 
 ##### Model setup for MARSS 
 
@@ -1457,14 +1453,14 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
 # If you start here, make sure you run the parts of the script above to prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -1502,8 +1498,8 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
 bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
-# fit        0.0 36
-# null.fit 109.5 18
+# fit        0.0 30
+# null.fit 136.9 15
 # RESULT: covar model is better than null, thank goodness
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
@@ -1513,15 +1509,13 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Check with Alex about the clustering happening at GV01/HO00/MC06?
-
 # Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
 
-# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
+# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok! Similar to past model results.
 
 # Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
-# Look ok - better than immediate fire effect qq plots.
+# Look ok - better than immediate fire effect qq plots. HO00 still wonky though.
 
 # Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
@@ -1550,7 +1544,7 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 ### Plot Results for All Sites ###
 
 # First, create dataset of all outputs
-my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")
+my_list <- c("AB00", "GV01", "HO00", "MC06", "RS02")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -1565,9 +1559,9 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
   dplyr::rename(Site = i) %>%
   rename(Parameter = parm) # rename site column
 
-CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "% Ws Burned (1y)","Cum. Ppt * % Ws Burned (1y)"),6)
+CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "% Ws Burned (1y)","Cum. Ppt * % Ws Burned (1y)"),5)
 
-CIs_fit_ed$Region = c(rep(c("SB"),6*3))
+CIs_fit_ed$Region = c(rep(c("SB"),5*3))
 
 # plot results
 (RESULTS_ALL_nh4 <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
@@ -1580,12 +1574,12 @@ CIs_fit_ed$Region = c(rep(c("SB"),6*3))
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Ammonium (NH4) MARSS modeling results - 09/07/2022\n1 Year Legacy") +
+         title = "Ammonium (NH4) MARSS modeling results - 01/17/2023\n1 Year Legacy") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
 # and save out plot
-# ggsave(("figures/MARSS_SB_6state_nh4_1y_090722.png"),
+# ggsave(("figures/MARSS_SB_5state_nh4_1y_011723.png"),
 #        width = 30,
 #        height = 15,
 #        units = "cm"
