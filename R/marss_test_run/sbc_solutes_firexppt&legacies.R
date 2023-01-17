@@ -5,9 +5,9 @@
 #### READ ME ####
 
 # The following script will prepare data and run MARSS analyses at SBC sites for the CRASS project.
-# MARSS modeling sections each contain 1 model or 1 model comparision and restart the script and import data anew each time.
+# MARSS modeling sections each contain 1 model or 1 model comparison and restart the script and import data anew each time.
 # Be sure to load libraries before starting modeling sections. 
-# Much of this code has been copied over from the "sbc_vcnp_firexppt&legacies.R" script written by Alex, but removing any of the NM site processing/modeling.
+# Much of this code has been copied over from the "sbc_vcnp_firexppt&legacies.R" script written by Alex, but any of the NM site processing/modeling has been removed.
 
 #### Load packages - ***do this first for all sections!*** ####
 library(tidyverse)
@@ -23,14 +23,16 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 
 # Load datasets
 # Stream Chemistry - all SBC sites
-# see script "sbc_chem_compilation.R" for the code used to tidy/generate this dataset
-chem <- readRDS("data_working/SBchem_edited_120321.rds")
+# see script "sbc_chem_vwm.R" for the code used to tidy/generate this dataset
+chem_nh4 <- read_csv("data_working/SB_NH4_VWM_011723.csv")
+chem_no3 <- read_csv("data_working/SB_NO3_VWM_011723.csv")
+chem_po4 <- read_csv("data_working/SB_PO4_VWM_011723.csv")
 
 # Precipitation - all SBC sites
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
 
 # Fire Events - all SBC sites
-fire <- readRDS("data_working/SBfire_edited_072922.rds")
+fire <- readRDS("data_working/SBfire_edited_011323.rds")
 
 # Site Location information - all SBC sites
 location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
@@ -39,10 +41,11 @@ location <- read_csv("data_raw/sbc_sites_stream_hydro.csv")
 precip_ed <- precip %>%
   mutate(sitecode_match = factor(case_when(
     sitecode == "GV202" ~ "GV01",
-    sitecode == "BARA" ~ "HO00", # HO201 doesn't start until 2002
-    sitecode == "RG202" ~ "RG01",
-    sitecode == "SMPA" ~ "SP02",
-    sitecode == "GORY" ~ "AT07",
+    sitecode == "HO202" ~ "HO00", # switched back from "BARA" since Q data doesn't
+    # start until 2002 either, using HO202 instead of 201 because record is longer
+    # sitecode == "RG202" ~ "RG01",
+    # sitecode == "SMPA" ~ "SP02",
+    # sitecode == "GORY" ~ "AT07",
     sitecode == "CAWTP" ~ "AB00",
     sitecode == "STFS" ~ "MC06", # BOGA doesn't start until 2005
     sitecode == "ELDE" ~ "RS02"))) %>%
@@ -52,7 +55,7 @@ precip_ed <- precip %>%
   mutate(Date = make_date(Year, Month, Day))
 
 # check edited fire data
-sitez = c("AB00", "GV01", "MC06", "RG01", "RS02", "HO00")
+sitez = c("AB00", "GV01", "HO00", "MC06", "RS02")
 
 ggplot(fire %>% filter(site %in% sitez), 
        aes(x = date, y = fire_pa)) +
@@ -60,7 +63,7 @@ ggplot(fire %>% filter(site %in% sitez),
   labs(x = "Date") +
   facet_wrap(.~site, scales = "free",
              ncol = 1) +
-  theme_bw()
+  theme_bw() # looks good
 
 ggplot(fire %>% filter(site %in% sitez), 
        aes(x = date, y = fire_perc_ws)) +
@@ -68,7 +71,7 @@ ggplot(fire %>% filter(site %in% sitez),
   labs(x = "Date") +
   facet_wrap(.~site, scales = "free",
              ncol = 1) +
-  theme_bw()
+  theme_bw() # also looks good
 
 ## Timeframe Selection
 
@@ -80,56 +83,89 @@ precip_ed %>%
   theme_bw() +
   theme(legend.position = "none")
 
-# So, covariate data, which cannot be missing, can run from a maximum of 9/2002 to 7/2016.
+# So, covariate data, which cannot be missing, can run from a maximum of 9/2002
+# to 10/2017, which will slightly increase the amount of data used.
 
 # To avoid strange gaps in data, I'm going to start with the fire data,
-# since I know it extends from 9/1/2002 to 7/1/2016. This will ensure all other datasets are
-# joined to these dates in full (which was causing problems earlier).
+# since I know it extends from 9/1/2002 to 10/1/2017. This will ensure all other 
+# data are joined to these dates in full (which was causing problems earlier).
 fire_precip <- left_join(fire, precip_ed, by = c("site" = "sitecode_match", "date" = "Date"))
 
 fire_precip <- fire_precip %>%
   mutate(year = year(date),
-         month = month(date)) # and the Year/Month didn't populate, so adding in new columns
+         month = month(date)) # and the Year/Month didn't populate, 
+# so adding in new columns
+
+# Trim down to sites of interest.
+dat <- fire_precip %>%
+  filter(site %in% c("AB00", "GV01", "HO00", "MC06", "RS02"))
 
 # Then, left join with chemistry so as not to lose any data.
-dat <- left_join(fire_precip, chem, by = c("site", "year" = "Year", "month" = "Month"))
+dat_nh4 <- left_join(dat, chem_nh4, by = c("site" = "site_code", 
+                                                   "year" = "Year", 
+                                                   "month" = "Month")) %>%
+  dplyr::rename("cum_Q_L_nh4" = "cum_Q_L",
+         "c_x_Q_nh4" = "c_x_Q",
+         "cum_Q_storms_nh4" = "cum_Q_storms",
+         "vwm_nh4" = "vwm_monthly")
+
+dat_no3 <- left_join(dat_nh4, chem_no3, by = c("site" = "site_code", 
+                                           "year" = "Year", 
+                                           "month" = "Month")) %>%
+  dplyr::rename("cum_Q_L_no3" = "cum_Q_L",
+                "c_x_Q_no3" = "c_x_Q",
+                "cum_Q_storms_no3" = "cum_Q_storms",
+                "vwm_no3" = "vwm_monthly")
+
+dat_po4 <- left_join(dat_no3, chem_po4, by = c("site" = "site_code", 
+                                               "year" = "Year", 
+                                               "month" = "Month")) %>%
+  dplyr::rename("cum_Q_L_po4" = "cum_Q_L",
+                "c_x_Q_po4" = "c_x_Q",
+                "cum_Q_storms_po4" = "cum_Q_storms",
+                "vwm_po4" = "vwm_monthly")
+
+dat_full <- dat_po4
 
 # Adding in dummy covariates by season
-n_months <- dat$date %>%
+n_months <- dat_full$date %>%
   unique() %>%
   length()
 
 seas_1 <- sin(2 * pi * seq(n_months) / 12)
 seas_2 <- cos(2 * pi * seq(n_months) / 12)
 
-dat <- dat %>%
-  mutate(Season1 = rep(seas_1, 8),
-         Season2 = rep(seas_2, 8),
-         index = rep(seq(1,166), 8))
+dat_full <- dat_full %>%
+  mutate(Season1 = rep(seas_1, 5),
+         Season2 = rep(seas_2, 5),
+         index = rep(seq(1,182), 5))
 
 # AJW: replace NaNs with NAs
-dat[is.nan(dat)] = NA
+dat_full[is.nan(dat_full)] = NA
 
 # And, inspect dataset for missing covariate data.
-sum(is.na(dat$fire)) # 0
-sum(is.na(dat$cumulative_precip_mm)) # 0
-# Great!
+sum(is.na(dat_full$fire)) # 0
+sum(is.na(dat_full$cumulative_precip_mm)) # 3
+# Need to trim out October 2017.
+
+dat_full <- dat_full %>%
+  filter(date != as_date(as.character("2017-10-01")))
 
 # Trim down to columns of interest
-dat_select <- dat %>%
+dat_select <- dat_full %>%
   select(year, month, index, site, ws_area_m2,
          cumulative_precip_mm, 
          fire_ID, ig_date, fire_pa, ws_fire_area_m2, fire_perc_ws,
-         mean_nh4_uM, mean_no3_uM, mean_po4_uM, 
+         vwm_nh4, vwm_no3, vwm_po4, 
          Season1, Season2) %>%
   mutate(region = "SB")
 
 # And export to save progress
-saveRDS(dat_select, "data_working/marss_data_sb_N_P_082622.rds")
+#saveRDS(dat_select, "data_working/marss_data_sb_N_P_vwm_011723.rds")
 
 #### Import compiled data and add fire x ppt interactions and legacy effects ####
 
-dat1 <- readRDS("data_working/marss_data_sb_N_P_082622.rds")
+dat1 <- readRDS("data_working/marss_data_sb_N_P_vwm_011723.rds")
 
 # reorganize
 names(dat1)
@@ -137,7 +173,7 @@ dat2 = dat1[,c(1,2,3,17,4,5, #"year" "month" "index" "region" "site" "ws_area_m2
                6, # cumulative_precip_mm
                7:11, # fire info
                15,16, # seasonal effects
-               12:14)] # solutes
+               12:14)] # analytes
 
 qplot(index, fire_pa, data=dat2, colour=site, geom="path", facets = "region")
 
@@ -151,7 +187,7 @@ firez$date = as.Date(paste(firez$year, firez$month, "01", sep="-")) # reformat d
 
 #### Add fire persistence legacy effects ####
 
-# This code is revised as of 9/7/22.
+# This code is re-run as of 1/17/23.
 
 # Create new effect date column.
 firez$effect_date = firez$date
@@ -164,17 +200,19 @@ firedates_0.5ylegacy = rbind(firez,
                              cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(4)),
                              cbind(firez[,1:8], "effect_date" = firez$effect_date %m+% months(5)))
 
-firedates_0.5ylegacy = data.frame(year = year(firedates_0.5ylegacy$effect_date),
-                                  month = month(firedates_0.5ylegacy$effect_date),
-                                  site = firedates_0.5ylegacy$site,
-                                  fire_pa_0.5ylegacy = 1,
-                                  ws_fire_area_m2_0.5ylegacy = firedates_0.5ylegacy$ws_fire_area_m2,
-                                  fire_perc_ws_0.5ylegacy = firedates_0.5ylegacy$fire_perc_ws)
+firedates_0.5ylegacy = data.frame(
+  year = year(firedates_0.5ylegacy$effect_date),
+  month = month(firedates_0.5ylegacy$effect_date),
+  site = firedates_0.5ylegacy$site,
+  fire_pa_0.5ylegacy = 1,
+  ws_fire_area_m2_0.5ylegacy = firedates_0.5ylegacy$ws_fire_area_m2,
+  fire_perc_ws_0.5ylegacy = firedates_0.5ylegacy$fire_perc_ws)
 
 firedates_0.5ylegacy = firedates_0.5ylegacy %>% 
   group_by(year, month, site, fire_pa_0.5ylegacy) %>% 
-  summarise(ws_fire_area_m2_0.5ylegacy = sum(ws_fire_area_m2_0.5ylegacy),
-            fire_perc_ws_0.5ylegacy = sum(fire_perc_ws_0.5ylegacy))
+  dplyr::summarise(ws_fire_area_m2_0.5ylegacy = sum(ws_fire_area_m2_0.5ylegacy),
+  fire_perc_ws_0.5ylegacy = sum(fire_perc_ws_0.5ylegacy)) %>%
+  ungroup()
 
 # 1 year legacy
 firedates_1ylegacy = rbind(firez, 
@@ -199,8 +237,9 @@ firedates_1ylegacy = data.frame(year = year(firedates_1ylegacy$effect_date),
 
 firedates_1ylegacy = firedates_1ylegacy %>% 
   group_by(year, month, site, fire_pa_1ylegacy) %>% 
-  summarise(ws_fire_area_m2_1ylegacy = sum(ws_fire_area_m2_1ylegacy),
-            fire_perc_ws_1ylegacy = sum(fire_perc_ws_1ylegacy))
+  dplyr::summarise(ws_fire_area_m2_1ylegacy = sum(ws_fire_area_m2_1ylegacy),
+            fire_perc_ws_1ylegacy = sum(fire_perc_ws_1ylegacy)) %>%
+  ungroup()
 
 # 2 year legacy
 firedates_2ylegacy = rbind(firez, 
@@ -237,8 +276,9 @@ firedates_2ylegacy = data.frame(year = year(firedates_2ylegacy$effect_date),
 
 firedates_2ylegacy = firedates_2ylegacy %>% 
   group_by(year, month, site, fire_pa_2ylegacy) %>% 
-  summarise(ws_fire_area_m2_2ylegacy = sum(ws_fire_area_m2_2ylegacy),
-            fire_perc_ws_2ylegacy = sum(fire_perc_ws_2ylegacy))
+  dplyr::summarise(ws_fire_area_m2_2ylegacy = sum(ws_fire_area_m2_2ylegacy),
+            fire_perc_ws_2ylegacy = sum(fire_perc_ws_2ylegacy)) %>%
+  ungroup()
 
 # 3 year legacy
 firedates_3ylegacy = rbind(firez, 
@@ -287,8 +327,9 @@ firedates_3ylegacy = data.frame(year = year(firedates_3ylegacy$effect_date),
 
 firedates_3ylegacy = firedates_3ylegacy %>% 
   group_by(year, month, site, fire_pa_3ylegacy) %>% 
-  summarise(ws_fire_area_m2_3ylegacy = sum(ws_fire_area_m2_3ylegacy),
-            fire_perc_ws_3ylegacy = sum(fire_perc_ws_3ylegacy))
+  dplyr::summarise(ws_fire_area_m2_3ylegacy = sum(ws_fire_area_m2_3ylegacy),
+            fire_perc_ws_3ylegacy = sum(fire_perc_ws_3ylegacy)) %>%
+  ungroup()
 
 # 4 year legacy
 firedates_4ylegacy = rbind(firez, 
@@ -349,8 +390,9 @@ firedates_4ylegacy = data.frame(year = year(firedates_4ylegacy$effect_date),
 
 firedates_4ylegacy = firedates_4ylegacy %>% 
   group_by(year, month, site, fire_pa_4ylegacy) %>% 
-  summarise(ws_fire_area_m2_4ylegacy = sum(ws_fire_area_m2_4ylegacy),
-            fire_perc_ws_4ylegacy = sum(fire_perc_ws_4ylegacy))
+  dplyr::summarise(ws_fire_area_m2_4ylegacy = sum(ws_fire_area_m2_4ylegacy),
+            fire_perc_ws_4ylegacy = sum(fire_perc_ws_4ylegacy)) %>%
+  ungroup()
 
 # 5 year legacy
 firedates_5ylegacy = rbind(firez, 
@@ -423,8 +465,9 @@ firedates_5ylegacy = data.frame(year = year(firedates_5ylegacy$effect_date),
 
 firedates_5ylegacy = firedates_5ylegacy %>% 
   group_by(year, month, site, fire_pa_5ylegacy) %>% 
-  summarise(ws_fire_area_m2_5ylegacy = sum(ws_fire_area_m2_5ylegacy),
-            fire_perc_ws_5ylegacy = sum(fire_perc_ws_5ylegacy))
+  dplyr::summarise(ws_fire_area_m2_5ylegacy = sum(ws_fire_area_m2_5ylegacy),
+            fire_perc_ws_5ylegacy = sum(fire_perc_ws_5ylegacy)) %>%
+  ungroup()
 
 # join legacy dates to data
 dat3 = left_join(dat2, firedates_0.5ylegacy, by=c("year","month","site"))
@@ -494,24 +537,22 @@ ggplot(dat8, aes(x = index, y = cumulative_precip_mm, color = site)) +
   theme(legend.position = "none")
 
 # NH4 (0-60 uM)
-ggplot(dat8, aes(x = index, y = mean_nh4_uM, color = site)) +
+ggplot(dat8, aes(x = index, y = vwm_nh4, color = site)) +
   geom_point() +
   facet_wrap(.~site) +
   theme(legend.position = "none")
 
 # NO3 (0-600 uM)
-ggplot(dat8, aes(x = index, y = mean_no3_uM, color = site)) +
+ggplot(dat8, aes(x = index, y = vwm_no3, color = site)) +
   geom_point() +
   facet_wrap(.~site) +
   theme(legend.position = "none")
 
 # PO4 (0-15 uM)
-ggplot(dat8, aes(x = index, y = mean_po4_uM, color = site)) +
+ggplot(dat8, aes(x = index, y = vwm_po4, color = site)) +
   geom_point() +
   facet_wrap(.~site) +
   theme(legend.position = "none")
-
-# SP02 coverage is pretty poor overall.
 
 #### Remove outliers ####
 
@@ -534,7 +575,7 @@ ggplot(dat8, aes(x = index, y = mean_po4_uM, color = site)) +
 
 #### Export data ready for modeling ####
 
-saveRDS(dat8, "data_working/marss_data_sb_090722.rds")
+saveRDS(dat8, "data_working/marss_data_sb_011723.rds")
 
 #### Plot data ready for modeling ####
 
@@ -546,15 +587,17 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions
-dat <- readRDS("data_working/marss_data_sb_090722.rds")
+dat <- readRDS("data_working/marss_data_sb_011723.rds")
 
 # add date
 dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
 
 # examine data once more to be sure sites are appropriate to model
 # NH4 in all sites
-(nh4fig <- ggplot(dat %>% filter(site %in% c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")), 
-                  aes(x = date, y = mean_nh4_uM)) +
+(nh4fig <- ggplot(dat %>% filter(site %in% c("AB00", "GV01", 
+                                             "HO00", "MC06", 
+                                             "RS02")), 
+                  aes(x = date, y = vwm_nh4)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -562,23 +605,17 @@ dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
-             colour="red"))#+
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")
+             colour="red"))
 
 # Export for CRASS slides
-# ggsave(("SB_NH4_091522.png"),
+# ggsave(("SB_NH4_011723.png"),
 #        path = "figures",
 #        width = 30,
 #        height = 15,
@@ -586,8 +623,10 @@ dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
 #        )
 
 # NO3 in all sites
-(no3fig <- ggplot(dat %>% filter(site %in% c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")), 
-                  aes(x = date, y = mean_no3_uM)) +
+(no3fig <- ggplot(dat %>% filter(site %in% c("AB00", "GV01", 
+                                             "HO00", "MC06", 
+                                             "RS02")), 
+                  aes(x = date, y = vwm_no3)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -595,23 +634,17 @@ dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
-             colour="red"))#+
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")
+             colour="red"))
 
 # Export for CRASS slides
-# ggsave(("SB_NO3_091522.png"),
+# ggsave(("SB_NO3_011723.png"),
 #        path = "figures",
 #        width = 30,
 #        height = 15,
@@ -619,8 +652,10 @@ dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
 #        )
 
 # PO4 in all sites
-(po4fig <- ggplot(dat %>% filter(site %in% c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")), 
-                 aes(x = date, y = mean_po4_uM)) +
+(po4fig <- ggplot(dat %>% filter(site %in% c("AB00", "GV01", 
+                                             "HO00", "MC06", 
+                                             "RS02")), 
+                 aes(x = date, y = vwm_po4)) +
   geom_point() +
   geom_line() +
   labs(x = "Date")+
@@ -628,23 +663,17 @@ dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="MC06" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  # geom_vline(data=filter(dat, site=="RG01" & fire_pa==1), aes(xintercept=date),
-  #            colour="red")+
   geom_vline(data=filter(dat, site=="RS02" & fire_pa==1), aes(xintercept=date), 
-             colour="red"))#+
-  # geom_vline(data=filter(dat, site=="SP02" & fire_pa==1), aes(xintercept=date), 
-  #            colour="red")
+             colour="red"))
 
 # Export for CRASS slides
-# ggsave(("SB_PO4_091522.png"),
+# ggsave(("SB_PO4_011723.png"),
 #        path = "figures",
 #        width = 30,
 #        height = 15,
@@ -653,14 +682,15 @@ dat$date = as.Date(paste(dat$year, dat$month, "01", sep="-"))
 
 # select sites for modeling
 # these have the longest most complete ts for NH4/NO3/PO4 and have coverage before and after fires: 
-# AB00, AT07, GV01, HO00, MC06, RS02
-sitez = c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")
+# AB00, GV01, HO00, MC06, RS02
+sitez = c("AB00", "GV01", "HO00", "MC06", "RS02")
 dat = dat[dat$site %in% sitez,]
+# AT07 was removed at John's request and due to lack of Q data
 # RG01 has a fire on the last data point
 # SP02 has only 6 pre-fire data points
 
 # Export data for later.
-saveRDS(dat, "data_working/marss_data_sb_6sites_090722.rds")
+saveRDS(dat, "data_working/marss_data_sb_5sites_011723.rds")
 
 # Examine remaining covariates with the filtered dataset
 
@@ -672,8 +702,6 @@ ggplot(dat, aes(x = date, y = ws_fire_area_m2)) +
   facet_wrap(region~site, scales = "free") +
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
@@ -693,8 +721,6 @@ ggplot(dat, aes(x = date, y = fire_perc_ws)) +
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
@@ -712,8 +738,6 @@ ggplot(dat, aes(x = date, y = cumulative_precip_mm)) +
   facet_wrap(region~site, scales = "free") +
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
@@ -733,8 +757,6 @@ ggplot(dat, aes(x = date, y = fire_pa_ppt)) +
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
@@ -753,8 +775,6 @@ ggplot(dat, aes(x = date, y = ws_fire_area_m2_ppt)) +
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="HO00" & fire_pa==1), aes(xintercept=date), 
@@ -772,8 +792,6 @@ ggplot(dat, aes(x = date, y = fire_perc_ws_ppt)) +
   facet_wrap(region~site, scales = "free") +
   theme_bw()+
   geom_vline(data=filter(dat, site=="AB00" & fire_pa==1), aes(xintercept=date), 
-             colour="red")+
-  geom_vline(data=filter(dat, site=="AT07" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
   geom_vline(data=filter(dat, site=="GV01" & fire_pa==1), aes(xintercept=date), 
              colour="red")+
@@ -1058,24 +1076,25 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_6sites_090722.rds")
+dat = readRDS("data_working/marss_data_sb_5sites_011723.rds")
 
 # pivot wider for MARSS format
+# selecting interaction term with no lag
 dat_nh4 <- dat %>%
   select(
     site, index, 
-    mean_nh4_uM, 
+    vwm_nh4, 
     cumulative_precip_mm, 
     fire_perc_ws, fire_perc_ws_ppt) %>% 
   pivot_wider(
     names_from = site, 
-    values_from = c(mean_nh4_uM, cumulative_precip_mm, 
+    values_from = c(vwm_nh4, cumulative_precip_mm, 
                     fire_perc_ws, fire_perc_ws_ppt))
 
 # indicate column #s of response and predictor vars
 names(dat_nh4)
-resp_cols = c(2:7)
-cov_cols = c(8:25)
+resp_cols = c(2:6)
+cov_cols = c(7:21)
 
 # log and scale transform response var
 dat_nh4_log = dat_nh4
@@ -1084,7 +1103,7 @@ dat_nh4_log[,resp_cols] = scale(dat_nh4_log[,resp_cols])
 
 # check for NaNs (not allowed) and NAs (allowed in response but not predictors)
 sum(is.nan(dat_nh4_log[,resp_cols])) # 0
-sum(is.na(dat_nh4_log[,resp_cols])) # 264
+sum(is.na(dat_nh4_log[,resp_cols])) # 299
 range(dat_nh4_log[,resp_cols], na.rm = T)
 
 # Pull out only response var
@@ -1095,6 +1114,8 @@ row.names(dat_dep)
 sum(is.nan(dat_nh4_log[,cov_cols])) # 0
 sum(is.na(dat_nh4_log[,cov_cols])) # 0
 sum(is.infinite(dat_nh4_log[,cov_cols])) # 0
+
+# Yay!!
 
 # Make covariate inputs
 dat_cov <- dat_nh4_log[,c(cov_cols)]
@@ -1114,35 +1135,31 @@ dat_cov[duplicated(dat_cov),]
 
 ##### Make C Matrix 
 
-# "XXXX_AB00",0,0,0,0,0,
-# 0,"XXXX_AT07",0,0,0,0,
-# 0,0,"XXXX_GV01",0,0,0,
-# 0,0,0,"XXXX_HO00",0,0,
-# 0,0,0,0,"XXXX_MC06",0,
-# 0,0,0,0,0,"XXXX_RS02"
+# "XXXX_AB00",0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,
+# 0,0,"XXXX_HO00",0,0,
+# 0,0,0,"XXXX_MC06",0,
+# 0,0,0,0,"XXXX_RS02"
 
 CC <- matrix(list( 
   # precip by site: cumulative_precip_mm
-  "cumulative_precip_mm_AB00",0,0,0,0,0,
-  0,"cumulative_precip_mm_AT07",0,0,0,0,
-  0,0,"cumulative_precip_mm_GV01",0,0,0,
-  0,0,0,"cumulative_precip_mm_HO00",0,0,
-  0,0,0,0,"cumulative_precip_mm_MC06",0,
-  0,0,0,0,0,"cumulative_precip_mm_RS02",
+  "cumulative_precip_mm_AB00",0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,
+  0,0,0,"cumulative_precip_mm_MC06",0,
+  0,0,0,0,"cumulative_precip_mm_RS02",
   # fire_pa: fire effect in 2 m window
-  "fire_perc_ws_AB00",0,0,0,0,0,
-  0,"fire_perc_ws_AT07",0,0,0,0,
-  0,0,"fire_perc_ws_GV01",0,0,0,
-  0,0,0,"fire_perc_ws_HO00",0,0,
-  0,0,0,0,"fire_perc_ws_MC06",0,
-  0,0,0,0,0,"fire_perc_ws_RS02",
+  "fire_perc_ws_AB00",0,0,0,0,
+  0,"fire_perc_ws_GV01",0,0,0,
+  0,0,"fire_perc_ws_HO00",0,0,
+  0,0,0,"fire_perc_ws_MC06",0,
+  0,0,0,0,"fire_perc_ws_RS02",
   # fire_pa_6m_ppt: interaction of cum. ppt with fire p/a in 6 m window
-  "fire_perc_ws_ppt_AB00",0,0,0,0,0,
-  0,"fire_perc_ws_ppt_AT07",0,0,0,0,
-  0,0,"fire_perc_ws_ppt_GV01",0,0,0,
-  0,0,0,"fire_perc_ws_ppt_HO00",0,0,
-  0,0,0,0,"fire_perc_ws_ppt_MC06",0,
-  0,0,0,0,0,"fire_perc_ws_ppt_RS02"), 6,18)
+  "fire_perc_ws_ppt_AB00",0,0,0,0,
+  0,"fire_perc_ws_ppt_GV01",0,0,0,
+  0,0,"fire_perc_ws_ppt_HO00",0,0,
+  0,0,0,"fire_perc_ws_ppt_MC06",0,
+  0,0,0,0,"fire_perc_ws_ppt_RS02"), 5,15)
 
 ##### Model setup for MARSS 
 
@@ -1176,14 +1193,14 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
 
 ##### Diagnoses 
 
 # If you start here, make sure you run the parts of the script above to prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -1221,8 +1238,8 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
 bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
-# fit        0.0 36
-# null.fit  61.5 18
+# fit        0.0 30
+# null.fit  77.5 15
 # RESULT: covar model is better than null, thank goodness
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
@@ -1234,15 +1251,15 @@ autoplot.marssMLE(fit)
 
 # Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yess!
 
-# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
+# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks fine - keep outliers in.
 
 # Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
-# Meh, for the most part. Some have a strange curve around theoretical quantile = 1.
+# Meh, for the most part. Some have a strange curve around theoretical quantile = 1. AB00 looks best, HO00 looks worst.
 
 # Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
-# No discernible patterns.
+# No discernible patterns. HO00 again has a few that cross the threshold but leaving them for now.
 
 ### Overall ###
 # None of these diagnoses look prohibitively bad.
@@ -1267,7 +1284,7 @@ CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
 ### Plot Results for All Sites ###
 
 # First, create dataset of all outputs
-my_list <- c("AB00", "AT07", "GV01", "HO00", "MC06", "RS02")
+my_list <- c("AB00", "GV01", "HO00", "MC06", "RS02")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -1282,9 +1299,9 @@ CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
   dplyr::rename(Site = i) %>%
   rename(Parameter = parm) # rename site column
 
-CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "% Ws Burned (2m)","Cum. Ppt * % Ws Burned (6m)"),6)
+CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "% Ws Burned (2m)","Cum. Ppt * % Ws Burned (6m)"),5)
 
-CIs_fit_ed$Region = c(rep(c("SB"),6*3)) # **CHECK ORDER OF SITES FOR THIS!!**
+CIs_fit_ed$Region = c(rep(c("SB"),5*3)) # **CHECK ORDER OF SITES FOR THIS!!**
 
 # plot results
 (RESULTS_ALL_nh4 <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
@@ -1297,12 +1314,14 @@ CIs_fit_ed$Region = c(rep(c("SB"),6*3)) # **CHECK ORDER OF SITES FOR THIS!!**
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Ammonium (NH4) MARSS modeling results - 09/07/2022\nImmediate Effects") +
+         title = "Ammonium (NH4) MARSS modeling results - 01/17/2023\nImmediate Effects") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
+# interesting that the less developed sites immediately have responses in the interaction term.
+
 # and save out plot
-# ggsave(("figures/MARSS_SB_6state_nh4_090722.png"),
+# ggsave(("figures/MARSS_SB_5state_nh4_011723.png"),
 #        width = 30,
 #        height = 15,
 #        units = "cm"
