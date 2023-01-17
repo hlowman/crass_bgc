@@ -150,8 +150,10 @@ nh4_site_storms <- nh4_storm_filtered %>%
 
 # Rosana's data is slightly different for each analyte, so I also need
 # to split up the chem data by analyte.
+# ALSO I need to edit records below L.O.D.
 nh4_chem_filtered <- all_chem_filtered %>%
   select(site_code, timestamp_local, nh4_uM) %>%
+  mutate(nh4_uM_lod = ifelse(nh4_uM < 0.25, 0.25, nh4_uM)) %>% # NH4 LOD = 0.5uM
   mutate(date = as_datetime(as.character(date(timestamp_local))))
 
 # Iterate over sites and then over intervals
@@ -238,7 +240,7 @@ Q_all_combined <- cbind(Q_all_daily, overlap_nh4_Q)
 
 # Next, filter out overlapping days from nh4 and Q datasets.
 
-nh4_not_storm <- nh4_chem_combined[,c(1,2,4,3,5)] %>%
+nh4_not_storm <- nh4_chem_combined[,c(1,2,5,4,6)] %>%
   filter(overlap_storm == FALSE)
 
 Q_not_storm <- Q_all_combined[,c(3,1,2,4)] %>%
@@ -250,7 +252,7 @@ nh4_not_storm_monthly <- nh4_not_storm %>%
   mutate(Year = year(date),
          Month = month(date)) %>%
   group_by(site_code, Year, Month) %>%
-  summarize(mean_nh4_uM = mean(nh4_uM, na.rm = TRUE)) %>%
+  summarize(mean_nh4_uM = mean(nh4_uM_lod, na.rm = TRUE)) %>%
   ungroup()
 
 # Calculate cumulative monthly discharges for non-storm SB days.
@@ -308,7 +310,7 @@ nh4_all <- nh4_all %>%
   facet_wrap(.~site_code, nrow = 2, scales = "free"))
 
 # ggsave(plot1,
-#        filename = "figures/SB_NH4_VWM_011223.jpg",
+#        filename = "figures/SB_NH4_VWM_011723.jpg",
 #        width = 30,
 #        height = 15,
 #        units = "cm")
@@ -331,8 +333,10 @@ no3_site_storms <- no3_storm_filtered %>%
 
 # Rosana's data is slightly different for each analyte, so I also need
 # to split up the chem data by analyte.
+# ALSO I need to edit records below L.O.D.
 no3_chem_filtered <- all_chem_filtered %>%
-  select(site_code, timestamp_local, no3_uM) %>%  
+  select(site_code, timestamp_local, no3_uM) %>% 
+  mutate(no3_uM_lod = ifelse(no3_uM < 0.25, 0.25, no3_uM)) %>% # NO3 LOD = 0.5uM
   mutate(date = as_datetime(as.character(date(timestamp_local))))
 
 # Iterate over sites and then over intervals
@@ -413,7 +417,7 @@ Q_all_combined_no3 <- cbind(Q_all_daily, overlap_no3_Q)
 
 # Next, filter out overlapping days from no3 and Q datasets.
 
-no3_not_storm <- no3_chem_combined[,c(1,2,4,3,5)] %>%
+no3_not_storm <- no3_chem_combined[,c(1,2,5,4,6)] %>%
   filter(overlap_storm == FALSE)
 
 Q_not_storm_no3 <- Q_all_combined_no3[,c(3,1,2,4)] %>%
@@ -425,7 +429,7 @@ no3_not_storm_monthly <- no3_not_storm %>%
   mutate(Year = year(date),
          Month = month(date)) %>%
   group_by(site_code, Year, Month) %>%
-  summarize(mean_no3_uM = mean(no3_uM, na.rm = TRUE)) %>%
+  summarize(mean_no3_uM = mean(no3_uM_lod, na.rm = TRUE)) %>%
   ungroup()
 
 # Calculate cumulative monthly discharges for non-storm SB days.
@@ -482,7 +486,7 @@ no3_all <- no3_all %>%
     facet_wrap(.~site_code, nrow = 2, scales = "free"))
 
 # ggsave(plot2,
-#        filename = "figures/SB_NO3_VWM_011323.jpg",
+#        filename = "figures/SB_NO3_VWM_011723.jpg",
 #        width = 30,
 #        height = 15,
 #        units = "cm")
@@ -505,8 +509,10 @@ po4_site_storms <- po4_storm_filtered %>%
 
 # Rosana's data is slightly different for each analyte, so I also need
 # to split up the chem data by analyte.
+# ALSO I need to filter for below L.O.D.
 po4_chem_filtered <- all_chem_filtered %>%
-  select(site_code, timestamp_local, po4_uM) %>%  
+  select(site_code, timestamp_local, po4_uM) %>% 
+  mutate(po4_uM_lod = ifelse(po4_uM < 0.15, 0.15, po4_uM)) %>% # PO4 LOD = 0.3uM
   mutate(date = as_datetime(as.character(date(timestamp_local))))
 
 # Iterate over sites and then over intervals
@@ -587,7 +593,7 @@ Q_all_combined_po4 <- cbind(Q_all_daily, overlap_po4_Q)
 
 # Next, filter out overlapping days from po4 and Q datasets.
 
-po4_not_storm <- po4_chem_combined[,c(1,2,4,3,5)] %>%
+po4_not_storm <- po4_chem_combined[,c(1,2,5,4,6)] %>%
   filter(overlap_storm == FALSE)
 
 Q_not_storm_po4 <- Q_all_combined_po4[,c(3,1,2,4)] %>%
@@ -599,7 +605,7 @@ po4_not_storm_monthly <- po4_not_storm %>%
   mutate(Year = year(date),
          Month = month(date)) %>%
   group_by(site_code, Year, Month) %>%
-  summarize(mean_po4_uM = mean(po4_uM, na.rm = TRUE)) %>%
+  summarize(mean_po4_uM = mean(po4_uM_lod, na.rm = TRUE)) %>%
   ungroup()
 
 # Calculate cumulative monthly discharges for non-storm SB days.
@@ -656,7 +662,7 @@ po4_all <- po4_all %>%
     facet_wrap(.~site_code, nrow = 2, scales = "free"))
 
 # ggsave(plot3,
-#        filename = "figures/SB_PO4_VWM_011323.jpg",
+#        filename = "figures/SB_PO4_VWM_011723.jpg",
 #        width = 30,
 #        height = 15,
 #        units = "cm")
@@ -664,8 +670,8 @@ po4_all <- po4_all %>%
 #### Export data ####
 
 # Export all three datasets for use in MARSS models.
-write_csv(nh4_all, "data_working/SB_NH4_VWM_011323.csv")
-write_csv(no3_all, "data_working/SB_NO3_VWM_011323.csv")
-write_csv(po4_all, "data_working/SB_PO4_VWM_011323.csv")
+write_csv(nh4_all, "data_working/SB_NH4_VWM_011723.csv")
+write_csv(no3_all, "data_working/SB_NO3_VWM_011723.csv")
+write_csv(po4_all, "data_working/SB_PO4_VWM_011723.csv")
 
 # End of script.
