@@ -2392,23 +2392,19 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_6sites_090722.rds")
-
-# NOTE: REMOVE AT07 SITE FROM 2,3,4,&5y LEGACY MODELS - not enough data.
+dat = readRDS("data_working/marss_data_sb_5sites_011723.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
-  # remove AT07 site
-  filter(site != "AT07") %>%
   # and then continue creating dataset for model
   select(
     site, index, 
-    mean_nh4_uM, 
+    vwm_nh4, 
     cumulative_precip_mm, 
     fire_perc_ws_5ylegacy, fire_perc_ws_ppt_5ylegacy) %>% 
   pivot_wider(
     names_from = site, 
-    values_from = c(mean_nh4_uM, cumulative_precip_mm, 
+    values_from = c(vwm_nh4, cumulative_precip_mm, 
                     fire_perc_ws_5ylegacy, fire_perc_ws_ppt_5ylegacy))
 
 # indicate column #s of response and predictor vars
@@ -2423,7 +2419,7 @@ dat_nh4_log[,resp_cols] = scale(dat_nh4_log[,resp_cols])
 
 # check for NaNs (not allowed) and NAs (allowed in response but not predictors)
 sum(is.nan(dat_nh4_log[,resp_cols])) # 0
-sum(is.na(dat_nh4_log[,resp_cols])) # 203
+sum(is.na(dat_nh4_log[,resp_cols])) # 299
 range(dat_nh4_log[,resp_cols], na.rm = T)
 
 # Pull out only response var
@@ -2511,14 +2507,14 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
 # If you start here, make sure you run the parts of the script above to prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
+fit = readRDS(file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -2557,7 +2553,7 @@ bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
 # fit        0.0 30
-# null.fit  40.3 15
+# null.fit  70.1 15
 # RESULT: covar model is better than null, thank goodness
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
@@ -2566,8 +2562,6 @@ autoplot.marssMLE(fit)
 # Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
-
-# Check with Alex about the clustering happening at GV01/HO00/MC06?
 
 # Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
 
@@ -2636,12 +2630,12 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3))
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Ammonium (NH4) MARSS modeling results - 09/07/2022\n5 Year Legacy") +
+         title = "Ammonium (NH4) MARSS modeling results - 01/17/2023\n5 Year Legacy") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
 # and save out plot
-# ggsave(("figures/MARSS_SB_5state_nh4_5y_090722.png"),
+# ggsave(("figures/MARSS_SB_5state_nh4_5y_011723.png"),
 #        width = 30,
 #        height = 15,
 #        units = "cm"
@@ -2650,19 +2644,19 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3))
 #### Summary fig of NH4 results ####
 
 # import model fits
-noleg_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
-leg1y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_6state_nh4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
-leg2y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn2ylegacy_percburnxppt2ylegacy_mBFGS.rds") # dropped AT07
-leg3y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn3ylegacy_percburnxppt3ylegacy_mBFGS.rds")
-leg4y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn4ylegacy_percburnxppt4ylegacy_mBFGS.rds")
-leg5y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
+noleg_fit = readRDS(file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
+leg1y_fit = readRDS(file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn1ylegacy_percburnxppt1ylegacy_mBFGS.rds")
+leg2y_fit = readRDS(file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn2ylegacy_percburnxppt2ylegacy_mBFGS.rds") # dropped AT07
+#leg3y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn3ylegacy_percburnxppt3ylegacy_mBFGS.rds")
+#leg4y_fit = readRDS(file = "data_working/marss_test_run/fit_09072022_5state_nh4_percburn4ylegacy_percburnxppt4ylegacy_mBFGS.rds")
+leg5y_fit = readRDS(file = "data_working/marss_test_run/fit_011723_5state_nh4_percburn5ylegacy_percburnxppt5ylegacy_mBFGS.rds")
 
 # extract necessary confidence interval info
 noleg_est <- MARSSparamCIs(noleg_fit)
 leg1y_est <- MARSSparamCIs(leg1y_fit)
 leg2y_est <- MARSSparamCIs(leg2y_fit)
-leg3y_est <- MARSSparamCIs(leg3y_fit)
-leg4y_est <- MARSSparamCIs(leg4y_fit)
+# leg3y_est <- MARSSparamCIs(leg3y_fit)
+# leg4y_est <- MARSSparamCIs(leg4y_fit)
 leg5y_est <- MARSSparamCIs(leg5y_fit)
 
 # formatting confidence intervals into dataframe
@@ -2690,21 +2684,21 @@ leg2y_CI$Parameter = rownames(leg2y_CI)
 leg2y_CI[,1:3] = round(leg2y_CI[,1:3], 3)
 leg2y_CI$Model = "2 year window"
 
-leg3y_CI = data.frame(
-  "Est." = leg3y_est$par$U,
-  "Lower" = leg3y_est$par.lowCI$U,
-  "Upper" = leg3y_est$par.upCI$U)
-leg3y_CI$Parameter = rownames(leg3y_CI)
-leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
-leg3y_CI$Model = "3 year window"
+# leg3y_CI = data.frame(
+#   "Est." = leg3y_est$par$U,
+#   "Lower" = leg3y_est$par.lowCI$U,
+#   "Upper" = leg3y_est$par.upCI$U)
+# leg3y_CI$Parameter = rownames(leg3y_CI)
+# leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
+# leg3y_CI$Model = "3 year window"
 
-leg4y_CI = data.frame(
-  "Est." = leg4y_est$par$U,
-  "Lower" = leg4y_est$par.lowCI$U,
-  "Upper" = leg4y_est$par.upCI$U)
-leg4y_CI$Parameter = rownames(leg4y_CI)
-leg4y_CI[,1:3] = round(leg4y_CI[,1:3], 3)
-leg4y_CI$Model = "4 year window"
+# leg4y_CI = data.frame(
+#   "Est." = leg4y_est$par$U,
+#   "Lower" = leg4y_est$par.lowCI$U,
+#   "Upper" = leg4y_est$par.upCI$U)
+# leg4y_CI$Parameter = rownames(leg4y_CI)
+# leg4y_CI[,1:3] = round(leg4y_CI[,1:3], 3)
+# leg4y_CI$Model = "4 year window"
 
 leg5y_CI = data.frame(
   "Est." = leg5y_est$par$U,
@@ -2716,22 +2710,15 @@ leg5y_CI$Model = "5 year window"
 
 # Bind all together
 CIs = rbind(
-  noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI, leg4y_CI, leg5y_CI
+  noleg_CI, leg1y_CI, leg2y_CI, #leg3y_CI, leg4y_CI, 
+  leg5y_CI
 )
 
 # add col for site names
 CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
 
 # simplify parm names
-CIs$Parm_simple = c(rep("Ppt",6),
-                    rep("Perc. burn",6),
-                    rep("Ppt x Perc. burn",6),
-                    
-                    rep("Ppt",6),
-                    rep("Perc. burn",6),
-                    rep("Ppt x Perc. burn",6),
-                    
-                    rep("Ppt",5),
+CIs$Parm_simple = c(rep("Ppt",5),
                     rep("Perc. burn",5),
                     rep("Ppt x Perc. burn",5),
                     
@@ -2742,6 +2729,14 @@ CIs$Parm_simple = c(rep("Ppt",6),
                     rep("Ppt",5),
                     rep("Perc. burn",5),
                     rep("Ppt x Perc. burn",5),
+                    
+                    # rep("Ppt",5),
+                    # rep("Perc. burn",5),
+                    # rep("Ppt x Perc. burn",5),
+                    # 
+                    # rep("Ppt",5),
+                    # rep("Perc. burn",5),
+                    # rep("Ppt x Perc. burn",5),
                     
                     rep("Ppt",5),
                     rep("Perc. burn",5),
@@ -2767,7 +2762,7 @@ CIs$Parm_simple = c(rep("Ppt",6),
     facet_wrap(.~Model, scales = "free", nrow = 1))
 
 # Export plot.
-# ggsave(("MARSS_SB_NH4_091522.png"),
+# ggsave(("MARSS_SB_NH4_011723.png"),
 #        path = "figures",
 #        width = 80,
 #        height = 10,
