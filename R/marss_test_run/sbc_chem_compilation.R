@@ -73,6 +73,7 @@ chem_full_monthly <- chem_full_ed %>%
   ungroup()
 
 # And export for MARSS script
+write_csv(chem_full_monthly, "data_working/SBchem_edited_120321.csv")
 saveRDS(chem_full_monthly, "data_working/SBchem_edited_120321.rds")
 
 # Additional plots made July 28,2022
