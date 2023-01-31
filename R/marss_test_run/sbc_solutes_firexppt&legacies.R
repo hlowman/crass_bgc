@@ -6727,42 +6727,106 @@ CIs_ALL = rbind(
 
 # Add column to designate those sites at which effects are significant.
 CIs_ALL <- CIs_ALL %>%
-  mutate(sig = factor(case_when(`Est.` > 0 & Lower > 0 & Upper > 0 ~ "sig_pos",
-                         `Est.` < 0 & Lower < 0 & Upper < 0 ~ "sig_neg",
-                         TRUE ~ "not_sig"), levels = c("sig_pos", "not_sig", "sig_neg")))
+  mutate(sig = factor(case_when(`Est.` > 0 & 
+                                  Lower > 0 & 
+                                  Upper > 0 ~ "sig_pos",
+                         `Est.` < 0 & 
+                           Lower < 0 & 
+                           Upper < 0 ~ "sig_neg",
+                         TRUE ~ "not_sig"), 
+                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+  # and column to denote the site/year where model did not
+  # converge properly
+  mutate(converged = factor(case_when(Stream == "MC06" &
+                                        Model == "0 year window" ~ FALSE,
+                                      TRUE ~ TRUE)))
 
-my_palette <- c("#000066", "white", "#00CCCC")
+my_palette <- c("black", "white", "black")
 
 # plot results
-(RESULTS_ALL <- ggplot(CIs_ALL, aes(x=factor(Parm_simple, 
-                      levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
-                                  Est., fill=sig)) + 
+(RESULTS_NH4 <- ggplot(CIs_ALL %>%
+                         # filter for only NH4 results
+                         filter(Solute == "NH4") %>%
+                         # and for models that converged
+                         filter(converged == TRUE), 
+                      aes(x = factor(Parm_simple, 
+                      levels = c("Ppt x Perc. burn",
+                                 "Perc. burn",
+                                 "Ppt")),
+                      Est., fill=sig, shape = Stream)) + 
     geom_errorbar(aes(ymin=Lower, ymax=Upper),
                   position=position_dodge(width=0.5), width=0) +
     geom_point(position=position_dodge(width=0.5), 
-               alpha = 0.8, shape = 21, size=5) + 
+               alpha = 0.8, size=8) + 
+    scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
     scale_fill_manual(values = my_palette) +
     theme_bw()+
-    theme(plot.title = element_text(size = 10),
-          axis.text = element_text(size = 12),
-          strip.text.x = element_text(size = 18),
-          strip.text.y = element_text(size = 18)) +
+    theme(axis.title = element_text(size = 24),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 24),
+          strip.text.y = element_text(size = 24),
+          legend.title=element_text(size = 20), 
+          legend.text=element_text(size = 20)) +
     geom_hline(aes(yintercept=0), linetype="dashed") +
-    #coord_flip(ylim = c(-0.5, 0.5)) + 
+    coord_flip(ylim = c(-1, 1)) + 
     ylim(-1, 1) +
     labs(y = "Effect Size", 
          x = "Covariates",
-         title = "All MARSS modeling results for Santa Barbara sites",
+         #title = "All MARSS modeling results for Santa Barbara sites",
          fill = "Significance") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    guides(shape=guide_legend("Stream"), fill = "none") +
     facet_grid(Solute~Model))
 
 # Export plot.
-# ggsave(("MARSS_SB_NH4_NO3_PO4_011723.png"),
-#        path = "figures",
-#        width = 40,
-#        height = 20,
-#        units = "cm"
-#        )
+ggsave(("MARSS_SB_NH4_013123.png"),
+       path = "figures",
+       width = 50,
+       height = 12,
+       units = "cm"
+       )
+
+# plot results
+(RESULTS_NO3_PO4 <- ggplot(CIs_ALL %>%
+                         # filter for only NO3/PO4 results
+                         filter(Solute != "NH4") %>%
+                         # and for models that converged
+                         filter(converged == TRUE), 
+                       aes(x = factor(Parm_simple, 
+                                      levels = c("Ppt x Perc. burn",
+                                                 "Perc. burn",
+                                                 "Ppt")),
+                           Est., fill=sig, shape = Stream)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),
+                  position=position_dodge(width=0.5), width=0) +
+    geom_point(position=position_dodge(width=0.5), 
+               alpha = 0.8, size=8) + 
+    scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
+    scale_fill_manual(values = my_palette) +
+    theme_bw()+
+    theme(axis.title = element_text(size = 24),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 24),
+          strip.text.y = element_text(size = 24),
+          legend.title=element_text(size = 20), 
+          legend.text=element_text(size = 20)) +
+    geom_hline(aes(yintercept=0), linetype="dashed") +
+    coord_flip(ylim = c(-1, 1)) + 
+    ylim(-1, 1) +
+    labs(y = "Effect Size", 
+         x = "Covariates",
+         #title = "All MARSS modeling results for Santa Barbara sites",
+         fill = "Significance") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    guides(shape=guide_legend("Stream"), fill = "none") +
+    facet_grid(Solute~Model))
+
+# Export plot.
+ggsave(("MARSS_SB_NO3_PO4_013123.png"),
+       path = "figures",
+       width = 50,
+       height = 24,
+       units = "cm"
+)
 
 # End of script.
