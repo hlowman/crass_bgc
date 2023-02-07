@@ -2,19 +2,6 @@
 # Script started July 19, 2022
 # Heili Lowman, Alex Webster
 
-# CURRENT TO DO (as of July 26, 2022):
-# [X] Heili BY July 29: check that a 2 month fire effect is defensible for SB data
-    # yes. See email btw heili & alex on July 27, 2022
-# [X] Heili BY July 29: check that a 8 month window for fire to interact with ppt is defensible for SB data - we want to allow for rains starting the winter after a fire season to produce an interaction effect
-    # 6 or 8 mo are both defensible. See email btw heili & alex on July 27, 2022
-# [X] Heili BY July 29: find within-watersheds fire area data for SB
-    # need to get from spatial analysis. Have asked Stevan for help. 
-# [X] Alex BY Aug 1: find within-watersheds fire area data for VC
-# [X] Alex BY Aug 8 : Once all above is done, create demo models with and w/o legacy effects and w and w/o fire area. These should be ready to iterate in structure to a) different numbers of legacy effects for model comparisions, b) other solutes in SB, and c) to modified Q matrices to test hypotheses about different numbers of state processes. 
-    # Done...ish. Models with only immediate fire and fireXppt effects are converging well. Including immediate + any legacy effects does not provide acceptable model convergence. Replacing immediate effects with legacy effects works, but you have to be careful with sites included. HO00 cannot be included with 1 y legcy effects for the firexppt interaction because there is no rain where the 1y legacy fire effect falls and this produces a all-zeros covariate row that MARSS does not like. RED cannot be included in 2y or greater legacy effects because there are too few data points after the fire, much less when you push the fire effect into the future.
-# [X] Alex: replace legacy effects that ask if a fire effect *developed* years after the fire with legacy effects that ask if a fire effect *persisted* years after the fire. I think we'll get fewer spurious results with this approach. 
-# [X] Alex: summary figure of results
-
 #### READ ME ####
 
 # The following script will prepare data and run MARSS analyses at SBC LTER & NM Valles Caldera sites for the CRASS project. 
@@ -57,6 +44,19 @@
 # "Indios Creek - Post Fire (Below Burn)" ~ "IND_BB",
 # "Indios Creek - above burn" ~ "IND_AB",
 # "Sulfur Creek" ~ "SULF"
+
+# TO DO (as of July 26, 2022):
+# [X] Heili BY July 29: check that a 2 month fire effect is defensible for SB data
+# yes. See email btw heili & alex on July 27, 2022
+# [X] Heili BY July 29: check that a 8 month window for fire to interact with ppt is defensible for SB data - we want to allow for rains starting the winter after a fire season to produce an interaction effect
+# 6 or 8 mo are both defensible. See email btw heili & alex on July 27, 2022
+# [X] Heili BY July 29: find within-watersheds fire area data for SB
+# need to get from spatial analysis. Have asked Stevan for help. 
+# [X] Alex BY Aug 1: find within-watersheds fire area data for VC
+# [X] Alex BY Aug 8 : Once all above is done, create demo models with and w/o legacy effects and w and w/o fire area. These should be ready to iterate in structure to a) different numbers of legacy effects for model comparisions, b) other solutes in SB, and c) to modified Q matrices to test hypotheses about different numbers of state processes. 
+# Done...ish. Models with only immediate fire and fireXppt effects are converging well. Including immediate + any legacy effects does not provide acceptable model convergence. Replacing immediate effects with legacy effects works, but you have to be careful with sites included. HO00 cannot be included with 1 y legcy effects for the firexppt interaction because there is no rain where the 1y legacy fire effect falls and this produces a all-zeros covariate row that MARSS does not like. RED cannot be included in 2y or greater legacy effects because there are too few data points after the fire, much less when you push the fire effect into the future.
+# [X] Alex: replace legacy effects that ask if a fire effect *developed* years after the fire with legacy effects that ask if a fire effect *persisted* years after the fire. I think we'll get fewer spurious results with this approach. 
+# [X] Alex: summary figure of results
 
 
 #### Load packages - ***do this first for all sections!*** ####
@@ -2354,47 +2354,69 @@ CIs$Parm_simple = c(rep("Ppt",9),
                     rep("Perc. burn",8),
                     rep("Ppt x Perc. burn",8))
 
-# plot results
-(RESULTS_ALL_d <- ggplot(CIs, aes(x=factor(Parm_simple, levels = c("Ppt x Perc. burn","Perc. burn","Ppt")), 
-                                  Est., color=Stream)) + 
-    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
-    geom_point(position=position_dodge(width=0.3), size=3) + 
-    theme_bw()+
-    theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20),
-          strip.text.x = element_text(size = 20),
-          strip.text.y = element_text(size = 20)) +
-    geom_hline(aes(yintercept=0), linetype="dashed")+ #coord_cartesian(ylim = c(-1.25, 1.25)) +
-    coord_flip(ylim = c(-1.25, 1.25)) + 
-    labs(y = "", x="",
-         title = "Sp. Conductivity MARSS modeling results") +
-    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
-    facet_grid(Region~Model, scales = "free"))
-# 1400 x 550
+# Add column to designate those sites at which effects are significant.
+CIs_ALL <- CIs %>%
+  mutate(sig = factor(case_when(`Est.` > 0 & 
+                                  Lower > 0 & 
+                                  Upper > 0 ~ "sig_pos",
+                                `Est.` < 0 & 
+                                  Lower < 0 & 
+                                  Upper < 0 ~ "sig_neg",
+                                TRUE ~ "not_sig"), 
+                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+  # and column to denote the site/year where model did not
+  # converge properly
+  mutate(converged = factor(case_when(Stream == c("MC06","RSA") & Model == "0 year window" ~ FALSE,
+                                      TRUE ~ TRUE))) 
 
-CIs_temp=CIs
-CIs_temp$Region_f = factor(CIs_temp$Region, levels=c("VC","SB"))
-CIs_temp$Parm_simple_f = factor(CIs_temp$Parm_simple, levels=c("Ppt x Perc. burn","Perc. burn","Ppt"))
-CIs_temp$Stream_f = factor(CIs_temp$Stream, levels=c("EFJ","RED","RSA","SAW",
+# factorize levels
+CIs_ALL$Region = factor(CIs_ALL$Region, levels=c("VC","SB"))
+CIs_ALL$Parm_simple = factor(CIs_ALL$Parm_simple, levels=c("Ppt x Perc. burn","Perc. burn","Ppt"))
+CIs_ALL$Stream = factor(CIs_ALL$Stream, levels=c("EFJ","RED","RSA","SAW",
                                                      "AB00","GV01","HO00","MC06","RS02"))
-RESULTS_ALL_d <- ggplot(CIs_temp, 
-                        aes(x=Parm_simple_f, y=Est., color=Stream_f)) + 
-    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0) +
-    geom_point(position=position_dodge(width=0.3), size=3) + 
-    theme_bw()+
-    theme(plot.title = element_text(size = 20),
-          axis.text = element_text(size = 20),
-          strip.text.x = element_text(size = 20),
-          strip.text.y = element_text(size = 20)) +
-    geom_hline(aes(yintercept=0), linetype="dashed")+ 
-    coord_flip(ylim = c(-.8, .8)) + 
-    labs(y = "", x="",
-         title = "Sp. Conductivity MARSS modeling results") +
-    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
-    facet_grid(Region_f~Model, scales = "free") 
-# 1400 x 550
-ggsave("figures/Fig_MARSS_SpC_SB_VC.pdf", plot=RESULTS_ALL_d,
-       width=13, height=6)
+
+my_palette <- c("black", "white", "black")
+
+# plot results
+RESULTS_ALL_d <- ggplot(CIs_ALL %>%
+                          # filter for models that converged
+                          filter(converged == TRUE), 
+                        aes(x = factor(Parm_simple, 
+                                       levels = c("Ppt x Perc. burn",
+                                                  "Perc. burn",
+                                                  "Ppt")),
+                            Est., fill=sig, shape = Stream)) + 
+  geom_errorbar(aes(ymin=Lower, ymax=Upper),
+                position=position_dodge(width=0.5), width=0) +
+  geom_point(position=position_dodge(width=0.5), 
+             alpha = 0.8, size=8) + 
+  scale_shape_manual(values = c(21, 22, 23, 24,
+                                21, 22, 23, 24, 25)) +
+  scale_fill_manual(values = my_palette) +
+  theme_bw()+
+  theme(axis.title = element_text(size = 24),
+        axis.text = element_text(size = 20),
+        strip.text.x = element_text(size = 24),
+        strip.text.y = element_text(size = 24),
+        legend.title=element_text(size = 20), 
+        legend.text=element_text(size = 20)) +
+  geom_hline(aes(yintercept=0), linetype="dashed") +
+  coord_flip(ylim = c(-1, 1)) + 
+  ylim(-1, 1) +
+  labs(y = "Effect Size", 
+       x = "Covariates",
+       fill = "Significance") +
+  theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+  guides(shape=guide_legend("Stream"), fill = "none") +
+  facet_grid(Region~Model)
+
+# Export plot.
+ggsave(("Fig_MARSS_SpC_SB_VC.png"),
+       path = "figures",
+       width = 50,
+       height = 24,
+       units = "cm"
+)
 
 ### add ts of predictors to top ###
 
