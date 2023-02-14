@@ -2423,16 +2423,22 @@ ggsave(("Fig_MARSS_SpC_SB_VC.png"),
 dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
 sitez = c("EFJ")
 dat = dat[dat$site %in% sitez,]
-par(mfrow=c(3,4), mai = c(0.05, .6, 0.05, 0.05))
-plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="Ppt",axes=F)
-plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
-plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
-plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
-plot(dat$index, dat$fire_perc_ws, type="l", col="red", xlab="", xaxt='n', ylab="Perc. burn",axes=F, ylim = c(0,60))
-plot(dat$index, dat$fire_perc_ws_1ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60))
-plot(dat$index, dat$fire_perc_ws_2ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60))
-plot(dat$index, dat$fire_perc_ws_3ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60))
-plot(dat$index, dat$fire_perc_ws_ppt, type="l", col="purple", xaxt='n', ylab="Ppt x Perc. burn",axes=F, ylim = c(0,14000))
-plot(dat$index, dat$fire_perc_ws_ppt_1ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000))
-plot(dat$index, dat$fire_perc_ws_ppt_2ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000))
-plot(dat$index, dat$fire_perc_ws_ppt_3ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000))
+
+par(mfrow=c(3,4), mar = c(.5, .5, 0.5, 0.5))
+
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="Ppt",axes=F, lwd=2)
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F, lwd=2)
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F, lwd=2)
+plot(dat$index, dat$cumulative_precip_mm, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F, lwd=2)
+#
+plot(dat$index, dat$fire_perc_ws, type="l", col="red", xlab="", xaxt='n', ylab="Perc. burn",axes=F, ylim = c(0,60), lwd=2)
+plot(dat$index, dat$fire_perc_ws_1ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60), lwd=2)
+plot(dat$index, dat$fire_perc_ws_2ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60), lwd=2)
+plot(dat$index, dat$fire_perc_ws_3ylegacy, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F, ylim = c(0,60), lwd=2)
+#
+plot(dat$index, dat$fire_perc_ws_ppt, type="l", col="purple", ylab="Ppt x Perc. burn",xlab="Time",axes=F, ylim = c(0,14000), lwd=2)
+plot(dat$index, dat$fire_perc_ws_ppt_1ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000), lwd=2)
+plot(dat$index, dat$fire_perc_ws_ppt_2ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000), lwd=2)
+plot(dat$index, dat$fire_perc_ws_ppt_3ylegacy, type="l", col="purple", xaxt='n', ylab="",axes=F, ylim = c(0,14000), lwd=2)
+
+# export as pdf 5 x 10 in
