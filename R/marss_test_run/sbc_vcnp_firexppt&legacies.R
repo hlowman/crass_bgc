@@ -2418,54 +2418,7 @@ ggsave(("Fig_MARSS_SpC_SB_VC.png"),
        units = "cm"
 )
 
-### add ts of predictors to top ###
-
-
-ppt_mn = (noleg_fit[["call"]][["model"]][["c"]][6,])
-fire_mn = (noleg_fit[["call"]][["model"]][["c"]][15,])
-pptxfire_mn = (noleg_fit[["call"]][["model"]][["c"]][24,])
-noleg_dat = data.frame(t = 1:166,
-                       ppt = ppt_mn,
-                       fire = fire_mn,
-                       pptxfire = pptxfire_mn)
-ppt_mn = (leg1y_fit[["call"]][["model"]][["c"]][6,])
-fire_mn = (leg1y_fit[["call"]][["model"]][["c"]][15,])
-pptxfire_mn = (leg1y_fit[["call"]][["model"]][["c"]][24,])
-leg1y_dat = data.frame(t = 1:166,
-                       ppt = ppt_mn,
-                       fire = fire_mn,
-                       pptxfire = pptxfire_mn)
-ppt_mn = (leg2y_fit[["call"]][["model"]][["c"]][6,])
-fire_mn = (leg2y_fit[["call"]][["model"]][["c"]][14,])
-pptxfire_mn = (leg2y_fit[["call"]][["model"]][["c"]][22,])
-leg2y_dat = data.frame(t = 1:166,
-                       ppt = ppt_mn,
-                       fire = fire_mn,
-                       pptxfire = pptxfire_mn)
-ppt_mn = (leg3y_fit[["call"]][["model"]][["c"]][6,])
-fire_mn = (leg3y_fit[["call"]][["model"]][["c"]][14,])
-pptxfire_mn = (leg3y_fit[["call"]][["model"]][["c"]][22,])
-leg3y_dat = data.frame(t = 1:166,
-                       ppt = ppt_mn,
-                       fire = fire_mn,
-                       pptxfire = pptxfire_mn)
-
-
-par(mfrow=c(3,4), mai = c(0.05, .6, 0.05, 0.05))
-plot(noleg_dat$t, noleg_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="Ppt",axes=F)
-plot(leg1y_dat$t, leg1y_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
-plot(leg2y_dat$t, leg2y_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
-plot(leg3y_dat$t, leg3y_dat$ppt, type="l", col="blue", xlab="", xaxt='n', ylab="",axes=F)
-plot(noleg_dat$t, noleg_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="Perc. burn",axes=F)
-plot(leg1y_dat$t, leg1y_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F)
-plot(leg2y_dat$t, leg2y_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F)
-plot(leg3y_dat$t, leg3y_dat$fire, type="l", col="red", xlab="", xaxt='n', ylab="",axes=F)
-plot(noleg_dat$t, noleg_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="Ppt x Perc. burn",axes=F)
-plot(leg1y_dat$t, leg1y_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="",axes=F)
-plot(leg2y_dat$t, leg2y_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="",axes=F)
-plot(leg3y_dat$t, leg3y_dat$pptxfire, type="l", col="purple", xaxt='n', ylab="",axes=F)
-
-
+#### Example time series of predictors figure ####
 
 dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
 sitez = c("EFJ")
