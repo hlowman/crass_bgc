@@ -50,6 +50,7 @@ chemQ %>% filter(CharacteristicName == "NO3_NO2") %>%
   ylab("NO3_NO2") +
   xlab("Q_cfs") +
   facet_wrap(~usgs_site, scales = "free")
+# There is duplication of data named Nitrate and NO3_NO2 for some catchments
 
 chemQ %>% filter(CharacteristicName == "SPC") %>%
   filter(grepl("092", usgs_site)) %>%
