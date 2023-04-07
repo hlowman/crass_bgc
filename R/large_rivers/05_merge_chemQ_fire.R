@@ -10,11 +10,14 @@
 
 library(here)
 library(tidyverse)
+library(lubridate)
 
 ### Read in chemQ
 chemQ <- read.csv(here("USGS_data", "USGS_chem_Q.csv"))
-  
+ 
+############################### 
 ### Fire summary attributes ###
+###############################
 # Is Ig_Date local time or UTC? Assuming UTC here.
 catchments_fires$Ig_Date <- as.Date(catchments_fires$Ig_Date, format = "%Y-%m-%d", tz = "UTC")
 
@@ -90,7 +93,7 @@ fires %>% group_by(usgs_site) %>% filter(!is.na(pctburn_lg)) %>% nrow()
 # 651 catchments with fires... seems like a lot?
 
 fires %>% filter(is.na(pctburn_lg)) %>% nrow()
-# 375... seems like too few? ratio of burned:unburned catchments seems skewed
+# 375 unburned catchments... seems like too few? ratio of burned:unburned catchments seems skewed
 
 write.csv(fires, here("USGS_data", "USGS_spatial_fires.csv"), row.names = FALSE)
 
@@ -102,20 +105,15 @@ chemQsp %>% filter(!is.na(Incid_Name_lg) & CharacteristicName == "Nitrate" & Dat
             ggplot(aes(x = pctburn_lg, y = mn_value_std)) +
             geom_point()
 
-### Summary metrics ###
-## Time since fire in fractional years
+## Summary metrics
+## Time since most recent and largest fires in fractional years
 # recent fire
-
-# largest fire
+chemQsp <- chemQsp %>% mutate(yrs_recent = time_length(difftime(as.POSIXct(Date_UTC), as.POSIXct(Date_rct)), "years")) %>%
+                       mutate(yrs_lg = time_length(difftime(as.POSIXct(Date_UTC), as.POSIXct(Date_lg)), "years")) 
 
 # pre/post burn column
+chemQsp <- chemQsp %>% mutate(post_rct = ifelse(Date_UTC < Date_rct, "pre", "post")) %>%
+                       mutate(post_lg = ifelse(Date_UTC < Date_lg, "pre", "post")) 
 
-### Plot C-Q pre/post burn ###
-# cumulative fire vs. recent mean chem
-
-######
-# C-Q pre-post burn for burned catchments (how long post-burn window?): same year, 1 y, 2, y, 3 y, etc.
-# time series for burned catchments
-
-### Next scripts
-## Then apply filters: catchment size, Now add LULC filter & replot C-Q
+## Export ###
+write.csv(chemQsp, here("USGS_data", "chemQfire.csv"), row.names = FALSE)

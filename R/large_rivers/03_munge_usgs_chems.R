@@ -91,7 +91,25 @@ chems.Turb <- chems %>% filter(CharacteristicName == "Turbidity") %>%
 
 select.chems <- rbind(chems.SPC, chems.NO3, chems.NO3_NO2, chems.TSS, chems.Turb)
 
+## Phosphate
+# Orthophosphate:
+# mg/l as P
+# mg/l asPO4
+# ug/L as P
+
+# Phosphate-phosphorus:
+# mg/l
+
+# Phosphorus:
+# mg/l as P
+# mg/l PO4
+
+## Carbon
+# Is this DOC?
+# mg/l
+
 ## How much data are there? 
+# This is just a snapshot of sites with IDs beginning 092
 select.chems %>% filter(CharacteristicName == "SPC")%>%
               filter(grepl("092", usgs_site)) %>%
           ggplot(aes(x = datetimeUTC, y = value_std)) +
@@ -112,6 +130,7 @@ select.chems %>% filter(CharacteristicName == "NO3_NO2") %>%
   geom_point() +
   ylab("NO3_NO2") +
   facet_wrap(~usgs_site, scales = "free_y")
+# More SPC than nitrate
 
 select.chems %>% filter(CharacteristicName == "TSS") %>%
   filter(grepl("092", usgs_site)) %>%
@@ -126,7 +145,7 @@ select.chems %>% filter(CharacteristicName == "Turbidity") %>%
   geom_point() +
   ylab("Turbidity") +
   facet_wrap(~usgs_site, scales = "free_y")
-# much less turbidity
+# much less turbidity data than solutes
 
 # filter out catchments w/ all NA for any of the selected constituents in select.chems
 select.chems <- select.chems %>% group_by(usgs_site, CharacteristicName) %>%
