@@ -3,6 +3,7 @@
 ## Identify largest fire
 ## Identify most recent fire
 ## Categorize dates to pre/post fire, pre/post largest fire, pre/post most recent fire
+## Calculate years since most recent and years since largest fire
 
 ## Inputs: 
       # Merged chems & Q: USGS_chem_Q.csv
@@ -79,21 +80,28 @@ fires %>% select("usgs_site") %>% n_distinct()
 chemQ %>% select("usgs_site") %>% n_distinct()
 # 1016. Not all catchments have data for the particular chems selected
 
-fires %>% ggplot(aes(x = pctburn_lg)) +
-          geom_histogram(color = "red") +
-          geom_histogram(aes(x = pctburn_rct), color = "blue")
+nburn <- fires %>% group_by(usgs_site) %>% filter(!is.na(pctburn_lg)) %>% nrow()
+# 651 catchments with fires... seems like a lot?
+
+nunburn <- fires %>% filter(is.na(pctburn_lg)) %>% nrow()
+# 375 unburned catchments... seems like too few? ratio of burned:unburned catchments seems skewed
+
+pctburn_hist <- fires %>% ggplot(aes(x = pctburn_lg)) +
+                          geom_histogram(color = "red") +
+                          geom_histogram(aes(x = pctburn_rct), color = "blue") +
+                          annotate("text", label = paste("N burned catchments =", nburn), x = 0.75, y = 400) +
+                          annotate("text", label = paste("N unburned catchments =", nunburn), x = 0.75, y = 375) +
+                          ylab("count") +
+                          xlab("percent catchment burned") +
+                          theme_bw() 
+
+ggsave(pctburn_hist, path = here("USGS_data", "plots"), file = "pctburn_hist.pdf", width = 10, height = 10, units = "in")
   
 fires %>% ggplot(aes(x = pctburn_lg)) +
   geom_histogram(color = "red")
 
 fires %>% ggplot(aes(x = pctburn_rct)) +
   geom_histogram(color = "blue")
-
-fires %>% group_by(usgs_site) %>% filter(!is.na(pctburn_lg)) %>% nrow()
-# 651 catchments with fires... seems like a lot?
-
-fires %>% filter(is.na(pctburn_lg)) %>% nrow()
-# 375 unburned catchments... seems like too few? ratio of burned:unburned catchments seems skewed
 
 write.csv(fires, here("USGS_data", "USGS_spatial_fires.csv"), row.names = FALSE)
 
@@ -117,3 +125,97 @@ chemQsp <- chemQsp %>% mutate(post_rct = ifelse(Date_UTC < Date_rct, "pre", "pos
 
 ## Export ###
 write.csv(chemQsp, here("USGS_data", "chemQfire.csv"), row.names = FALSE)
+
+### Data summaries ###
+# >/= 18 obs 3y pre-fire & >/= 18 obs 3y post-fire chem+Q
+# N catchments
+# list of site IDs
+# recent fire
+Nrct <- chemQsp %>% filter(!is.na(Flow)) %>%
+                    count(usgs_site, CharacteristicName, post_rct) %>%
+                    pivot_wider(names_from = post_rct, values_from = n) %>%
+                    filter(post >= 18 & pre >= 18) %>%
+                    pivot_wider(names_from = CharacteristicName, values_from = c(post, pre))
+
+# largest fire
+Nlg <- chemQsp %>% filter(!is.na(Flow)) %>%
+                   count(usgs_site, CharacteristicName, post_lg) %>%
+                   pivot_wider(names_from = post_lg, values_from = n) %>%
+                   filter(post >= 18 & pre >= 18) %>%
+                   pivot_wider(names_from = CharacteristicName, values_from = c(post, pre))
+
+# Export
+write.csv(Nrct, here("USGS_data", "data_summaries", "Qchem_18obs_prepost_rctfire.csv"), row.names = FALSE)
+write.csv(Nlg, here("USGS_data", "data_summaries", "Qchem_18obs_prepost_lgfire.csv"), row.names = FALSE)
+
+## Example time series figs
+# pre/post largest fire & has Q
+SPC.pl <- chemQsp %>% filter(usgs_site %in% Nlg$usgs_site) %>%
+                             filter(CharacteristicName == "SPC") %>%
+                             ggplot(aes(x = Date_UTC, y = mn_value_std, group = post_lg)) +
+                              geom_point(aes(color = post_lg)) +
+                              facet_wrap(~usgs_site, scales = "free") +
+                              ylab("SPC")
+
+ggsave(SPC.pl, path = here("USGS_data", "plots"), file = "SPC_lg.pdf", units = "in")
+
+NlgNO3NO2 <- Nlg %>% filter(!is.na(pre_NO3_NO2) & !is.na(post_NO3_NO2))
+NO3NO2.pl <- chemQsp %>% filter(usgs_site %in% NlgNO3NO2$usgs_site) %>%
+                         filter(CharacteristicName == "NO3_NO2") %>%
+                         ggplot(aes(x = Date_UTC, y = mn_value_std, group = post_lg)) +
+                          geom_point(aes(color = post_lg)) +
+                          facet_wrap(~usgs_site, scales = "free") +
+                          ylab("NO3_NO2")
+
+ggsave(NO3NO2.pl, path = here("USGS_data", "plots"), file = "NO3NO2_lg.pdf", units = "in")
+
+NlgNitrate <- Nlg %>% filter(!is.na(pre_Nitrate) & !is.na(post_Nitrate))
+Nitrate.pl <- chemQsp %>% filter(usgs_site %in% NlgNitrate$usgs_site) %>%
+                          filter(CharacteristicName == "Nitrate") %>%
+                          ggplot(aes(x = Date_UTC, y = mn_value_std, group = post_lg)) +
+                            geom_point(aes(color = post_lg)) +
+                            facet_wrap(~usgs_site, scales = "free") +
+                            ylab("Nitrate")
+
+ggsave(Nitrate.pl, path = here("USGS_data", "plots"), file = "Nitrate_lg.pdf", units = "in")
+
+NlgK <- Nlg %>% filter(!is.na(pre_Potassium) & !is.na(post_Potassium))
+K.pl <- chemQsp %>% filter(usgs_site %in% NlgK$usgs_site) %>%
+  filter(CharacteristicName == "Potassium") %>%
+  ggplot(aes(x = Date_UTC, y = mn_value_std, group = post_lg)) +
+  geom_point(aes(color = post_lg)) +
+  facet_wrap(~usgs_site, scales = "free") +
+  ylab("Potassium")
+
+ggsave(K.pl, path = here("USGS_data", "plots"), file = "K_lg.pdf", units = "in")
+
+Nlgturb <- Nlg %>% filter(!is.na(pre_Turbidity) & !is.na(post_Turbidity))
+Turb.pl <- chemQsp %>% filter(usgs_site %in% Nlgturb$usgs_site) %>%
+  filter(CharacteristicName == "Turbidity") %>%
+  ggplot(aes(x = Date_UTC, y = mn_value_std, group = post_lg)) +
+  geom_point(aes(color = post_lg)) +
+  facet_wrap(~usgs_site, scales = "free") +
+  ylab("Turbidity")
+
+ggsave(Turb.pl, path = here("USGS_data", "plots"), file = "Turb_lg.pdf", units = "in")
+
+NlgSO4 <- Nlg %>% filter(!is.na(pre_Sulfate) & !is.na(post_Sulfate))
+SO4.pl <- chemQsp %>% filter(usgs_site %in% NlgSO4$usgs_site) %>%
+  filter(CharacteristicName == "Sulfate") %>%
+  ggplot(aes(x = Date_UTC, y = mn_value_std, group = post_lg)) +
+  geom_point(aes(color = post_lg)) +
+  facet_wrap(~usgs_site, scales = "free") +
+  ylab("Sulfate")
+
+ggsave(SO4.pl, path = here("USGS_data", "plots"), file = "SO4_lg.pdf", units = "in")
+
+NlgCa <- Nlg %>% filter(!is.na(pre_Calcium) & !is.na(post_Calcium))
+Ca.pl <- chemQsp %>% filter(usgs_site %in% NlgCa$usgs_site) %>%
+  filter(CharacteristicName == "Calcium") %>%
+  ggplot(aes(x = Date_UTC, y = mn_value_std, group = post_lg)) +
+  geom_point(aes(color = post_lg)) +
+  facet_wrap(~usgs_site, scales = "free") +
+  ylab("Calcium")
+
+ggsave(Ca.pl, path = here("USGS_data", "plots"), file = "Ca_lg.pdf", units = "in")
+

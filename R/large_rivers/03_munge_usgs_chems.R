@@ -13,6 +13,31 @@ library(here)
 ### Visualize and pare down chems ###
 chems <- catchments_water_chemistry
 
+### TKH notes to check w/ Stevan:
+# DOC = 00681
+# TOC = 00680	
+# TDN = 00602
+# DON = 00607
+# NH4 = 00608
+# NO3 = 00618
+# NO3+NO2 = 00631
+# PO4 (as PO4) = 00653
+# ortho-P (as PO4) = 00660
+# phosphorus (as P) = 00666
+# ortho-P (as P) = 00671
+# ortho-P (as P) = 51288
+# ortho-P + condensed P (as PO4) = 52315
+# NH4 (as NH4) = 71846
+# Nitrate (as NO3) = 71851
+# Phosphorus (as PO4) = 71888
+# Nitrate (as NO3) = 91003
+# Nitrate (as N) = 99121
+# Orthophosphate (as PO4) = 99122
+# Nitrate (as N), this might be sensor = 99133
+# Nitrate, this might be sensor = 99136
+# Nitrate (as N), this might be sensor = 99137
+# NO3 + NO2 (as N) = 99889
+
 # Rename chemical constituents
 chems <- chems %>% mutate(CharacteristicName = ifelse(CharacteristicName == "Specific conductance", "SPC", 
                                                   ifelse(CharacteristicName == "Ammonia and ammonium", "NH4",
@@ -89,8 +114,6 @@ chems.Turb <- chems %>% filter(CharacteristicName == "Turbidity") %>%
                         ifelse(ResultMeasure.MeasureUnitCode == "FNU", "FNU", NA))) %>%
   mutate(value_std = ifelse(ResultMeasure.MeasureUnitCode == "JTU", NA, ResultMeasureValue))
 
-select.chems <- rbind(chems.SPC, chems.NO3, chems.NO3_NO2, chems.TSS, chems.Turb)
-
 ## Phosphate
 # Orthophosphate:
 # mg/l as P
@@ -107,6 +130,25 @@ select.chems <- rbind(chems.SPC, chems.NO3, chems.NO3_NO2, chems.TSS, chems.Turb
 ## Carbon
 # Is this DOC?
 # mg/l
+
+## Potassium
+chems.K <- chems %>% filter(CharacteristicName == "Potassium") %>%
+  mutate(units_std = "uM") %>%
+  mutate(value_std = ifelse(ResultMeasure.MeasureUnitCode == "mg/l", ResultMeasureValue*(1000/39.0983),
+                            ifelse(ResultMeasure.MeasureUnitCode == "ug/l", ResultMeasureValue/39.0983, NA)))
+
+## Sulfate
+chems.SO4 <- chems %>% filter(CharacteristicName == "Sulfate") %>%
+  mutate(units_std = "uM") %>%
+  mutate(value_std = ifelse(ResultMeasure.MeasureUnitCode == "mg/l", ResultMeasureValue*(1000/96.06),
+                            ifelse(ResultMeasure.MeasureUnitCode == "ug/l", ResultMeasureValue/96.06, NA)))
+
+## Calcium
+chems.Ca <- chems %>% filter(CharacteristicName == "Calcium") %>%
+  mutate(units_std = "uM") %>%
+  mutate(value_std = ifelse(ResultMeasure.MeasureUnitCode == "mg/l", ResultMeasureValue*(1000/40.078), NA))
+
+select.chems <- rbind(chems.SPC, chems.NO3, chems.NO3_NO2, chems.TSS, chems.Turb, chems.K, chems.SO4, chems.Ca)
 
 ## How much data are there? 
 # This is just a snapshot of sites with IDs beginning 092
