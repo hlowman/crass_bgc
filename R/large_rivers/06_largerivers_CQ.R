@@ -59,23 +59,35 @@ large %>% group_by(usgs_site, CharacteristicName, post_lg) %>%
                       filter(!is.na(mn_value_std) & 
                              !is.na(Flow) &
                              !is.na(post_lg) &
-                             yrs_lg > -5 & 
-                             yrs_lg < 3 &
-                             n() > 10 &
+                             #yrs_lg > -5 & 
+                             yrs_lg <= 3 &
+                             n() >= 8 &
                              CharacteristicName == "NO3_NO2") %>%
   ggplot(aes(x = log(Flow), y = log(mn_value_std), group = post_lg)) +
   geom_point(aes(color = post_lg)) +
   facet_wrap(~usgs_site, scales = "free")
 
-large %>% group_by(usgs_site, CharacteristicName, post_rct) %>% 
+large %>% group_by(usgs_site, CharacteristicName, post_lg) %>% 
   filter(!is.na(mn_value_std) & 
            !is.na(Flow) &
            !is.na(post_rct) &
-           yrs_recent > -5 & 
-           yrs_recent < 3 &
-           n() > 10 &
+           #yrs_recent > -5 & 
+           yrs_recent <= 3 &
+           n() >= 8 &
            CharacteristicName == "Turbidity") %>%
-  ggplot(aes(x = log(Flow), y = log(mn_value_std), group = post_rct)) +
+  ggplot(aes(x = log(Flow), y = log(mn_value_std), group = post_lg)) +
+  geom_point(aes(color = post_lg)) +
+  facet_wrap(~usgs_site, scales = "free")
+
+large %>% group_by(usgs_site, CharacteristicName, post_lg) %>% 
+  filter(!is.na(mn_value_std) & 
+           !is.na(Flow) &
+           !is.na(post_rct) &
+           #yrs_recent > -5 & 
+           yrs_recent <= 3 &
+           n() >= 8 &
+           CharacteristicName == "Potassium") %>%
+  ggplot(aes(x = log(Flow), y = log(mn_value_std), group = post_lg)) +
   geom_point(aes(color = post_lg)) +
   facet_wrap(~usgs_site, scales = "free")
 
