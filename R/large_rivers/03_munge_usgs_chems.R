@@ -37,6 +37,9 @@ chems <- catchments_water_chemistry
 # Nitrate, this might be sensor = 99136
 # Nitrate (as N), this might be sensor = 99137
 # NO3 + NO2 (as N) = 99889
+# Silica dissolved (as SiO2) 00955
+# Silica total (as SiO2) 00956
+# Silica recoverable unfiltered (as SiO2) 00954
 
 # Rename chemical constituents
 chems <- chems %>% mutate(CharacteristicName = ifelse(CharacteristicName == "Specific conductance", "SPC", 
