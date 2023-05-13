@@ -219,3 +219,22 @@ Ca.pl <- chemQsp %>% filter(usgs_site %in% NlgCa$usgs_site) %>%
 
 ggsave(Ca.pl, path = here("USGS_data", "plots"), file = "Ca_lg.pdf", units = "in")
 
+# C-Q
+Ca.CQ.pl <- chemQsp %>% filter(usgs_site %in% NlgCa$usgs_site) %>%
+                        filter(CharacteristicName == "Calcium") %>%
+                        ggplot(aes(x = log(Flow), y = log(mn_value_std), group = post_lg)) +
+                        geom_point(aes(color = post_lg)) +
+                        facet_wrap(~usgs_site, scales = "free") +
+                        ylab("Calcium")
+
+NO3_NO2.CQ.pl <- chemQsp %>% filter(usgs_site %in% NlgNO3NO2$usgs_site) %>%
+  filter(CharacteristicName == "NO3_NO2") %>%
+  ggplot(aes(x = log(Flow), y = log(mn_value_std), group = post_lg)) +
+  geom_point(aes(color = post_lg)) +
+  facet_wrap(~usgs_site, scales = "free") +
+  ylab("NO3_NO2")
+
+# Scatter
+nNO3_NO2 <- chemQsp %>% filter(!grepl("Cultivated Crops", dominant_lulc)) %>%
+                        filter(CharacteristicName == "NO3_NO2")
+pairs(~log(mn_value_std) + Flow + catchment_area + pctburn_rct + pctburn_lg + number_fires + total_area_burned + number_wwtp + yrs_recent + yrs_lg, data = nNO3_NO2, cols = nNO3_NO2$post_lg)
