@@ -234,7 +234,9 @@ NO3_NO2.CQ.pl <- chemQsp %>% filter(usgs_site %in% NlgNO3NO2$usgs_site) %>%
   facet_wrap(~usgs_site, scales = "free") +
   ylab("NO3_NO2")
 
+ggsave(NO3_NO2.CQ.pl, path = here("USGS_data", "plots"), file = "NO3NO2.CQ.pdf", width = 14, height = 12, units = "in")
+
 # Scatter
 nNO3_NO2 <- chemQsp %>% filter(!grepl("Cultivated Crops", dominant_lulc)) %>%
                         filter(CharacteristicName == "NO3_NO2")
-pairs(~log(mn_value_std) + Flow + catchment_area + pctburn_rct + pctburn_lg + number_fires + total_area_burned + number_wwtp + yrs_recent + yrs_lg, data = nNO3_NO2, cols = nNO3_NO2$post_lg)
+pairs(~log(mn_value_std) + Flow + catchment_area + pctburn_rct + pctburn_lg + number_fires + total_area_burned + number_wwtp + yrs_recent + yrs_lg, data = nNO3_NO2, cols = as.factor(nNO3_NO2$post_lg))
