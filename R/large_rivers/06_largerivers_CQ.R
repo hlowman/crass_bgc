@@ -131,7 +131,7 @@ NCQ <- chemQfire %>% group_by(usgs_site, CharacteristicName, post_lg) %>%
            !is.na(Flow) &
            !is.na(post_lg) &
            CharacteristicName == "NO3_NO2" &
-           yrs_lg >= -3 & 
+           #yrs_lg >= -3 & 
            yrs_lg <= 3 &
            n() >= 8) %>%
   ungroup() %>%
@@ -146,7 +146,7 @@ NCQ.pl <- chemQfire %>% group_by(usgs_site, CharacteristicName, post_lg) %>%
            !is.na(Flow) &
            !is.na(post_lg) &
            CharacteristicName == "NO3_NO2" &
-           yrs_lg >= -3 & 
+           #yrs_lg >= -3 & 
            yrs_lg <= 3 &
            n() >= 8) %>%
   ungroup() %>%
