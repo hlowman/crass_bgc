@@ -125,6 +125,42 @@ large %>% group_by(usgs_site, CharacteristicName, post_lg) %>%
   geom_point(aes(color = post_lg)) +
   facet_wrap(~usgs_site, scales = "free")
 
+## Export data for Bayesian regression test
+NCQ <- chemQfire %>% group_by(usgs_site, CharacteristicName, post_lg) %>% 
+  filter(!is.na(mn_value_std) & 
+           !is.na(Flow) &
+           !is.na(post_lg) &
+           CharacteristicName == "NO3_NO2" &
+           yrs_lg >= -3 & 
+           yrs_lg <= 3 &
+           n() >= 8) %>%
+  ungroup() %>%
+  group_by(usgs_site) %>%
+  filter(all(c("post", "pre") %in% post_lg)) %>%
+  select(c(usgs_site:catchment_area, pctburn_lg, yrs_lg:post_lg))
+
+write.csv(NCQ, here("USGS_data", "data_summaries", "NO3CQ.csv"), row.names = FALSE)
+
+NCQ.pl <- chemQfire %>% group_by(usgs_site, CharacteristicName, post_lg) %>% 
+  filter(!is.na(mn_value_std) & 
+           !is.na(Flow) &
+           !is.na(post_lg) &
+           CharacteristicName == "NO3_NO2" &
+           yrs_lg >= -3 & 
+           yrs_lg <= 3 &
+           n() >= 8) %>%
+  ungroup() %>%
+  group_by(usgs_site) %>%
+  filter(all(c("post", "pre") %in% post_lg)) %>% 
+  ggplot(aes(x = log(Flow), y = log(mn_value_std), group = post_lg)) +
+  geom_point(aes(color = post_lg)) +
+  ylab("log(NO3_NO2)") +
+  facet_wrap(~usgs_site, scales = "free")
+
+group_by(ID) %>%
+  filter(all(c("up", "down") %in% DIR) )
+
+
 #################
 ## Time series ##
 #################
