@@ -1713,4 +1713,7 @@ bbmle::AICtab(noleg_fit1, noleg_fit2)
 # followed by 9 state model with 1 "state" covariance matrix and
 # finally 9 state model with no covariance matrix.
 
+# For comparison, take a look at 9state diagnostics once more.
+autoplot.marssMLE(noleg_fit9)
+
 # End of script.
