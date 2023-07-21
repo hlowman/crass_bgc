@@ -940,7 +940,7 @@ ggplot(dat, aes(x = date, y = fire_perc_ws_2ylegacy)) +
   geom_vline(data=filter(dat, site=="SULF" & fire_pa==1), aes(xintercept=date), 
              colour="red")
 
-#### MARSS: ppt, % burn (2m win), % burn x ppt, no legacy ####
+#### 2 state MARSS: ppt, % burn (2m win), % burn x ppt, no legacy ####
 
 ##### Setup #####
 
@@ -956,9 +956,9 @@ dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
 # select sites
 # include these sites only (9 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
 # AB00, GV01, HO00, MC06, RS02 = SB
-# EFJ, RED, RSA, & RSAW = VC
+# EFJ, RED, & RSAW = VC
 sitez = c("AB00", "GV01", "HO00", "MC06", "RS02",
-          "EFJ", "RED", "RSA", "RSAW")
+          "EFJ", "RED", "RSAW")
 dat = dat[dat$site %in% sitez,]
 table(dat$site)
 
@@ -976,8 +976,8 @@ dat_cond <- dat %>%
 
 # indicate column #s of response and predictor vars
 names(dat_cond)
-resp_cols = c(2:10)
-cov_cols = c(11:37)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
 
 # log and scale transform response var
 dat_cond_log = dat_cond
@@ -1016,67 +1016,67 @@ dat_cov[duplicated(dat_cov),]
 ##### Fit #####
 
 # make C matrix
-# "XXXX_AB00",0,0,0,0,0,0,0,0,
-# 0,"XXXX_GV01",0,0,0,0,0,0,0,
-# 0,0,"XXXX_HO00",0,0,0,0,0,0,
-# 0,0,0,"XXXX_MC06",0,0,0,0,0,
-# 0,0,0,0,"XXXX_RS02",0,0,0,0,
-# 0,0,0,0,0,"XXXX_EFJ" ,0,0,0,
-# 0,0,0,0,0,0,"XXXX_RSAW",0,0,
-# 0,0,0,0,0,0,0,"XXXX_RSA" ,0,
-# 0,0,0,0,0,0,0,0,"XXXX_RED" ,
+# "XXXX_AB00",0,0,0,0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,0,0,0,
+# 0,0,"XXXX_HO00",0,0,0,0,0,
+# 0,0,0,"XXXX_MC06",0,0,0,0,
+# 0,0,0,0,"XXXX_RS02",0,0,0,
+# 0,0,0,0,0,"XXXX_EFJ" ,0,0,
+# 0,0,0,0,0,0,"XXXX_RSAW",0,
+# 0,0,0,0,0,0,0,"XXXX_RED" 
 
 CC <- matrix(list( 
   # precip by site: cumulative_precip_mm
-  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,0,
-  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,0,
-  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,0,
-  0,0,0,"cumulative_precip_mm_MC06",0,0,0,0,0,
-  0,0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
-  0,0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
-  0,0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
-  0,0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_MC06",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_RS02",0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSAW",0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
   # fire_perc_ws: fire effect in 2 m window
-  "fire_perc_ws_AB00",0,0,0,0,0,0,0,0,
-  0,"fire_perc_ws_GV01",0,0,0,0,0,0,0,
-  0,0,"fire_perc_ws_HO00",0,0,0,0,0,0,
-  0,0,0,"fire_perc_ws_MC06",0,0,0,0,0,
-  0,0,0,0,"fire_perc_ws_RS02",0,0,0,0,
-  0,0,0,0,0,"fire_perc_ws_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"fire_perc_ws_RSAW",0,0,
-  0,0,0,0,0,0,0,"fire_perc_ws_RSA" ,0,
-  0,0,0,0,0,0,0,0,"fire_perc_ws_RED" ,
+  "fire_perc_ws_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_MC06",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_RS02",0,0,0,
+  0,0,0,0,0,"fire_perc_ws_EFJ" ,0,0,
+  0,0,0,0,0,0,"fire_perc_ws_RSAW",0,
+  0,0,0,0,0,0,0,"fire_perc_ws_RED" ,
   # fire_perc_ws_ppt: interaction of cum. ppt with fire % burn in 6 m window
-  "fire_perc_ws_ppt_AB00",0,0,0,0,0,0,0,0,
-  0,"fire_perc_ws_ppt_GV01",0,0,0,0,0,0,0,
-  0,0,"fire_perc_ws_ppt_HO00",0,0,0,0,0,0,
-  0,0,0,"fire_perc_ws_ppt_MC06",0,0,0,0,0,
-  0,0,0,0,"fire_perc_ws_ppt_RS02",0,0,0,0,
-  0,0,0,0,0,"fire_perc_ws_ppt_EFJ" ,0,0,0,
-  0,0,0,0,0,0,"fire_perc_ws_ppt_RSAW",0,0,
-  0,0,0,0,0,0,0,"fire_perc_ws_ppt_RSA" ,0,
-  0,0,0,0,0,0,0,0,"fire_perc_ws_ppt_RED" ), 9,27)
+  "fire_perc_ws_ppt_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_MC06",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_RS02",0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_EFJ" ,0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_RSAW",0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_RED"), 8, 24)
 
 # Model setup for MARSS 
 # see page 28 for Q matrix structure:
 # https://cran.r-project.org/web/packages/MARSS/vignettes/UserGuide.pdf
 mod_list <- list()
-mod_list$Q <- matrix(list("s1","b12","b13","b14","b15",0,0,0,0,
-                          "b12","s2","b23","b24","b25",0,0,0,0,
-                          "b13","b23","s3","b34","b35",0,0,0,0,
-                          "b14","b24","b34","s4","b45",0,0,0,0,
-                          "b15","b25","b35","b45","s5",0,0,0,0,
-                          0,    0,    0,    0,    0,  "s6","b67","b68","b69",
-                          0,    0,    0,    0,    0,  "b67","s7","b78","b79",
-                          0,    0,    0,    0,    0,  "b68","b78","s8","b89",
-                          0,    0,    0,    0,    0,  "b69","b79","b89","s9"),9,9)
-#mod_list$R <- "diagonal and unequal"
+mod_list$Q <- matrix(list("s1","b12","b13","b14","b15",0,0,0,
+                          "b12","s2","b23","b24","b25",0,0,0,
+                          "b13","b23","s3","b34","b35",0,0,0,
+                          "b14","b24","b34","s4","b45",0,0,0,
+                          "b15","b25","b35","b45","s5",0,0,0,
+                          0,    0,    0,    0,    0,  "s6","b67","b68",
+                          0,    0,    0,    0,    0,  "b67","s7","b78",
+                          0,    0,    0,    0,    0,  "b68","b78","s8"),8,8)
 mod_list$Z <- 'identity'
 mod_list$A <- "zero"
 mod_list$U <- "zero"
 mod_list$C <- CC
 mod_list$c <- dat_cov
+mod_list$B <- "diagonal and unequal"
+mod_list$D <- "zero"
+mod_list$d <- "zero"
+mod_list$R <- "zero"
+mod_list$tinitx <- 0
+mod_list$V0 <- "zero"
 
 # Fit MARSS model 
 # fit BFGS with priors
@@ -1088,13 +1088,13 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_test_run/fit_071423_9state_nolegacies_Qmatrix_mBFGS.rds")
+        file = "data_working/marss_test_run/fit_072123_9state_nolegacies_2stateQmatrix_mBFGS.rds")
 
 # DIAGNOSES 
 # NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
 
 # import model fit
-fit = readRDS(file = "data_working/marss_test_run/fit_071423_9state_nolegacies_Qmatrix_mBFGS.rds")
+fit <- readRDS(file = "data_working/marss_test_run/fit_072123_9state_nolegacies_2stateQmatrix_mBFGS.rds")
 
 ## check for hidden errors
 # some don't appear in output in console
@@ -1105,18 +1105,24 @@ fit[["errors"]]
 ### Compare to null model ###
 # make sure this matches the fitted model in all ways besides including C and c
 mod_list_null <- list()
-mod_list_null$Q <- matrix(list("s1","b12","b13","b14","b15",0,0,0,0,
-                          "b12","s2","b23","b24","b25",0,0,0,0,
-                          "b13","b23","s3","b34","b35",0,0,0,0,
-                          "b14","b24","b34","s4","b45",0,0,0,0,
-                          "b15","b25","b35","b45","s5",0,0,0,0,
-                          0,    0,    0,    0,    0,  "s6","b67","b68","b69",
-                          0,    0,    0,    0,    0,  "b67","s7","b78","b79",
-                          0,    0,    0,    0,    0,  "b68","b78","s8","b89",
-                          0,    0,    0,    0,    0,  "b69","b79","b89","s9"),9,9)
+mod_list_null$Q <- matrix(list("s1","b12","b13","b14","b15",0,0,0,
+                          "b12","s2","b23","b24","b25",0,0,0,
+                          "b13","b23","s3","b34","b35",0,0,0,
+                          "b14","b24","b34","s4","b45",0,0,0,
+                          "b15","b25","b35","b45","s5",0,0,0,
+                          0,    0,    0,    0,    0,  "s6","b67","b68",
+                          0,    0,    0,    0,    0,  "b67","s7","b78",
+                          0,    0,    0,    0,    0,  "b68","b78","s8"),8,8)
 mod_list_null$Z <- 'identity'
 mod_list_null$A <- "zero"
 mod_list_null$U <- "zero"
+mod_list_null$B <- "diagonal and unequal"
+mod_list_null$D <- "zero"
+mod_list_null$d <- "zero"
+mod_list_null$R <- "zero"
+mod_list_null$tinitx <- 0
+mod_list_null$V0 <- "zero"
+
 
 null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
                      control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
@@ -1127,8 +1133,8 @@ null.fit <- MARSS(y = dat_dep, model = mod_list_null,
 bbmle::AICtab(fit, null.fit)
 
 #           dAIC df
-# fit        0.0 62
-# null.fit  15.8 35
+# fit        0.0 61
+# null.fit  98.4 37
 # RESULT: covar model is better than null
 
 ##### Diagnoses #####
@@ -1136,24 +1142,24 @@ bbmle::AICtab(fit, null.fit)
 autoplot.marssMLE(fit)
 
 # Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable?
-# yes, except some weirdly large intervals in NM plots...
+# yes, except some large intervals in NM plots still
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs?
-# looks good except similar thing happening at NM sites again
+# looks good
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off").
+# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
 
-# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers
+# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Very few of note.
 
 # Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
-# looks OK, possibly with the exception of NM sites
+# looks as good as we can hope they will
 
 # Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
-# these look ok
+# these look ok - a few outliers but no major patterns
 
-# Overall: Going to review results with Alex.
+# Overall: Look alright.
 
 ##### Plot #####
 # only do this if diagnoses look acceptable! 
@@ -1182,7 +1188,7 @@ rownames(CIs_fit) =gsub("RSAW","SAW",rownames(CIs_fit))
 CIs_AB00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("AB00", CIs_fit$parm),])
 
 # Now to iterate over all sites
-my_list <- c("AB00","GV01","HO00","MC06","RS02","EFJ","RED","RSA","SAW")
+my_list <- c("AB00","GV01","HO00","MC06","RS02","EFJ","RED","SAW")
 
 # Create an empty list for things to be sent to
 datalist = list()
@@ -1196,8 +1202,8 @@ for (i in my_list) { # for every site in the list
 CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
   dplyr::rename(Site = i) %>%
   rename(Parameter = parm) # rename site column
-CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "% Burn","Cum. Ppt * % Burn"), 9)
-CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),4*3))
+CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "% Burn","Cum. Ppt * % Burn"), 8)
+CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),3*3))
 
 # plot results
 (RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
@@ -1209,12 +1215,12 @@ CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),4*3))
     geom_hline(aes(yintercept=0), linetype="dashed")+
     coord_flip() +
     labs(y = "",
-         title = "Sp. Conductivity MARSS modeling results - 07/14/2023\n2 'states' in Q matrix") +
+         title = "Sp. Conductivity MARSS modeling results - 07/21/2023\n2 'states' in Q matrix") +
     theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
     facet_wrap(Region~Site, scales = "free"))
 
 # And secondary plot to mimic what is actually appearing in the manuscript.
-noleg_est <- MARSSparamCIs(fit); beep(2)
+noleg_est <- MARSSparamCIs(fit)
 # formatting confidence intervals into dataframe
 noleg_CI = data.frame(
   "Est." = noleg_est$par$U,
@@ -1233,11 +1239,11 @@ rownames(CIs) =gsub("RSAW","SAW",rownames(CIs))
 # add col for site names
 CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
 # add col for region
-CIs$Region = ifelse(CIs$Stream %in% c("EFJ","SAW","RSA","RED"),"VC","SB")
+CIs$Region = ifelse(CIs$Stream %in% c("EFJ","SAW","RED"),"VC","SB")
 # simplify parm names
-CIs$Parm_simple = c(rep("Ppt",9),
-                    rep("Perc. burn",9),
-                    rep("Ppt x Perc. burn",9))
+CIs$Parm_simple = c(rep("Ppt",8),
+                    rep("Perc. burn",8),
+                    rep("Ppt x Perc. burn",8))
 
 # Add column to designate those sites at which effects are significant.
 CIs_ALL <- CIs %>%
@@ -1257,8 +1263,8 @@ CIs_ALL <- CIs %>%
 # factorize levels
 CIs_ALL$Region = factor(CIs_ALL$Region, levels=c("VC","SB"))
 CIs_ALL$Parm_simple = factor(CIs_ALL$Parm_simple, levels=c("Ppt x Perc. burn","Perc. burn","Ppt"))
-CIs_ALL$Stream = factor(CIs_ALL$Stream, levels=c("EFJ","RED","RSA","SAW",
-                                                 "AB00","GV01","HO00","MC06","RS02"))
+CIs_ALL$Stream = factor(CIs_ALL$Stream, levels=c("EFJ","RED","SAW",
+                                    "AB00","GV01","HO00","MC06","RS02"))
 
 my_palette <- c("black", "white", "black")
 
@@ -1303,14 +1309,408 @@ my_palette <- c("black", "white", "black")
 #        units = "cm"
 # )
 
-# Import past model fit where all sites were separate and compare.
+#### 1 state MARSS: ppt, % burn (2m win), % burn x ppt, no legacy ####
+
+##### Setup #####
+
+# Set up data for MARSS
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_082622.rds")
+
+# select sites
+# include these sites only (9 total - these have the longest most complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, MC06, RS02 = SB
+# EFJ, RED, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "MC06", "RS02",
+          "EFJ", "RED", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws, fire_perc_ws_ppt) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws, fire_perc_ws_ppt)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols]))
+sum(is.na(dat_cond_log[,resp_cols]))
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols]))
+sum(is.na(dat_cond_log[,cov_cols]))
+sum(is.infinite(dat_cond_log[,cov_cols]))
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# check for cols with all zeros
+any(colSums(dat_cov)==0)
+#which(colSums(dat_cov)==0)
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs
+sum(is.nan(dat_cov))
+sum(is.na(dat_cov))
+sum(is.infinite(dat_cov))
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+#no
+
+##### Fit #####
+
+# make C matrix
+# "XXXX_AB00",0,0,0,0,0,0,0,
+# 0,"XXXX_GV01",0,0,0,0,0,0,
+# 0,0,"XXXX_HO00",0,0,0,0,0,
+# 0,0,0,"XXXX_MC06",0,0,0,0,
+# 0,0,0,0,"XXXX_RS02",0,0,0,
+# 0,0,0,0,0,"XXXX_EFJ" ,0,0,
+# 0,0,0,0,0,0,"XXXX_RSAW",0,
+# 0,0,0,0,0,0,0,"XXXX_RED" 
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_MC06",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_RS02",0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSAW",0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws: fire effect in 2 m window
+  "fire_perc_ws_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_MC06",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_RS02",0,0,0,
+  0,0,0,0,0,"fire_perc_ws_EFJ" ,0,0,
+  0,0,0,0,0,0,"fire_perc_ws_RSAW",0,
+  0,0,0,0,0,0,0,"fire_perc_ws_RED" ,
+  # fire_perc_ws_ppt: interaction of cum. ppt with fire % burn in 6 m window
+  "fire_perc_ws_ppt_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_MC06",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_RS02",0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_EFJ" ,0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_RSAW",0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_RED"), 8, 24)
+
+# Model setup for MARSS 
+# see page 28 for Q matrix structure:
+# https://cran.r-project.org/web/packages/MARSS/vignettes/UserGuide.pdf
+mod_list <- list()
+mod_list$Q <- matrix(list("s1","b12","b13","b14","b15","b16","b17","b18",
+                          "b12","s2","b23","b24","b25","b26","b27","b28",
+                          "b13","b23","s3","b34","b35","b36","b37","b38",
+                          "b14","b24","b34","s4","b45","b46","b47","b48",
+                          "b15","b25","b35","b45","s5","b56","b57","b58",
+                          "b16","b26","b36","b46","b56","s6","b67","b68",
+                          "b17","b27","b37","b47","b57","b67","s7","b78",
+                          "b18","b28","b38","b48","b58","b68","b78","s8"),8,8)
+mod_list$Z <- 'identity'
+mod_list$A <- "zero"
+mod_list$U <- "zero"
+mod_list$C <- CC
+mod_list$c <- dat_cov
+mod_list$B <- "diagonal and unequal"
+mod_list$D <- "zero"
+mod_list$d <- "zero"
+mod_list$R <- "zero"
+mod_list$tinitx <- 0
+mod_list$V0 <- "zero"
+
+# Fit MARSS model 
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_test_run/fit_072123_9state_nolegacies_1stateQmatrix_mBFGS.rds")
+
+# DIAGNOSES 
+# NOTE: If you start here, make sure you run the parts of the script above that prepare data for MARSS. It is needed for diagnoses along with the model fit!
+
+# import model fit
+fit <- readRDS(file = "data_working/marss_test_run/fit_072123_9state_nolegacies_1stateQmatrix_mBFGS.rds")
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides including C and c
+mod_list_null <- list()
+mod_list_null$Q <- matrix(list("s1","b12","b13","b14","b15","b16","b17","b18",
+                               "b12","s2","b23","b24","b25","b26","b27","b28",
+                               "b13","b23","s3","b34","b35","b36","b37","b38",
+                               "b14","b24","b34","s4","b45","b46","b47","b48",
+                               "b15","b25","b35","b45","s5","b56","b57","b58",
+                               "b16","b26","b36","b46","b56","s6","b67","b68",
+                               "b17","b27","b37","b47","b57","b67","s7","b78",
+                               "b18","b28","b38","b48","b58","b68","b78","s8"),8,8)
+mod_list_null$Z <- 'identity'
+mod_list_null$A <- "zero"
+mod_list_null$U <- "zero"
+mod_list_null$B <- "diagonal and unequal"
+mod_list_null$D <- "zero"
+mod_list_null$d <- "zero"
+mod_list_null$R <- "zero"
+mod_list_null$tinitx <- 0
+mod_list_null$V0 <- "zero"
+
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#           dAIC df
+# fit        0.0 76
+# null.fit  90.8 52
+# RESULT: covar model is better than null
+
+##### Diagnoses #####
+# Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable?
+# yes, except some large intervals in NM plots still
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs?
+# looks good
+
+# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+
+# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Very few of note.
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
+# worse than 2 state covariance matrix for sure
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
+# these look ok - a few outliers but no major patterns
+
+# Overall: Look alright save the worsened qq plots.
+
+##### Plot #####
+# only do this if diagnoses look acceptable! 
+### Plot coef and coef estimates ###
+## estimates
+# hessian method is much fast but not ideal for final results - 
+# should bootstrap for final
+est_fit <- MARSSparamCIs(fit)
+
+# formatting confidence intervals into dataframe
+CIs_fit = cbind(
+  est_fit$par$U,
+  est_fit$par.lowCI$U,
+  est_fit$par.upCI$U)
+CIs_fit = as.data.frame(CIs_fit)
+names(CIs_fit) = c("Est.", "Lower", "Upper")
+CIs_fit$parm = rownames(CIs_fit)
+CIs_fit[,1:3] = round(CIs_fit[,1:3], 3)
+
+# First, create dataset of all outputs
+# RSA and RSAW get mixed up in plotting, so replacing RSAW with SAW
+CIs_fit$parm =gsub("RSAW","SAW",CIs_fit$parm)
+rownames(CIs_fit) =gsub("RSAW","SAW",rownames(CIs_fit))
+
+# This works for AB00 alone
+CIs_AB00 = rbind(CIs_fit[1:2,], CIs_fit[grepl("AB00", CIs_fit$parm),])
+
+# Now to iterate over all sites
+my_list <- c("AB00","GV01","HO00","MC06","RS02","EFJ","RED","SAW")
+
+# Create an empty list for things to be sent to
+datalist = list()
+
+for (i in my_list) { # for every site in the list
+  df <- rbind(CIs_fit[grepl(i, CIs_fit$parm),]) # create a new dataset
+  df$i <- i  # remember which site produced it
+  datalist[[i]] <- df # add it to a list
+}
+
+CIs_fit_ed <- bind_rows(datalist) %>% # bind all rows together
+  dplyr::rename(Site = i) %>%
+  rename(Parameter = parm) # rename site column
+CIs_fit_ed$Parameter = rep(c("Cum. Ppt", "% Burn","Cum. Ppt * % Burn"), 8)
+CIs_fit_ed$Region = c(rep(c("SB"),5*3), rep(c("VC"),3*3))
+
+# plot results
+(RESULTS_ALL_d <- ggplot(CIs_fit_ed, aes(Parameter, Est., color=Region)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),position=position_dodge(width=0.25), width=0.25) +
+    geom_point(position=position_dodge(width=0.3), size=2) + 
+    theme_bw()+
+    theme(plot.title = element_text(size = 8)) +
+    theme(axis.text = element_text(size = 8)) +
+    geom_hline(aes(yintercept=0), linetype="dashed")+
+    coord_flip() +
+    labs(y = "",
+         title = "Sp. Conductivity MARSS modeling results - 07/21/2023\n1 'state' in Q matrix") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    facet_wrap(Region~Site, scales = "free"))
+
+# And secondary plot to mimic what is actually appearing in the manuscript.
+noleg_est <- MARSSparamCIs(fit)
+# formatting confidence intervals into dataframe
+noleg_CI = data.frame(
+  "Est." = noleg_est$par$U,
+  "Lower" = noleg_est$par.lowCI$U,
+  "Upper" = noleg_est$par.upCI$U)
+noleg_CI$Parameter = rownames(noleg_CI)
+noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
+noleg_CI$Model = "0 year window"
+
+CIs = noleg_CI
+
+# RSA and RSAW get mixed up in plotting, so replacing RSAW with SAW
+CIs$Parameter =gsub("RSAW","SAW",CIs$Parameter)
+rownames(CIs) =gsub("RSAW","SAW",rownames(CIs))
+
+# add col for site names
+CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
+# add col for region
+CIs$Region = ifelse(CIs$Stream %in% c("EFJ","SAW","RED"),"VC","SB")
+# simplify parm names
+CIs$Parm_simple = c(rep("Ppt",8),
+                    rep("Perc. burn",8),
+                    rep("Ppt x Perc. burn",8))
+
+# Add column to designate those sites at which effects are significant.
+CIs_ALL <- CIs %>%
+  mutate(sig = factor(case_when(`Est.` > 0 & 
+                                  Lower > 0 & 
+                                  Upper > 0 ~ "sig_pos",
+                                `Est.` < 0 & 
+                                  Lower < 0 & 
+                                  Upper < 0 ~ "sig_neg",
+                                TRUE ~ "not_sig"), 
+                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+  # and column to denote the site/year where model did not
+  # converge properly
+  mutate(converged = factor(case_when(Stream %in% c("MC06","RSA") & Model == "0 year window" ~ FALSE,
+                                      TRUE ~ TRUE))) 
+
+# factorize levels
+CIs_ALL$Region = factor(CIs_ALL$Region, levels=c("VC","SB"))
+CIs_ALL$Parm_simple = factor(CIs_ALL$Parm_simple, levels=c("Ppt x Perc. burn","Perc. burn","Ppt"))
+CIs_ALL$Stream = factor(CIs_ALL$Stream, levels=c("EFJ","RED","SAW",
+                                                 "AB00","GV01","HO00","MC06","RS02"))
+
+my_palette <- c("black", "white", "black")
+
+# plot results
+(plot_results <- ggplot(CIs_ALL %>%
+                          # filter for models that converged
+                          filter(converged == TRUE), 
+                        aes(x = factor(Parm_simple, 
+                                       levels = c("Ppt x Perc. burn",
+                                                  "Perc. burn",
+                                                  "Ppt")),
+                            Est., fill=sig, shape = Stream)) + 
+    geom_errorbar(aes(ymin=Lower, ymax=Upper),
+                  position=position_dodge(width=0.5), width=0) +
+    geom_point(position=position_dodge(width=0.5), 
+               alpha = 0.8, size=8) + 
+    scale_shape_manual(values = c(21, 22, 23, 24,
+                                  21, 22, 23, 24, 25)) +
+    scale_fill_manual(values = my_palette) +
+    theme_bw()+
+    theme(axis.title = element_text(size = 24),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 24),
+          strip.text.y = element_text(size = 24),
+          legend.title=element_text(size = 20), 
+          legend.text=element_text(size = 20)) +
+    geom_hline(aes(yintercept=0), linetype="dashed") +
+    coord_flip(ylim = c(-1, 1)) + 
+    ylim(-1, 1) +
+    labs(y = "Effect Size", 
+         x = "Covariates",
+         fill = "Significance") +
+    theme(plot.margin=unit(c(.2,.2,.05,.05),"cm")) + 
+    guides(shape=guide_legend("Stream"), fill = "none") +
+    facet_grid(Region~Model))
+
+# Export plot.
+# ggsave(("Fig_MARSS_SpC_SB_VC_Q1test_nolag.png"),
+#        path = "figures",
+#        width = 25,
+#        height = 20,
+#        units = "cm"
+# )
+
+#### 9 state MARSS: ppt, % burn (2m win), % burn x ppt, no legacy ####
+
+# Import past model fits, first where all sites were separate
+# states with no covariance matrix and compare to models run
+# above.
 noleg_fit9 <- readRDS(file = "data_working/marss_test_run/fit_08262022_9state_cond_percburn2m_percburn6mxppt_nolegacies_mBFGS.rds")
 
-bbmle::AICtab(fit, noleg_fit9)
+# 2 "state" structure from above
+noleg_fit2 <- readRDS(file = "data_working/marss_test_run/fit_072123_9state_nolegacies_2stateQmatrix_mBFGS.rds")
 
-#                  dAIC df
-# noleg_fit9        0.0 54
-# fit              12.9 62
-# RESULT: 9 state model is better 2 "state"
+# 1 "state" structure from above
+noleg_fit1 <- readRDS(file = "data_working/marss_test_run/fit_072123_9state_nolegacies_1stateQmatrix_mBFGS.rds")
+
+bbmle::AICtab(noleg_fit2, noleg_fit9)
+
+#            dAIC  df
+# noleg_fit2   0.0 61
+# noleg_fit9 174.3 54
+
+bbmle::AICtab(noleg_fit1, noleg_fit9)
+
+#            dAIC  df
+# noleg_fit1   0.0 76
+# noleg_fit9 168.3 54
+
+bbmle::AICtab(noleg_fit1, noleg_fit2)
+
+#            dAIC df
+# noleg_fit2  0   61
+# noleg_fit1  6   76
+
+# RESULTS: 9 state model with 2 "state" covariance matrix is best,
+# followed by 9 state model with 1 "state" covariance matrix and
+# finally 9 state model with no covariance matrix.
 
 # End of script.
