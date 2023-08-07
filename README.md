@@ -1,6 +1,6 @@
 # crass_bgc
 
-<img align="left" width="25%" src=figures/CRASS_logo.png> 
+<img align="left" width="15%" src=figures/CRASS_logo.png> 
 
 Scripts, data, and figures for Collaborative for Research in Arid Stream Systems Biogeochemistry working group.
 
