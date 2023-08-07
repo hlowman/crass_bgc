@@ -15,7 +15,7 @@ library(lubridate)
 #
 #### load data and clean up ####
 
-sondez = readRDS("SondeData_AlexWebster/VCNP_sonde.rds")
+sondez = readRDS("data_raw/VCNP_sonde.rds")
 
 
 #### extract and smooth SpC data ####
