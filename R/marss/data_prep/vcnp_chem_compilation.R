@@ -1,4 +1,4 @@
-# Valles Caldera National Preservese (vcnp) Stream Chemistry Assembly
+# Valles Caldera National Preserve (vcnp) Stream Chemistry Assembly
 # November 8, 2021
 # Betsy Summers following Heili Lowman's workflow 
 

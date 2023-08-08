@@ -1,27 +1,159 @@
+# Valles Caldera National Preserve (vcnp)
+# Sonde Data Review
+# August 8, 2023
+# Alex Webster, Heili Lowman
+
 #### read me ####
 # the purpose of this script is to put together some timeseries of sonde data from VCNP. 
 # Data was provided by Mic from the Crossey lab off of their Aquarius data logs. 
 # Data has been appended (stitched together) but may not be QAQCed
 
-#### load libraries ####
+#### Setup ####
 
+# load libraries
 library(lubridate)
 library(tidyverse)
 library(gridExtra)
 library(zoo)
 library(xts)
-library(lubridate)
 
-#
-#### load data and clean up ####
+#### Heili's code ####
 
+# Load sonde data.
+sonde_dat <- readRDS("data_raw/VCNP_sonde.rds")
+
+# Load grab sample data.
+grab_dat <- readRDS("data_working/VCNPchem_edited_120521.rds")
+
+# Trim both datasets as appropriate.
+
+# Make a dataframe.
+sonde_dat_trim <- map_df(sonde_dat,
+                         ~as.data.frame(.x), .id="site_name") %>%
+  # Filter for sites of interest.
+  filter(site_name %in% c("EFJ", "RED", "RSA", "RSAW")) %>%
+  # Select only conductivity data.
+  select(site_name, datetime_NM, SPC_uS_Value) %>%
+  # And add column to denote data source
+  mutate(source = "Sonde") %>%
+  # And rename to match the grab sample dataset
+  rename(DateTime = datetime_NM,
+         mean_cond_uScm = SPC_uS_Value)
+
+# Repeat with grab sample data.
+grab_dat_trim <- grab_dat %>%
+  mutate(site_name = case_when(site_code == "East Fork Jemez River" ~ "EFJ",
+                               site_code == "Redondo Creek" ~ "RED",
+                               site_code %in% c("San Antonio Creek - Toledo",
+                                                "San Antonio Creek- Toledo",
+                                                "San Antonio Creek -Toledo") ~ "RSA",
+                               site_code == "San Antonio - West" ~ "RSAW")) %>%
+  filter(site_name %in% c("EFJ", "RED", "RSA", "RSAW")) %>%
+  select(site_name, DateTime, mean_cond_uScm) %>%
+  mutate(source = "Grab")
+
+# Combine datasets and filter values.
+all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
+  filter(mean_cond_uScm < 2500) %>%
+  filter(mean_cond_uScm > 0)
+
+# Plot datasets to compare to one another.
+# East Fork Jemez River
+(EFJ_fig <- ggplot(all_dat %>%
+                    filter(site_name == "EFJ"), 
+                  aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+  geom_point(alpha = 0.7) +
+  geom_line(alpha = 0.6) +
+  scale_color_manual(values = c("#0FB2D3", "#026779")) +
+  geom_vline(xintercept = ymd_hms("2011-06-26 00:00:00"), color = "red") + # Las Conchas fire
+  geom_vline(xintercept = ymd_hms("2016-05-11 00:00:00"), color = "red") + # prescribed fire
+  labs(x = "Date-Time", y = "Spec. Conductivity (uS)", 
+       title = "East Fork Jemez River (EFJ)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  facet_grid(rows = vars(source)))
+
+# Export.
+# ggsave(EFJ_fig,
+#        filename = "figures/EFJ_grab_vs_sonde_080823.jpg",
+#        width = 20,
+#        height = 10,
+#        units = "cm")
+
+# Redondo Creek
+(RED_fig <- ggplot(all_dat %>%
+                     filter(site_name == "RED"), 
+                   aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+    geom_point(alpha = 0.7) +
+    geom_line(alpha = 0.6) +
+    scale_color_manual(values = c("#0FB2D3", "#026779")) +
+    geom_vline(xintercept = ymd_hms("2013-05-31 00:00:00"), 
+               color = "red") + # Thompson Ridge fire
+    labs(x = "Date-Time", y = "Spec. Conductivity (uS)", 
+         title = "Redondo Creek (RED)") +
+    theme_bw() +
+    theme(legend.position = "none") +
+    facet_grid(rows = vars(source)))
+
+# Export.
+# ggsave(RED_fig,
+#        filename = "figures/RED_grab_vs_sonde_080823.jpg",
+#        width = 20,
+#        height = 10,
+#        units = "cm")
+
+# San Antonio Creek - Toledo
+(RSA_fig <- ggplot(all_dat %>%
+                     filter(site_name == "RSA"), 
+                   aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+    geom_point(alpha = 0.7) +
+    geom_line(alpha = 0.6) +
+    scale_color_manual(values = c("#0FB2D3", "#026779")) +
+    geom_vline(xintercept = ymd_hms("2011-06-26 00:00:00"), color = "red") + # Las Conchas fire
+    labs(x = "Date-Time", y = "Spec. Conductivity (uS)", 
+         title = "San Antonio Creek - Toledo (RSA)") +
+    theme_bw() +
+    theme(legend.position = "none") +
+    facet_grid(rows = vars(source)))
+
+# Export.
+# ggsave(RSA_fig,
+#        filename = "figures/RSA_grab_vs_sonde_080823.jpg",
+#        width = 20,
+#        height = 10,
+#        units = "cm")
+
+# San Antonio - West
+(RSAW_fig <- ggplot(all_dat %>%
+                     filter(site_name == "RSAW"), 
+                   aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+    geom_point(alpha = 0.7) +
+    geom_line(alpha = 0.6) +
+    scale_color_manual(values = c("#0FB2D3", "#026779")) +
+    geom_vline(xintercept = ymd_hms("2011-06-26 00:00:00"), color = "red") + # Las Conchas fire
+    geom_vline(xintercept = ymd_hms("2013-05-31 00:00:00"), 
+               color = "red") + # Thompson Ridge fire
+    labs(x = "Date-Time", y = "Spec. Conductivity (uS)", 
+         title = "San Antonio - West (RSAW)") +
+    theme_bw() +
+    theme(legend.position = "none") +
+    facet_grid(rows = vars(source)))
+
+# Export.
+# ggsave(RSAW_fig,
+#        filename = "figures/RSAW_grab_vs_sonde_080823.jpg",
+#        width = 20,
+#        height = 10,
+#        units = "cm")
+
+#### Alex's code ####
+
+# load data
 sondez = readRDS("data_raw/VCNP_sonde.rds")
 
-
-#### extract and smooth SpC data ####
+# extract and smooth SpC data
 
 # going to start with just EFJ
-
 EFJ_SpC = sondez[["EFJ"]] %>% 
   select(datetime_NM, SPC_uS_Value)
 
@@ -53,8 +185,6 @@ EFJ_SpC_sm$doy = yday(EFJ_SpC_sm$datetime_NM)
 ggplot(data= EFJ_SpC_sm, aes(y=SPC_uS_Value, x=doy))+
   geom_line()+
   facet_wrap(~yr)
-
-
 
 ###  JCP
 
@@ -90,7 +220,6 @@ ggplot(data= JCP_SpC_sm, aes(y=SPC_uS_Value, x=doy))+
   geom_line()+
   facet_wrap(~yr)
 
-
 ###  RED
 
 RED_SpC = sondez[["RED"]] %>% 
@@ -124,7 +253,6 @@ RED_SpC_sm$doy = yday(RED_SpC_sm$datetime_NM)
 ggplot(data= RED_SpC_sm, aes(y=SPC_uS_Value, x=doy))+
   geom_line()+
   facet_wrap(~yr)
-
 
 ###  RSAW
 
@@ -193,3 +321,6 @@ RSA_SpC_sm$doy = yday(RSA_SpC_sm$datetime_NM)
 ggplot(data= RSA_SpC_sm, aes(y=SPC_uS_Value, x=doy))+
   geom_line()+
   facet_wrap(~yr)
+
+# End of script.
+
