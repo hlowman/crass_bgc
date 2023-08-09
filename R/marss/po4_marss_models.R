@@ -2349,4 +2349,146 @@ bbmle::AICtab(leg5_5state, leg5_1state)
 
 #### Results Figure ####
 
+# For presentation consistency, I will only be creating figures with a
+# single state configuration, whichever yielded the most parsimonious
+# models. So, in this case, all PO4 figures will represent the "1 state"
+# scenario.
+
+# Extract necessary confidence interval info
+noleg_est <- MARSSparamCIs(noleg_1state)
+leg1y_est <- MARSSparamCIs(leg1_1state)
+leg2y_est <- MARSSparamCIs(leg2_1state)
+leg3y_est <- MARSSparamCIs(leg3_1state)
+leg4y_est <- MARSSparamCIs(leg4_1state)
+leg5y_est <- MARSSparamCIs(leg5_1state)
+
+# Format confidence intervals into dataframes
+noleg_CI = data.frame(
+  "Est." = noleg_est$par$U,
+  "Lower" = noleg_est$par.lowCI$U,
+  "Upper" = noleg_est$par.upCI$U)
+noleg_CI$Parameter = rownames(noleg_CI)
+noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
+noleg_CI$Model = "0 year window"
+
+leg1y_CI = data.frame(
+  "Est." = leg1y_est$par$U,
+  "Lower" = leg1y_est$par.lowCI$U,
+  "Upper" = leg1y_est$par.upCI$U)
+leg1y_CI$Parameter = rownames(leg1y_CI)
+leg1y_CI[,1:3] = round(leg1y_CI[,1:3], 3)
+leg1y_CI$Model = "1 year window"
+
+leg2y_CI = data.frame(
+  "Est." = leg2y_est$par$U,
+  "Lower" = leg2y_est$par.lowCI$U,
+  "Upper" = leg2y_est$par.upCI$U)
+leg2y_CI$Parameter = rownames(leg2y_CI)
+leg2y_CI[,1:3] = round(leg2y_CI[,1:3], 3)
+leg2y_CI$Model = "2 year window"
+
+leg3y_CI = data.frame(
+  "Est." = leg3y_est$par$U,
+  "Lower" = leg3y_est$par.lowCI$U,
+  "Upper" = leg3y_est$par.upCI$U)
+leg3y_CI$Parameter = rownames(leg3y_CI)
+leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
+leg3y_CI$Model = "3 year window"
+
+leg4y_CI = data.frame(
+  "Est." = leg4y_est$par$U,
+  "Lower" = leg4y_est$par.lowCI$U,
+  "Upper" = leg4y_est$par.upCI$U)
+leg4y_CI$Parameter = rownames(leg4y_CI)
+leg4y_CI[,1:3] = round(leg4y_CI[,1:3], 3)
+leg4y_CI$Model = "4 year window"
+
+leg5y_CI = data.frame(
+  "Est." = leg5y_est$par$U,
+  "Lower" = leg5y_est$par.lowCI$U,
+  "Upper" = leg5y_est$par.upCI$U)
+leg5y_CI$Parameter = rownames(leg5y_CI)
+leg5y_CI[,1:3] = round(leg5y_CI[,1:3], 3)
+leg5y_CI$Model = "5 year window"
+
+# Bind all together
+CIs = rbind(noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI, leg4y_CI,leg5y_CI)
+
+# Add column for site names
+CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
+
+# Simplify parameter names
+CIs$Parm_simple = c(rep("Ppt",4),
+                    rep("Perc. burn",4),
+                    rep("Ppt x Perc. burn",4),
+                    
+                    rep("Ppt",4),
+                    rep("Perc. burn",4),
+                    rep("Ppt x Perc. burn",4),
+                    
+                    rep("Ppt",4),
+                    rep("Perc. burn",4),
+                    rep("Ppt x Perc. burn",4),
+                    
+                    rep("Ppt",4),
+                    rep("Perc. burn",4),
+                    rep("Ppt x Perc. burn",4),
+
+                    rep("Ppt",4),
+                    rep("Perc. burn",4),
+                    rep("Ppt x Perc. burn",4),
+                    
+                    rep("Ppt",4),
+                    rep("Perc. burn",4),
+                    rep("Ppt x Perc. burn",4))
+
+# Add column to designate those sites at which effects are significant.
+CIs <- CIs %>%
+  mutate(sig = factor(case_when(`Est.` > 0 & 
+                                  Lower > 0 & 
+                                  Upper > 0 ~ "sig_pos",
+                                `Est.` < 0 & 
+                                  Lower < 0 & 
+                                  Upper < 0 ~ "sig_neg",
+                                TRUE ~ "not_sig"), 
+                      levels = c("sig_pos", "not_sig", "sig_neg")))
+
+my_palette <- c("black", "white", "black")
+
+# Plot results
+(PO4_fig <- ggplot(CIs, aes(x = factor(Parm_simple, 
+                                      levels = c("Ppt x Perc. burn",
+                                                 "Perc. burn",
+                                                 "Ppt")),
+                            y = Est., fill = sig, shape = Stream)) + 
+    geom_errorbar(aes(ymin = Lower, ymax = Upper),
+                  position=position_dodge(width = 0.5), width = 0) +
+    geom_point(position=position_dodge(width = 0.5), 
+               alpha = 0.8, size = 8) + 
+    scale_shape_manual(values = c(21, 22, 23, 24, 25)) +
+    scale_fill_manual(values = my_palette) +
+    theme_bw()+
+    theme(axis.title = element_text(size = 24),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 24),
+          strip.text.y = element_text(size = 24),
+          legend.title=element_text(size = 20), 
+          legend.text=element_text(size = 20)) +
+    geom_hline(aes(yintercept = 0), linetype = "dashed") +
+    coord_flip(ylim = c(-0.6, 0.6)) + 
+    labs(y = "Effect Size", 
+         x = "Covariates",
+         fill = "Significance") +
+    theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
+    guides(shape = guide_legend("Stream"), fill = "none") +
+    facet_grid(.~Model))
+
+# Export plot.
+# ggsave(("MARSS_PO4_080923.png"),
+#        path = "figures",
+#        width = 65,
+#        height = 12,
+#        units = "cm"
+# )
+
 # End of script.
