@@ -1,6 +1,6 @@
 # Nutrient MARSS models
 # with fire x ppt interactions and legacy effects
-# as well as 5 state structure for CA sites
+# as well as 4 state structure for CA sites
 # Script started August 8, 2023 by Heili Lowman
 
 # This script will run 12 PO4 MARSS models.
@@ -2346,6 +2346,19 @@ bbmle::AICtab(leg5_4state, leg5_1state)
 
 # So, it would seem the 1 "state" model structure wins out every time.
 # With little change between lag periods.
+
+bbmle::AICtab(noleg_1state, leg1_1state, leg2_1state,
+              leg3_1state, leg4_1state, leg5_1state)
+
+#              dAIC df
+# leg1_1state   0.0 30
+# leg2_1state   3.5 30
+# leg3_1state   4.1 30
+# leg4_1state   5.6 30
+# leg5_1state   5.7 30
+# noleg_1state 13.5 30
+
+# And when comparing all models, the 1 year window/lag is most parsimonious.
 
 #### Results Figure ####
 

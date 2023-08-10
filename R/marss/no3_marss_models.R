@@ -1,6 +1,6 @@
 # Nutrient MARSS models
 # with fire x ppt interactions and legacy effects
-# as well as 5 state structure for CA sites
+# as well as 4 state structure for CA sites
 # Script started August 9, 2023 by Heili Lowman
 
 # This script will run 12 NO3 MARSS models.
@@ -16,7 +16,7 @@ library(MARSS)
 library(naniar) 
 library(here)
 
-#### 0y legacy, 5 state ####
+#### 0y legacy, 4 state ####
 
 # remove data
 rm(list=ls())
@@ -2289,6 +2289,19 @@ bbmle::AICtab(leg5_4state, leg5_1state)
 
 # So, it would seem the 4 "state" model structure *barely* wins out.
 # But it does appear very close between the different state structures.
+
+bbmle::AICtab(noleg_4state, leg1_4state, leg2_4state,
+              leg3_4state, leg4_4state, leg5_4state)
+
+#              dAIC df
+# leg3_4state   0.0 24
+# leg2_4state   1.7 24
+# leg4_4state   2.9 24
+# leg5_4state   6.4 24
+# leg1_4state   9.7 24
+# noleg_4state 31.0 24
+
+# And when comparing all models, the 3 year window/lag is most parsimonious.
 
 #### Results Figure ####
 
