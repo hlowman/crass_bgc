@@ -3,7 +3,7 @@
 # August 8, 2023
 # Alex Webster, Heili Lowman
 
-#### read me ####
+#### Read Me ####
 # the purpose of this script is to put together some timeseries of sonde data from VCNP. 
 # Data was provided by Mic from the Crossey lab off of their Aquarius data logs. 
 # Data has been appended (stitched together) but may not be QAQCed
@@ -38,7 +38,41 @@ sonde_dat_trim <- map_df(sonde_dat,
   mutate(source = "Sonde") %>%
   # And rename to match the grab sample dataset
   rename(DateTime = datetime_NM,
-         mean_cond_uScm = SPC_uS_Value)
+         cond_uScm = SPC_uS_Value)
+
+# Also, need to remove QAQC to remove outliers from sonde data.
+# Determine mean and sd conductivity values for each site.
+summary <- sonde_dat_trim %>%
+  group_by(site_name) %>%
+  summarize(mean = mean(cond_uScm, na.rm = TRUE),
+            sd = sd(cond_uScm, na.rm = TRUE)) %>%
+  ungroup()
+
+meanEFJ <- 96.51694
+sdEFJ <- 37.80697
+meanRED <- 61.84900
+sdRED <- 37.91663
+meanRSA <- 88.43305
+sdRSA <- 20.54047
+meanRSAW <- 117.55648
+sdRSAW <- 24.41510
+
+# And QAQC original dataset accordingly.
+sonde_dat_trim_ed <- sonde_dat_trim %>%
+  # First, removing all values equal to or less than zero
+  filter(cond_uScm > 0) %>%
+  # And, filter out outliers.
+  mutate(cond_uScm_ed = case_when(site_name == "EFJ" & cond_uScm >= meanEFJ+(4*sdEFJ) ~ NA,
+                                  site_name == "EFJ" & cond_uScm <= meanEFJ-(4*sdEFJ) ~ NA,
+                                  site_name == "RED" & cond_uScm >= meanRED+(4*sdRED) ~ NA,
+                                  site_name == "RED" & cond_uScm <= meanRED-(4*sdRED) ~ NA,
+                                  site_name == "RSA" & cond_uScm >= meanRSA+(4*sdRSA) ~ NA,
+                                  site_name == "RSA" & cond_uScm <= meanRSA-(4*sdRSA) ~ NA,
+                                  site_name == "RSAW" & cond_uScm >= meanRSAW+(4*sdRSAW) ~ NA,
+                                  site_name == "RSAW" & cond_uScm <= meanRSAW-(4*sdRSAW) ~ NA,
+                                  TRUE ~ cond_uScm)) %>%
+  select(site_name, DateTime, cond_uScm_ed, source) %>%
+  rename(cond_uScm = cond_uScm_ed)
 
 # Repeat with grab sample data.
 grab_dat_trim <- grab_dat %>%
@@ -50,18 +84,17 @@ grab_dat_trim <- grab_dat %>%
                                site_code == "San Antonio - West" ~ "RSAW")) %>%
   filter(site_name %in% c("EFJ", "RED", "RSA", "RSAW")) %>%
   select(site_name, DateTime, mean_cond_uScm) %>%
+  rename(cond_uScm = mean_cond_uScm) %>%
   mutate(source = "Grab")
 
-# Combine datasets and filter values.
-all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
-  filter(mean_cond_uScm < 2500) %>%
-  filter(mean_cond_uScm > 0)
+# Combine datasets.
+all_dat <- full_join(grab_dat_trim, sonde_dat_trim_ed)
 
 # Plot datasets to compare to one another.
 # East Fork Jemez River
 (EFJ_fig <- ggplot(all_dat %>%
                     filter(site_name == "EFJ"), 
-                  aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+                  aes(x = DateTime, y = cond_uScm, color = source)) +
   geom_point(alpha = 0.7) +
   geom_line(alpha = 0.6) +
   scale_color_manual(values = c("#0FB2D3", "#026779")) +
@@ -75,7 +108,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
 
 # Export.
 # ggsave(EFJ_fig,
-#        filename = "figures/EFJ_grab_vs_sonde_080823.jpg",
+#        filename = "figures/EFJ_grab_vs_sonde_081023.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
@@ -83,7 +116,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
 # Redondo Creek
 (RED_fig <- ggplot(all_dat %>%
                      filter(site_name == "RED"), 
-                   aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+                   aes(x = DateTime, y = cond_uScm, color = source)) +
     geom_point(alpha = 0.7) +
     geom_line(alpha = 0.6) +
     scale_color_manual(values = c("#0FB2D3", "#026779")) +
@@ -97,7 +130,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
 
 # Export.
 # ggsave(RED_fig,
-#        filename = "figures/RED_grab_vs_sonde_080823.jpg",
+#        filename = "figures/RED_grab_vs_sonde_081023.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
@@ -105,7 +138,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
 # San Antonio Creek - Toledo
 (RSA_fig <- ggplot(all_dat %>%
                      filter(site_name == "RSA"), 
-                   aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+                   aes(x = DateTime, y = cond_uScm, color = source)) +
     geom_point(alpha = 0.7) +
     geom_line(alpha = 0.6) +
     scale_color_manual(values = c("#0FB2D3", "#026779")) +
@@ -118,7 +151,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
 
 # Export.
 # ggsave(RSA_fig,
-#        filename = "figures/RSA_grab_vs_sonde_080823.jpg",
+#        filename = "figures/RSA_grab_vs_sonde_081023.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
@@ -126,7 +159,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
 # San Antonio - West
 (RSAW_fig <- ggplot(all_dat %>%
                      filter(site_name == "RSAW"), 
-                   aes(x = DateTime, y = mean_cond_uScm, color = source)) +
+                   aes(x = DateTime, y = cond_uScm, color = source)) +
     geom_point(alpha = 0.7) +
     geom_line(alpha = 0.6) +
     scale_color_manual(values = c("#0FB2D3", "#026779")) +
@@ -141,7 +174,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim) %>%
 
 # Export.
 # ggsave(RSAW_fig,
-#        filename = "figures/RSAW_grab_vs_sonde_080823.jpg",
+#        filename = "figures/RSAW_grab_vs_sonde_081023.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
