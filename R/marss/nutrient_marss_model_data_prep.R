@@ -1,6 +1,6 @@
 # Nutrient MARSS models
 # with fire x ppt interactions and legacy effects
-# as well as 5 state structure for CA sites
+# as well as 4 state structure for CA sites
 # Script started August 8, 2023 by Heili Lowman
 
 # This script will prep data for running in the nutrient MARSS models.

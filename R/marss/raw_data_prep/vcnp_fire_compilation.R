@@ -17,17 +17,17 @@ library(tidyverse) # contains dplyr
 library(lubridate)
 library(here)
 
-# Create base dataframe of dates and sites (from April 2005 to October 2020). This timeframe
+# Create base dataframe of dates and sites (from August 2004 to October 2021). This timeframe
 # was chosen based on available precipitation and chem data.
 # Create sequence of dates
-d <- seq(as.Date("2005/4/1"), by = "month", length.out = 186)
+d <- seq(as.Date("2004/8/1"), by = "month", length.out = 207)
 
 # Repeat 7 times for each site
 d7 <- rep(d, times = 7)
 d7df <- data.frame(d7)
 
 # Create repeated sequence of sites
-s <- rep(c("EFJ", "RSAW", "RSA", "IND", "IND_BB", "RED", "SULF"), each = 186)
+s <- rep(c("EFJ", "RSAW", "RSA", "IND", "IND_BB", "RED", "SULF"), each = 207)
 sdf <- data.frame(s)
 
 # Bind dates and sites together
