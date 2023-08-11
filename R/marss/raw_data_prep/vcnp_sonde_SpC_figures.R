@@ -6,7 +6,7 @@
 #### Read Me ####
 # the purpose of this script is to put together some timeseries of sonde data from VCNP. 
 # Data was provided by Mic from the Crossey lab off of their Aquarius data logs. 
-# Data has been appended (stitched together) but may not be QAQCed
+# Data has been appended (stitched together) and needs to be QAQCed.
 
 #### Setup ####
 
@@ -59,8 +59,8 @@ sdRSAW <- 24.41510
 
 # And QAQC original dataset accordingly.
 sonde_dat_trim_ed <- sonde_dat_trim %>%
-  # First, removing all values equal to or less than zero
-  filter(cond_uScm > 0) %>%
+  # First, removing all values equal to or less than 25 (not reasonable)
+  filter(cond_uScm > 25) %>%
   # And, filter out outliers.
   mutate(cond_uScm_ed = case_when(site_name == "EFJ" & cond_uScm >= meanEFJ+(4*sdEFJ) ~ NA,
                                   site_name == "EFJ" & cond_uScm <= meanEFJ-(4*sdEFJ) ~ NA,
@@ -108,7 +108,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim_ed)
 
 # Export.
 # ggsave(EFJ_fig,
-#        filename = "figures/EFJ_grab_vs_sonde_081023.jpg",
+#        filename = "figures/EFJ_grab_vs_sonde_081123.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
@@ -130,7 +130,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim_ed)
 
 # Export.
 # ggsave(RED_fig,
-#        filename = "figures/RED_grab_vs_sonde_081023.jpg",
+#        filename = "figures/RED_grab_vs_sonde_081123.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
@@ -151,7 +151,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim_ed)
 
 # Export.
 # ggsave(RSA_fig,
-#        filename = "figures/RSA_grab_vs_sonde_081023.jpg",
+#        filename = "figures/RSA_grab_vs_sonde_081123.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
@@ -174,7 +174,7 @@ all_dat <- full_join(grab_dat_trim, sonde_dat_trim_ed)
 
 # Export.
 # ggsave(RSAW_fig,
-#        filename = "figures/RSAW_grab_vs_sonde_081023.jpg",
+#        filename = "figures/RSAW_grab_vs_sonde_081123.jpg",
 #        width = 20,
 #        height = 10,
 #        units = "cm")
@@ -356,4 +356,3 @@ ggplot(data= RSA_SpC_sm, aes(y=SPC_uS_Value, x=doy))+
   facet_wrap(~yr)
 
 # End of script.
-
