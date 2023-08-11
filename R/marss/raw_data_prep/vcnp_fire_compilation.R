@@ -2,9 +2,12 @@
 # November 3, 2021
 # Betsy Summers following Heili Lowman's workflow
 
-# The following script will assemble the fire datasets available for the VCNP  stream sites into a single data file for use in the MARSS analysis for the CRASS project.
+# The following script will assemble the fire datasets available for the VCNP 
+# stream sites into a single data file for use in the MARSS analysis for 
+# the CRASS project.
 
-# the main fires of interest that overlap with the grab water quality data set are (date = month of ignition):
+# the main fires of interest that overlap with the grab water quality data set
+# are (date = month of ignition):
 # 1) Las Conchas fire (Start date: 26 June, 2011)
 # 2) Thompson Ridge fire (start date: 31 May, 2013)
 
@@ -14,21 +17,17 @@ library(tidyverse) # contains dplyr
 library(lubridate)
 library(here)
 
-# NOTE: THIS WAS ALL RE-DONE BY HEILI ON 2/24/22 HAVING FOUND A PREVIOUS ERROR
-# WITH HOW THE FIRE DUMMY VARIABLES POPULATED.
-# And edited on 7/29/2022 by Alex to add fire areas and burn percent of watersheds, set fire effect to one column with an effect lasting 2 months, and remove decay effects. 
-
-# Create base dataframe of dates and sites (from June 2005 to March 2019). This timeframe
-# was chosen based on available precipitation data.
+# Create base dataframe of dates and sites (from April 2005 to October 2020). This timeframe
+# was chosen based on available precipitation and chem data.
 # Create sequence of dates
-d <- seq(as.Date("2005/6/1"), by = "month", length.out = 166)
+d <- seq(as.Date("2005/4/1"), by = "month", length.out = 186)
 
 # Repeat 7 times for each site
 d7 <- rep(d, times = 7)
 d7df <- data.frame(d7)
 
 # Create repeated sequence of sites
-s <- rep(c("EFJ", "RSAW", "RSA", "IND", "IND_BB", "RED", "SULF"), each=166)
+s <- rep(c("EFJ", "RSAW", "RSA", "IND", "IND_BB", "RED", "SULF"), each = 186)
 sdf <- data.frame(s)
 
 # Bind dates and sites together
@@ -41,20 +40,10 @@ fire_area = read.csv("data_raw/sbc_vc_ws_fire_areas.csv")
 ## Fire names and start dates of burn - sites affected
 # Las Conchas (2011-06-26) - EFJ, RSAW, RSA, IND, IND_BB
 # Thompson Ridge (2013-05-31) - RED, EFJ, RSAW, SULF
-# Prescribed burn (2016-05-11) - EFJ [Out of time frame]
+# Prescribed burn (2016-05-11) - EFJ [deemed too small to include]
 
 ## Add in columns for the fires based on start dates:
 # 1 - denotes month of ignition + one additional month
-
-# currently use Date variable to determine when site is 1 or 0.
-# As of 12/6/2021 - we are adding in dummy variable (1s) only for the year
-# As of 07/28/2022 - we are adding in dummy variables (1s) only for the month of ignition and no decay term
-# Conchas = Las Conchas fire
-# Thompson = Thompson Ridge fire
-
-# commented out those fires/sites that resulted in a column of all zeros
-# which the MARSS model doesn't like
-
 sites_THOMPSON = c("RED", "EFJ", "RSAW", "SULF")
 dates_THOMPSON = as.Date(c("2013-05-01","2013-06-01"))
 sites_CONCHAS = c("EFJ", "RSAW", "RSA", "IND", "IND_BB")
@@ -76,8 +65,6 @@ fire_vcnp_2 = left_join(fire_vcnp_1, fire_area[,c(1,3:6)], by=c("site","fire_ID"
 fire_vcnp_2[,7:8][is.na(fire_vcnp_2[,7:8])] = 0
 
 # And export for MARSS script
-#saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_060622.rds")
-#saveRDS(dates_fire_vcnp, "data_working/VCNPfire_edited_072822.rds")
-saveRDS(fire_vcnp_2, "data_working/VCNPfire_edited_072922.rds")
+saveRDS(fire_vcnp_2, "data_working/VCNPfire_edited_081123.rds")
 
 # End of script.
