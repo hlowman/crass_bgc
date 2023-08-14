@@ -630,21 +630,1801 @@ autoplot.marssMLE(fit)
 
 #### 1y legacy, 8 states ####
 
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest 
+# most complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_1ylegacy, 
+    fire_perc_ws_ppt_1ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_1ylegacy,
+                    fire_perc_ws_ppt_1ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) # 0
+sum(is.na(dat_cond_log[,resp_cols])) # 595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_1ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_1ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model 
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_fits/fit_081423_8state_cond_1ylegacy_mBFGS.rds")
+
+# DIAGNOSES
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 48
+# null.fit 208.2 24
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? No
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Fairly
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
+
 #### 1y legacy, 2 states ####
+
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest 
+# most complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_1ylegacy, 
+    fire_perc_ws_ppt_1ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_1ylegacy,
+                    fire_perc_ws_ppt_1ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) # 0
+sum(is.na(dat_cond_log[,resp_cols])) # 595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_1ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_1ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# make Q matrix
+QQ <- matrix(list("s1","b12","b13","b14",0,    0,    0,    0,
+                  "b12","s2","b23","b24",0,    0,    0,    0,
+                  "b13","b23","s3","b34",0,    0,    0,    0,
+                  "b14","b24","b34","s4",0,    0,    0,    0,
+                  0,    0,    0,    0,"s5","b56","b57","b58",
+                  0,    0,    0,    0,"b56","s6","b67","b68",
+                  0,    0,    0,    0,"b57","b67","s7","b78",
+                  0,    0,    0,    0,"b58","b68","b78","s8"), 8, 8)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model 
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_fits/fit_081423_2state_cond_1ylegacy_mBFGS.rds")
+
+# DIAGNOSES
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 60
+# null.fit 109.1 36
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? No
+# RED still looking a bit strange - but this is likely due to
+# missingness
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Fairly
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 1y legacy, 1 state ####
 
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest 
+# most complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_1ylegacy, 
+    fire_perc_ws_ppt_1ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_1ylegacy,
+                    fire_perc_ws_ppt_1ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) # 0
+sum(is.na(dat_cond_log[,resp_cols])) # 595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_1ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_1ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# make Q matrix
+QQ <- matrix(list("s1","b12","b13","b14","b15","b16","b17","b18",
+                  "b12","s2","b23","b24","b25","b26","b27","b28",
+                  "b13","b23","s3","b34","b35","b36","b37","b38",
+                  "b14","b24","b34","s4","b45","b46","b47","b48",
+                  "b15","b25","b35","b45","s5","b56","b57","b58",
+                  "b16","b26","b36","b46","b56","s6","b67","b68",
+                  "b17","b27","b37","b47","b57","b67","s7","b78",
+                  "b18","b28","b38","b48","b58","b68","b78","s8"), 8, 8)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model 
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, file = "data_working/marss_fits/fit_081423_1state_cond_1ylegacy_mBFGS.rds")
+
+# DIAGNOSES
+
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC df
+# fit        0  76
+# null.fit 107  52
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? No
+# RED still looking a bit strange - but this is likely due to
+# missingness
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Fairly
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
+
 #### 2y legacy, 8 states ####
+
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest most
+# complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_2ylegacy, 
+    fire_perc_ws_ppt_2ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_2ylegacy,
+                    fire_perc_ws_ppt_2ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) #0
+sum(is.na(dat_cond_log[,resp_cols])) #595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_2ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_2ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_fits/fit_081423_8state_cond_2ylegacy_mBFGS.rds")
+
+# DIAGNOSES 
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 48
+# null.fit 208.7 24
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns?  No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? No
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)?
+# More so than in some diagnoses above.
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 2y legacy, 2 states ####
 
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest most
+# complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_2ylegacy, 
+    fire_perc_ws_ppt_2ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_2ylegacy,
+                    fire_perc_ws_ppt_2ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) #0
+sum(is.na(dat_cond_log[,resp_cols])) #595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_2ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_2ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# make Q matrix
+QQ <- matrix(list("s1","b12","b13","b14",0,    0,    0,    0,
+                  "b12","s2","b23","b24",0,    0,    0,    0,
+                  "b13","b23","s3","b34",0,    0,    0,    0,
+                  "b14","b24","b34","s4",0,    0,    0,    0,
+                  0,    0,    0,    0,"s5","b56","b57","b58",
+                  0,    0,    0,    0,"b56","s6","b67","b68",
+                  0,    0,    0,    0,"b57","b67","s7","b78",
+                  0,    0,    0,    0,"b58","b68","b78","s8"), 8, 8)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_fits/fit_081423_2state_cond_2ylegacy_mBFGS.rds")
+
+# DIAGNOSES 
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 60
+# null.fit 123.7 36
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns?  No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? No (except RED)
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Yes
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
+
 #### 2y legacy, 1 state ####
+
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest most
+# complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_2ylegacy, 
+    fire_perc_ws_ppt_2ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_2ylegacy,
+                    fire_perc_ws_ppt_2ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) #0
+sum(is.na(dat_cond_log[,resp_cols])) #595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_2ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_2ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# make Q matrix
+QQ <- matrix(list("s1","b12","b13","b14","b15","b16","b17","b18",
+                  "b12","s2","b23","b24","b25","b26","b27","b28",
+                  "b13","b23","s3","b34","b35","b36","b37","b38",
+                  "b14","b24","b34","s4","b45","b46","b47","b48",
+                  "b15","b25","b35","b45","s5","b56","b57","b58",
+                  "b16","b26","b36","b46","b56","s6","b67","b68",
+                  "b17","b27","b37","b47","b57","b67","s7","b78",
+                  "b18","b28","b38","b48","b58","b68","b78","s8"), 8, 8)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_fits/fit_081423_1state_cond_2ylegacy_mBFGS.rds")
+
+# DIAGNOSES 
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 76
+# null.fit 119.3 52
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns?  No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? No (except RED)
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Yes
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 3y legacy, 8 states ####
 
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest most
+# complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_3ylegacy, 
+    fire_perc_ws_ppt_3ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_3ylegacy,
+                    fire_perc_ws_ppt_3ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) #0
+sum(is.na(dat_cond_log[,resp_cols])) #595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_2ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_2ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_fits/fit_081423_8state_cond_3ylegacy_mBFGS.rds")
+
+# DIAGNOSES 
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = "diagonal and unequal", 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 48
+# null.fit 205.8 24
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns?  No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? No
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Yes
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
+
 #### 3y legacy, 2 states ####
 
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest most
+# complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_3ylegacy, 
+    fire_perc_ws_ppt_3ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_3ylegacy,
+                    fire_perc_ws_ppt_3ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) #0
+sum(is.na(dat_cond_log[,resp_cols])) #595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_2ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_2ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# make Q matrix
+QQ <- matrix(list("s1","b12","b13","b14",0,    0,    0,    0,
+                  "b12","s2","b23","b24",0,    0,    0,    0,
+                  "b13","b23","s3","b34",0,    0,    0,    0,
+                  "b14","b24","b34","s4",0,    0,    0,    0,
+                  0,    0,    0,    0,"s5","b56","b57","b58",
+                  0,    0,    0,    0,"b56","s6","b67","b68",
+                  0,    0,    0,    0,"b57","b67","s7","b78",
+                  0,    0,    0,    0,"b58","b68","b78","s8"), 8, 8)
+
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_fits/fit_081423_2state_cond_3ylegacy_mBFGS.rds")
+
+# DIAGNOSES 
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 60
+# null.fit 130.9 36
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns?  No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? Only at RED
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Yes
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
+
 #### 3y legacy, 1 state ####
+
+# remove data
+rm(list=ls())
+# load fxn to replace NaNs with NAs
+is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
+is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
+
+# load data with fire x ppt interactions and legacy effects
+dat = readRDS("data_working/marss_data_sb_vc_081423.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest most
+# complete ts for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+table(dat$site)
+
+# pivot wider for MARSS format
+dat_cond <- dat %>%
+  select(
+    site, index, 
+    mean_cond_uScm, 
+    cumulative_precip_mm, 
+    fire_perc_ws_3ylegacy, 
+    fire_perc_ws_ppt_3ylegacy) %>% 
+  pivot_wider(
+    names_from = site, 
+    values_from = c(mean_cond_uScm, cumulative_precip_mm, 
+                    fire_perc_ws_3ylegacy,
+                    fire_perc_ws_ppt_3ylegacy)) 
+
+# indicate column #s of response and predictor vars
+names(dat_cond)
+resp_cols = c(2:9)
+cov_cols = c(10:33)
+
+# log and scale transform response var
+dat_cond_log = dat_cond
+dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
+dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
+# check for NaNs (not allowed) and NAs (allowed in response but not predictors)
+sum(is.nan(dat_cond_log[,resp_cols])) #0
+sum(is.na(dat_cond_log[,resp_cols])) #595
+range(dat_cond_log[,resp_cols], na.rm = T)
+
+# Pull out only response var
+dat_dep <- t(dat_cond_log[,c(resp_cols)])
+row.names(dat_dep)
+
+# check covars for nas, nans, or infs b4 scaling (none allowed)
+sum(is.nan(dat_cond_log[,cov_cols])) #0
+sum(is.na(dat_cond_log[,cov_cols])) #0
+sum(is.infinite(dat_cond_log[,cov_cols])) #0
+
+# Make covariate inputs
+dat_cov <- dat_cond_log[,c(cov_cols)]
+# scale and transpose
+dat_cov <- t(scale(dat_cov))
+row.names(dat_cov)
+# check for nas, nans, or infs after scaling (none allowed)
+sum(is.nan(dat_cov)) #0
+sum(is.na(dat_cov)) #0
+sum(is.infinite(dat_cov)) #0
+# are any rows identical? this can cause model convergence issues
+dat_cov[duplicated(dat_cov),]
+# check for cols with all zeros. this can cause model convergence issues
+any(colSums(dat_cov)==0) # FALSE
+
+# make C matrix
+
+CC <- matrix(list( 
+  # precip by site: cumulative_precip_mm
+  "cumulative_precip_mm_AB00",0,0,0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,0,0,
+  0,0,0,0,"cumulative_precip_mm_EFJ" ,0,0,0,
+  0,0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
+  0,0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
+  0,0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  # fire_perc_ws_2ylegacy
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  # fire_perc_ws_6m_ppt_2ylegacy
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_EFJ" ,0,0,0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
+  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
+  0,0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 8, 24)
+
+# make Q matrix
+QQ <- matrix(list("s1","b12","b13","b14","b15","b16","b17","b18",
+                  "b12","s2","b23","b24","b25","b26","b27","b28",
+                  "b13","b23","s3","b34","b35","b36","b37","b38",
+                  "b14","b24","b34","s4","b45","b46","b47","b48",
+                  "b15","b25","b35","b45","s5","b56","b57","b58",
+                  "b16","b26","b36","b46","b56","s6","b67","b68",
+                  "b17","b27","b37","b47","b57","b67","s7","b78",
+                  "b18","b28","b38","b48","b58","b68","b78","s8"), 8, 8)
+# Model setup for MARSS
+
+mod_list <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  C = CC, 
+  c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix(x0_fixed),
+  V0="zero" ,
+  tinitx=0
+)
+
+# Fit MARSS model
+
+# fit BFGS with priors
+kemfit <- MARSS(y = dat_dep, model = mod_list,
+                control = list(maxit= 100, allow.degen=TRUE, trace=1, safe=TRUE), fit=TRUE)
+
+fit <- MARSS(y = dat_dep, model = mod_list,
+             control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
+
+# export model fit
+saveRDS(fit, 
+        file = "data_working/marss_fits/fit_081423_1state_cond_3ylegacy_mBFGS.rds")
+
+# DIAGNOSES 
+## check for hidden errors
+# some don't appear in output in console
+# this should print all of them out, those displayed and those hidden
+fit[["errors"]]
+# NULL - Yay!
+
+### Compare to null model ###
+# make sure this matches the fitted model in all ways besides the inclusion of C and c
+mod_list_null <- list(
+  ### inputs to process model ###
+  B = "diagonal and unequal",
+  U = "zero",
+  #C = CC, 
+  #c = dat_cov,
+  Q = QQ, 
+  ### inputs to observation model ###
+  Z='identity', 
+  A="zero",
+  D="zero" ,
+  d="zero",
+  R = "zero", 
+  ### initial conditions ###
+  #x0 = matrix("x0"),
+  V0="zero" ,
+  tinitx=0
+)
+
+null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
+                     control = list(maxit= 100, allow.degen=TRUE, trace=1), fit=TRUE) #default method = "EM"
+
+null.fit <- MARSS(y = dat_dep, model = mod_list_null,
+                  control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
+
+bbmle::AICtab(fit, null.fit)
+
+#          dAIC  df
+# fit        0.0 76
+# null.fit 128.1 52
+# RESULT: covar model is better than null
+
+### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
+autoplot.marssMLE(fit)
+
+# Plots 1 (xtT) & 2 (fitted.ytT): Do fitted values seem reasonable? Yes
+
+# Plot 3 (model.resids.ytt1): Do resids have temporal patterns?  No
+# Do 95% of resids fall withing the CIs? Yes
+
+# Plot 4 (std.model.resids.ytT): All equal zero? Yes
+
+# Plot 5 (std.state.resids.xtT): Any outliers? Only at RED
+
+# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Yes
+
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 4y legacy, 8 states ####
 
@@ -679,41 +2459,53 @@ bbmle::AICtab(noleg_8state, noleg_2state, noleg_1state)
 # noleg_1state  5.3 76
 # noleg_8state 69.3 48
 
-# 1y legacy, 4 state
-leg1_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_1ylegacy_mBFGS.rds")
+# 1y legacy, 8 state
+leg1_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_1ylegacy_mBFGS.rds")
+
+# 1y legacy, 2 state
+leg1_2state <- readRDS(file = "data_working/marss_fits/fit_081423_2state_cond_1ylegacy_mBFGS.rds")
 
 # 1y legacy, 1 state
-leg1_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_1ylegacy_mBFGS.rds")
+leg1_1state <- readRDS(file = "data_working/marss_fits/fit_081423_1state_cond_1ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg1_4state, leg1_1state)
+bbmle::AICtab(leg1_8state, leg1_2state, leg1_1state)
 
 #             dAIC df
-# leg1_1state  0.0 30
-# leg1_4state  2.7 24
+# leg1_2state  0.0 60
+# leg1_1state  9.0 76
+# leg1_8state 74.2 48
 
-# 2y legacy, 4 state
-leg2_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_2ylegacy_mBFGS.rds")
+# 2y legacy, 8 state
+leg2_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_2ylegacy_mBFGS.rds")
+
+# 2y legacy, 2 state
+leg2_2state <- readRDS(file = "data_working/marss_fits/fit_081423_2state_cond_2ylegacy_mBFGS.rds")
 
 # 2y legacy, 1 state
-leg2_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_2ylegacy_mBFGS.rds")
+leg2_1state <- readRDS(file = "data_working/marss_fits/fit_081423_1state_cond_2ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg2_4state, leg2_1state)
+bbmle::AICtab(leg2_8state, leg2_2state, leg2_1state)
 
 #             dAIC df
-# leg2_1state  0.0 30
-# leg2_4state 10.2 24
+# leg2_2state  0.0 60
+# leg2_1state 11.2 76
+# leg2_8state 88.3 48
 
-# 3y legacy, 4 state
-leg3_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_3ylegacy_mBFGS.rds")
+# 3y legacy, 8 state
+leg3_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_3ylegacy_mBFGS.rds")
+
+# 3y legacy, 2 state
+leg3_2state <- readRDS(file = "data_working/marss_fits/fit_081423_2state_cond_3ylegacy_mBFGS.rds")
 
 # 3y legacy, 1 state
-leg3_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_3ylegacy_mBFGS.rds")
+leg3_1state <- readRDS(file = "data_working/marss_fits/fit_081423_1state_cond_3ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg3_4state, leg3_1state)
+bbmle::AICtab(leg3_8state, leg3_2state, leg3_1state)
 
 #             dAIC df
-# leg3_1state  0.0 30
-# leg3_4state 10.9 24
+# leg3_2state  0.0 60
+# leg3_1state  9.5 76
+# leg3_8state 98.4 48
 
 # 4y legacy, 4 state
 leg4_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_4ylegacy_mBFGS.rds")
@@ -739,11 +2531,10 @@ bbmle::AICtab(leg5_4state, leg5_1state)
 # leg5_1state  0.0 30
 # leg5_4state  5.5 24
 
-# So, it would seem the 1 "state" model structure  wins out, and 
-# increasingly so with increasingly lag windows.
+# So, it would seem the 2 "state" model structure  wins out.
 
-bbmle::AICtab(noleg_1state, leg1_1state, leg2_1state,
-              leg3_1state, leg4_1state, leg5_1state)
+bbmle::AICtab(noleg_2state, leg1_2state, leg2_2state,
+              leg3_2state, leg4_2state, leg5_2state)
 
 #              dAIC df
 # noleg_1state  0.0 30
