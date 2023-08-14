@@ -189,17 +189,19 @@ dat_select_vc <- dat_vc %>%
 
 # Using the same reasoning as above, I am going to trim off the earlier data.
 dat_select_vc_181 <- dat_select_vc %>%
-  filter(index > 26)
+  filter(index > 26) %>%
+  select(-index) %>%
+  mutate(index = rep(seq(1, 181), 4))
 
 # Now, both datasets are the same size (724 observations).
 
 # Join and export to save progress.
 dat_select <- rbind(dat_select_sb, dat_select_vc_181)
-#saveRDS(dat_select, "data_working/marss_data_sb_vc_nolegacies_081123.rds")
+#saveRDS(dat_select, "data_working/marss_data_sb_vc_nolegacies_081423.rds")
 
 #### Add fire legacy effects ####
 
-dat1 <- readRDS("data_working/marss_data_sb_vc_nolegacies_081123.rds")
+dat1 <- readRDS("data_working/marss_data_sb_vc_nolegacies_081423.rds")
 
 # reorganize
 names(dat1)
