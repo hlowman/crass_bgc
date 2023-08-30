@@ -15,6 +15,8 @@ library(lubridate)
 library(MARSS)
 library(naniar) 
 library(here)
+library(bbmle)
+library(broom)
 
 #### 0y legacy, 4 state ####
 
@@ -2210,10 +2212,19 @@ autoplot.marssMLE(fit)
 ### Overall ###
 # None of these diagnoses look prohibitively bad.
 
-#### AIC Comparisons ####
+#### IC Comparisons ####
 
 # Compare all model fits for each legacy window to see which state 
 # configuration was best.
+
+# Presented here are three information criterion:
+# AIC - Akaike Information Criterion
+# AICc - Akaike Information Criterion adjusted for small sample sizes
+# BIC - Bayesian Information Criterion
+
+# Per the recommendations found in Brewer et al. 2016 (doi: 10.1111/2041-210X.12541) 
+# we will be using BIC for most parsimonious model selection, although
+# all three are displayed here for transparency/comparison.
 
 # no legacy, 4 state
 noleg_4state <- readRDS(file = "data_working/marss_fits/fit_080923_4state_no3_mBFGS.rds")
@@ -2227,6 +2238,17 @@ bbmle::AICtab(noleg_4state, noleg_1state)
 # noleg_1state  0.0 30
 # noleg_4state  1.3 24
 
+broom::glance(noleg_4state) # AICc 1251.948
+stats4::BIC(noleg_4state) # BIC 1351.152
+
+broom::glance(noleg_1state) # AICc 1252.052  
+stats4::BIC(noleg_1state) # BIC 1375.268
+
+# So, based on lowest AIC value, 1-state wins, but based on lowest AICc and BIC
+# values, 4-state wins.
+
+###
+
 # 1y legacy, 4 state
 leg1_4state <- readRDS(file = "data_working/marss_fits/fit_080923_4state_no3_1ylegacy_mBFGS.rds")
 
@@ -2238,6 +2260,21 @@ bbmle::AICtab(leg1_4state, leg1_1state)
 #             dAIC df
 # leg1_4state  0   24
 # leg1_1state  0   30
+
+#              dAIC df
+# noleg_1state  0.0 30
+# noleg_4state  1.3 24
+
+broom::glance(leg1_4state) # AICc 1230.721
+stats4::BIC(leg1_4state) # BIC 1329.924
+
+broom::glance(leg1_1state) # AICc 1232.141 
+stats4::BIC(leg1_1state) # BIC 1355.357
+
+# So, based on lowest AIC value, 1-state wins, but based on lowest AICc and BIC
+# values, 4-state wins.
+
+###
 
 # 2y legacy, 4 state
 leg2_4state <- readRDS(file = "data_working/marss_fits/fit_080923_4state_no3_2ylegacy_mBFGS.rds")
@@ -2251,6 +2288,17 @@ bbmle::AICtab(leg2_4state, leg2_1state)
 # leg2_1state  0   30
 # leg2_4state  1   24
 
+broom::glance(leg2_4state) # AICc 1222.743
+stats4::BIC(leg2_4state) # BIC 1321.947
+
+broom::glance(leg2_1state) # AICc 1223.121
+stats4::BIC(leg2_1state) # BIC 1346.337
+
+# So, based on lowest AIC value, 1-state wins, but based on lowest AICc and BIC
+# values, 4-state wins.
+
+###
+
 # 3y legacy, 4 state
 leg3_4state <- readRDS(file = "data_working/marss_fits/fit_080923_4state_no3_3ylegacy_mBFGS.rds")
 
@@ -2262,6 +2310,16 @@ bbmle::AICtab(leg3_4state, leg3_1state)
 #             dAIC df
 # leg3_4state  0.0 24
 # leg3_1state  1.9 30
+
+broom::glance(leg3_4state) # AICc 1220.994 
+stats4::BIC(leg3_4state) # BIC 1320.197
+
+broom::glance(leg3_1state) # AICc 1224.283
+stats4::BIC(leg3_1state) # BIC 1347.499
+
+# So, based on lowest AIC, AICc, and BIC values, 4-state wins.
+
+###
 
 # 4y legacy, 4 state
 leg4_4state <- readRDS(file = "data_working/marss_fits/fit_080923_4state_no3_4ylegacy_mBFGS.rds")
@@ -2275,6 +2333,16 @@ bbmle::AICtab(leg4_4state, leg4_1state)
 # leg4_4state  0.0 24
 # leg4_1state  1.4 30
 
+broom::glance(leg4_4state) # AICc 1223.863 
+stats4::BIC(leg4_4state) # BIC 1323.067
+
+broom::glance(leg4_1state) # AICc 1226.668
+stats4::BIC(leg4_1state) # BIC 1349.884
+
+# So, based on lowest AIC, AICc, and BIC values, 4-state wins.
+
+###
+
 # 5y legacy, 4 state
 leg5_4state <- readRDS(file = "data_working/marss_fits/fit_080923_4state_no3_5ylegacy_mBFGS.rds")
 
@@ -2287,19 +2355,24 @@ bbmle::AICtab(leg5_4state, leg5_1state)
 # leg5_4state  0.0 24
 # leg5_1state  1.4 30
 
-# So, it would seem the 4 "state" model structure *barely* wins out.
-# But it does appear very close between the different state structures.
+broom::glance(leg5_4state) # AICc 1227.41
+stats4::BIC(leg5_4state) # BIC 1326.613
 
-bbmle::AICtab(noleg_4state, leg1_4state, leg2_4state,
-              leg3_4state, leg4_4state, leg5_4state)
+broom::glance(leg5_1state) # AICc 1230.192
+stats4::BIC(leg5_1state) # BIC 1353.408
 
-#              dAIC df
-# leg3_4state   0.0 24
-# leg2_4state   1.7 24
-# leg4_4state   2.9 24
-# leg5_4state   6.4 24
-# leg1_4state   9.7 24
-# noleg_4state 31.0 24
+# So, based on lowest AIC, AICc, and BIC values, 4-state wins.
+
+###
+
+# So, it would seem the 4 "state" model structure wins out.
+
+stats4::BIC(noleg_4state) # BIC 1351.152
+stats4::BIC(leg1_4state) # BIC 1329.924
+stats4::BIC(leg2_4state) # BIC 1321.947
+stats4::BIC(leg3_4state) # BIC 1320.197
+stats4::BIC(leg4_4state) # BIC 1323.067
+stats4::BIC(leg5_4state) # BIC 1326.613
 
 # And when comparing all models, the 3 year window/lag is most parsimonious.
 

@@ -15,6 +15,8 @@ library(lubridate)
 library(MARSS)
 library(naniar) 
 library(here)
+library(bbmle)
+library(broom)
 
 #### 0y legacy, 8 states ####
 
@@ -3620,10 +3622,19 @@ autoplot.marssMLE(fit)
 
 # Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? Hmmm these aren't looking *great*
 
-#### AIC Comparisons ####
+#### IC Comparisons ####
 
 # Compare all model fits for each legacy window to see which state 
 # configuration was best.
+
+# Presented here are three information criterion:
+# AIC - Akaike Information Criterion
+# AICc - Akaike Information Criterion adjusted for small sample sizes
+# BIC - Bayesian Information Criterion
+
+# Per the recommendations found in Brewer et al. 2016 (doi: 10.1111/2041-210X.12541) 
+# we will be using BIC for most parsimonious model selection, although
+# all three are displayed here for transparency/comparison.
 
 # no legacy, 8 state
 noleg_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_mBFGS.rds")
@@ -3641,6 +3652,19 @@ bbmle::AICtab(noleg_8state, noleg_2state, noleg_1state)
 # noleg_1state  5.3 76
 # noleg_8state 69.3 48
 
+broom::glance(noleg_8state) # AICc 1808.588
+stats4::BIC(noleg_8state) # BIC 2030.677
+
+broom::glance(noleg_2state) # AICc 1742.701
+stats4::BIC(noleg_2state) # BIC 2018.384
+
+broom::glance(noleg_1state) # AICc 1753.883
+stats4::BIC(noleg_1state) # BIC 2099.706
+
+# So, based on lowest AIC, AICc, and BIC values, 2-state wins.
+
+###
+
 # 1y legacy, 8 state
 leg1_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_1ylegacy_mBFGS.rds")
 
@@ -3656,6 +3680,19 @@ bbmle::AICtab(leg1_8state, leg1_2state, leg1_1state)
 # leg1_2state  0.0 60
 # leg1_1state  9.0 76
 # leg1_8state 74.2 48
+
+broom::glance(leg1_8state) # AICc 1830.287
+stats4::BIC(leg1_8state) # BIC 2052.376
+
+broom::glance(leg1_2state) # AICc 1759.479 
+stats4::BIC(leg1_2state) # BIC 2035.162
+
+broom::glance(leg1_1state) # AICc 1774.31
+stats4::BIC(leg1_1state) # BIC 2120.133
+
+# So, based on lowest AIC, AICc, and BIC values, 2-state wins.
+
+###
 
 # 2y legacy, 8 state
 leg2_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_2ylegacy_mBFGS.rds")
@@ -3673,6 +3710,19 @@ bbmle::AICtab(leg2_8state, leg2_2state, leg2_1state)
 # leg2_1state 11.2 76
 # leg2_8state 88.3 48
 
+broom::glance(leg2_8state) # AICc 1829.803
+stats4::BIC(leg2_8state) # BIC 2051.893
+
+broom::glance(leg2_2state) # AICc 1744.909
+stats4::BIC(leg2_2state) # BIC 2020.592
+
+broom::glance(leg2_1state) # AICc 1761.959
+stats4::BIC(leg2_1state) # BIC 2107.782
+
+# So, based on lowest AIC, AICc, and BIC values, 2-state wins.
+
+###
+
 # 3y legacy, 8 state
 leg3_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_3ylegacy_mBFGS.rds")
 
@@ -3688,6 +3738,19 @@ bbmle::AICtab(leg3_8state, leg3_2state, leg3_1state)
 # leg3_2state  0.0 60
 # leg3_1state  9.5 76
 # leg3_8state 98.4 48
+
+broom::glance(leg3_8state) # AICc 1832.737
+stats4::BIC(leg3_8state) # BIC 2054.827
+
+broom::glance(leg3_2state) # AICc 1737.77 
+stats4::BIC(leg3_2state) # BIC 2013.453
+
+broom::glance(leg3_1state) # AICc 1753.133
+stats4::BIC(leg3_1state) # BIC 2098.956
+
+# So, based on lowest AIC, AICc, and BIC values, 2-state wins.
+
+###
 
 # 4y legacy, 8 state
 leg4_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_4ylegacy_mBFGS.rds")
@@ -3705,6 +3768,19 @@ bbmle::AICtab(leg4_8state, leg4_2state, leg4_1state)
 # leg4_1state 11.0 76
 # leg4_8state 95.2 48
 
+broom::glance(leg4_8state) # AICc 1829.456
+stats4::BIC(leg4_8state) # BIC 2051.546
+
+broom::glance(leg4_2state) # AICc 1737.66
+stats4::BIC(leg4_2state) # BIC 2013.343
+
+broom::glance(leg4_1state) # AICc 1754.531
+stats4::BIC(leg4_1state) # BIC 2100.354
+
+# So, based on lowest AIC, AICc, and BIC values, 2-state wins.
+
+###
+
 # 5y legacy, 8 state
 leg5_8state <- readRDS(file = "data_working/marss_fits/fit_081423_8state_cond_5ylegacy_mBFGS.rds")
 
@@ -3721,23 +3797,29 @@ bbmle::AICtab(leg5_8state, leg5_2state, leg5_1state)
 # leg5_2state  2.0 51
 # leg5_8state 63.8 42
 
-# So, it would seem the 2 "state" model structure  wins out,
-# except in the 5-year lag window, which favored the single state.
+broom::glance(leg5_8state) # AICc 1726.657
+stats4::BIC(leg5_8state) # BIC 1916.156
 
-bbmle::AICtab(noleg_2state, leg1_2state, leg2_2state,
-              leg3_2state, leg4_2state, leg5_2state)
+broom::glance(leg5_2state) # AICc 1667.376
+stats4::BIC(leg5_2state) # BIC 1896.106
 
-#              dAIC df
-# leg5_2state   0.0 51
-# leg4_2state  68.5 60
-# leg3_2state  68.7 60
-# noleg_2state 73.6 60
-# leg2_2state  75.8 60
-# leg1_2state  90.4 60
+broom::glance(leg5_1state) # AICc 1669.438
+stats4::BIC(leg5_1state) # BIC 1949.651
 
-# And when comparing all models, the 5 year window/lag is most 
-# parsimonious. Which is interesting given it wasn't the most
-# parsimonious at that lag...
+# So, based on lowest AIC value, 1-state wins, but based on lowest AICc and BIC values, 2-state wins.
+
+###
+
+# So, it would seem the 2 "state" model structure wins out.
+
+stats4::BIC(noleg_2state) # BIC 2018.384
+stats4::BIC(leg1_2state) # BIC 2035.162
+stats4::BIC(leg2_2state) # BIC 2020.592
+stats4::BIC(leg3_2state) # BIC 2013.453
+stats4::BIC(leg4_2state) # BIC 2013.343
+stats4::BIC(leg5_2state) # BIC 1896.106
+
+# And when comparing all models, the 5 year window/lag is most parsimonious.
 
 #### Results Figure ####
 
