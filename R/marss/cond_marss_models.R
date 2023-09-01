@@ -153,7 +153,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
              control = list(maxit = 5000), method = "BFGS", inits=kemfit$par)
 
 # export model fit
-saveRDS(fit, file = "data_working/marss_fits/fit_081423_8state_cond_mBFGS.rds")
+# saveRDS(fit, file = "data_working/marss_fits/fit_081423_8state_cond_mBFGS.rds")
 
 # Diagnoses
 ## check for hidden errors
