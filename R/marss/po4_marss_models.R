@@ -18,6 +18,19 @@ library(here)
 library(bbmle)
 library(broom)
 
+#### Summary Stats ####
+
+# load data with fire x ppt interactions and legacy effects
+dat <- readRDS("data_working/marss_data_sb_080823.rds")
+
+# Create summary table.
+dat_summary <- dat %>%
+  summarize(min_PO4 = min(vwm_po4, na.rm = TRUE),
+            max_PO4 = max(vwm_po4, na.rm = TRUE),
+            mean_PO4 = mean(vwm_po4, na.rm = TRUE),
+            sd_PO4 = sd(vwm_po4, na.rm = TRUE)) %>%
+  ungroup()
+
 #### 0y legacy, 4 state ####
 
 # Set up data for MARSS

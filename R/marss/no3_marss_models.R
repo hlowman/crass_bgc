@@ -18,6 +18,19 @@ library(here)
 library(bbmle)
 library(broom)
 
+#### Summary Stats ####
+
+# load data with fire x ppt interactions and legacy effects
+dat <- readRDS("data_working/marss_data_sb_080823.rds")
+
+# Create summary table.
+dat_summary <- dat %>%
+  summarize(min_NO3 = min(vwm_no3, na.rm = TRUE),
+            max_NO3 = max(vwm_no3, na.rm = TRUE),
+            mean_NO3 = mean(vwm_no3, na.rm = TRUE),
+            sd_NO3 = sd(vwm_no3, na.rm = TRUE)) %>%
+  ungroup()
+
 #### 0y legacy, 4 state ####
 
 # remove data

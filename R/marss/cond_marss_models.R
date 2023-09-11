@@ -3,7 +3,8 @@
 # as well as multiple state structure for CA/NM sites
 # Script started August 14, 2023 by Heili Lowman
 
-# This script will run 18 Conductivity MARSS models.
+# This script will run 18 Conductivity MARSS models and
+# calculate summary statistics for conductivity data.
 # Note, each model fit will remove all stored data, until you reach the AIC
 # portion of this script.
 
@@ -17,6 +18,29 @@ library(naniar)
 library(here)
 library(bbmle)
 library(broom)
+
+#### Summary Stats ####
+
+# load data with fire x ppt interactions and legacy effects
+dat <- readRDS("data_working/marss_data_sb_vc_091123.rds")
+
+# select sites
+# include these sites only (8 total - these have the longest most complete ts 
+# for SpC and have SpC data coverage before and after fires):
+# AB00, GV01, HO00, & RS02 = SB
+# EFJ, RED, RSA, & RSAW = VC
+sitez = c("AB00", "GV01", "HO00", "RS02",
+          "EFJ", "RED", "RSA", "RSAW")
+dat = dat[dat$site %in% sitez,]
+
+# Create summary table.
+dat_summary <- dat %>%
+  group_by(region) %>%
+  summarize(min_cond = min(mean_cond_uScm, na.rm = TRUE),
+            max_cond = max(mean_cond_uScm, na.rm = TRUE),
+            mean_cond = mean(mean_cond_uScm, na.rm = TRUE),
+            sd_cond = sd(mean_cond_uScm, na.rm = TRUE)) %>%
+  ungroup()
 
 #### 0y legacy, 8 states ####
 
