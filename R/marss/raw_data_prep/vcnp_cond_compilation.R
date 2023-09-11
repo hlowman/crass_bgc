@@ -127,14 +127,16 @@ grab_dat_qaqc <- grab_dat %>%
 # (4) All RSAW grab data (only available pre-fire).
 
 grab_trimmed <- grab_dat_qaqc %>%
-  filter(site_name %in% c("RED", "RSAW"))
+  filter(site_name %in% c("RED", "RSAW")) %>%
+  # AND remove grab samples below 25 uS (not reasonable)
+  filter(cond_uScm > 25)
 
 #### Join sonde and grab sample data ####
 
 both_sonde_grab <- full_join(sonde_select, grab_trimmed)
 
 # Export "raw" (a.k.a. not monthly aggregated) data.
-saveRDS(both_sonde_grab, "data_working/VCNP_conductivity_sonde_grab_081123.rds")
+saveRDS(both_sonde_grab, "data_working/VCNP_conductivity_sonde_grab_091123.rds")
 
 # Plot datasets to compare to one another.
 (cond_fig <- ggplot(both_sonde_grab, 
@@ -149,7 +151,7 @@ saveRDS(both_sonde_grab, "data_working/VCNP_conductivity_sonde_grab_081123.rds")
 
 # Export.
 # ggsave(cond_fig,
-#        filename = "figures/all_grab_vs_sonde_081123.jpg",
+#        filename = "figures/all_grab_vs_sonde_091123.jpg",
 #        width = 20,
 #        height = 20,
 #        units = "cm")
@@ -164,6 +166,6 @@ monthly_sonde_grab <- both_sonde_grab %>%
   ungroup()
 
 # Export aggregated data.
-saveRDS(monthly_sonde_grab, "data_working/VCNP_monthly_conductivity_sonde_grab_081123.rds")
+saveRDS(monthly_sonde_grab, "data_working/VCNP_monthly_conductivity_sonde_grab_091123.rds")
 
 # End of script.

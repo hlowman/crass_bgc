@@ -19,7 +19,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 # Load data.
 # Stream Chemistry
 chem_sb <- readRDS("data_working/SBchem_edited_120321.rds")
-chem_vc <- readRDS("data_working/VCNP_monthly_conductivity_sonde_grab_081123.rds")
+chem_vc <- readRDS("data_working/VCNP_monthly_conductivity_sonde_grab_091123.rds")
 
 # Precipitation
 precip_sb <- readRDS("data_working/SBprecip_edited_120121.rds")
@@ -161,8 +161,8 @@ fire_precip_vc <- left_join(fire_vc_ed, precip_vc_ed,
 
 # Then, left join with chemistry so as not to lose any data.
 fire_precip_chem_vc <- left_join(fire_precip_vc, chem_vc, by = c("site" = "site_name", 
-                                                                 "year" = "Y",
-                                                                 "month" = "M"))
+                                                                 "year" = "Year",
+                                                                 "month" = "Month"))
 
 # Adding index values in for future use.
 dat_vc <- fire_precip_chem_vc %>%
@@ -197,11 +197,11 @@ dat_select_vc_181 <- dat_select_vc %>%
 
 # Join and export to save progress.
 dat_select <- rbind(dat_select_sb, dat_select_vc_181)
-#saveRDS(dat_select, "data_working/marss_data_sb_vc_nolegacies_081423.rds")
+#saveRDS(dat_select, "data_working/marss_data_sb_vc_nolegacies_091123.rds")
 
 #### Add fire legacy effects ####
 
-dat1 <- readRDS("data_working/marss_data_sb_vc_nolegacies_081423.rds")
+dat1 <- readRDS("data_working/marss_data_sb_vc_nolegacies_091123.rds")
 
 # reorganize
 names(dat1)
@@ -547,6 +547,6 @@ ggplot(dat14, aes(x = index, y = mean_cond_uScm, color = site)) +
 
 #### Export data ready for modeling ####
 
-saveRDS(dat14, "data_working/marss_data_sb_vc_081423.rds")
+saveRDS(dat14, "data_working/marss_data_sb_vc_091123.rds")
 
 # End of script.
