@@ -190,13 +190,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 25
-# null.fit  92.2 13
-
-stats4::BIC(fit) # 1232.458
-stats4::BIC(null.fit) # 1273.778
+MARSSaic(fit, output = c("AICc")) # 1129.229   
+MARSSaic(null.fit, output = c("AICc")) # 1219.438
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -383,13 +378,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#            dAIC df
-# fit         0.0 31
-# null.fit   52.9 19
-
-stats4::BIC(fit) # 1172.202
-stats4::BIC(null.fit) # 1174.259
+MARSSaic(fit, output = c("AICc")) # 1045.017   
+MARSSaic(null.fit, output = c("AICc")) # 1095.316 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -563,13 +553,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 25
-# null.fit  95.2 13
-
-stats4::BIC(fit) # 1229.447
-stats4::BIC(null.fit) # 1273.778
+MARSSaic(fit, output = c("AICc")) # 1126.218  
+MARSSaic(null.fit, output = c("AICc")) # 1219.438
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -750,13 +735,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 31
-# null.fit  56.3 19
-
-stats4::BIC(fit) # 1168.764
-stats4::BIC(null.fit) # 1174.259
+MARSSaic(fit, output = c("AICc")) # 1041.579   
+MARSSaic(null.fit, output = c("AICc")) # 1095.316 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -931,13 +911,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 25
-# null.fit  86.4 13
-
-stats4::BIC(fit) # 1238.166
-stats4::BIC(null.fit) # 1273.778
+MARSSaic(fit, output = c("AICc")) # 1134.938  
+MARSSaic(null.fit, output = c("AICc")) # 1219.438
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1120,13 +1095,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 31
-# null.fit  55.7 19
-
-stats4::BIC(fit) # 1169.431
-stats4::BIC(null.fit) # 1174.259
+MARSSaic(fit, output = c("AICc")) # 1042.246
+MARSSaic(null.fit, output = c("AICc")) # 1095.316 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1302,13 +1272,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 25
-# null.fit  83.9 13
-
-stats4::BIC(fit) # 1240.753
-stats4::BIC(null.fit) # 1273.778
+MARSSaic(fit, output = c("AICc")) # 1137.524 
+MARSSaic(null.fit, output = c("AICc")) # 1219.438 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1492,13 +1457,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 31
-# null.fit  55.6 19
-
-stats4::BIC(fit) # 1169.499
-stats4::BIC(null.fit) # 1174.259
+MARSSaic(fit, output = c("AICc")) # 1042.314   
+MARSSaic(null.fit, output = c("AICc")) # 1095.316 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1674,13 +1634,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 25
-# null.fit  82.6 13
-
-stats4::BIC(fit) # 1241.992
-stats4::BIC(null.fit) # 1273.778
+MARSSaic(fit, output = c("AICc")) # 1138.763   
+MARSSaic(null.fit, output = c("AICc")) # 1219.438 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1864,13 +1819,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 31
-# null.fit  53.6 19
-
-stats4::BIC(fit) # 1171.466
-stats4::BIC(null.fit) # 1174.259
+MARSSaic(fit, output = c("AICc")) # 1044.281   
+MARSSaic(null.fit, output = c("AICc")) # 1095.316 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2044,13 +1994,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 25
-# null.fit  88.5 13
-
-stats4::BIC(fit) # 1236.088
-stats4::BIC(null.fit) # 1273.778
+MARSSaic(fit, output = c("AICc")) # 1132.859   
+MARSSaic(null.fit, output = c("AICc")) # 1219.438 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2232,13 +2177,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#           dAIC df
-# fit        0.0 31
-# null.fit  53.9 19
-
-stats4::BIC(fit) # 1171.186
-stats4::BIC(null.fit) # 1174.259
+MARSSaic(fit, output = c("AICc")) # 1044  
+MARSSaic(null.fit, output = c("AICc")) # 1095.316 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2259,19 +2199,13 @@ autoplot.marssMLE(fit)
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns.
 
-#### IC Comparisons ####
+#### AICc Comparisons ####
 
-# Compare all model fits for each legacy window to see which state 
+# Compare all model fits for each legacy window to see which Q matrix 
 # configuration was best.
 
-# Presented here are three information criterion:
-# AIC - Akaike Information Criterion
+# Presented here are the information criterion:
 # AICc - Akaike Information Criterion adjusted for small sample sizes
-# BIC - Bayesian Information Criterion
-
-# Per the recommendations found in Brewer et al. 2016 (doi: 10.1111/2041-210X.12541) 
-# we will be using BIC for most parsimonious model selection, although
-# all three are displayed here for transparency/comparison.
 
 # no legacy, 4 state
 noleg_4state <- readRDS(file = "data_working/marss_fits/fit_091923_4state_po4_mBFGS.rds")
@@ -2279,18 +2213,10 @@ noleg_4state <- readRDS(file = "data_working/marss_fits/fit_091923_4state_po4_mB
 # no legacy, 1 state
 noleg_1state <- readRDS(file = "data_working/marss_fits/fit_091923_1state_po4_mBFGS.rds")
 
-bbmle::AICtab(noleg_4state, noleg_1state)
-#              dAIC df
-# noleg_1state  0.0 31
-# noleg_4state 85.7 25
+MARSSaic(noleg_4state, output = c("AICc")) # 1129.229  
+MARSSaic(noleg_1state, output = c("AICc")) # 1045.017 
 
-broom::glance(noleg_4state) # AICc 1129.229
-stats4::BIC(noleg_4state) # BIC 1232.458
-
-broom::glance(noleg_1state) # AICc 1045.017 
-stats4::BIC(noleg_1state) # BIC 1172.202
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
@@ -2300,18 +2226,10 @@ leg1_4state <- readRDS(file = "data_working/marss_fits/fit_091923_4state_po4_1yl
 # 1y legacy, 1 state
 leg1_1state <- readRDS(file = "data_working/marss_fits/fit_091923_1state_po4_1ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg1_4state, leg1_1state)
-#             dAIC df
-# leg1_1state  0.0 31
-# leg1_4state 86.1 25
+MARSSaic(leg1_4state, output = c("AICc")) # 1126.218  
+MARSSaic(leg1_1state, output = c("AICc")) # 1041.579 
 
-broom::glance(leg1_4state) # AICc 1126.218
-stats4::BIC(leg1_4state) # BIC 1229.447
-
-broom::glance(leg1_1state) # AICc 1041.579 
-stats4::BIC(leg1_1state) # BIC 1168.764
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
@@ -2321,18 +2239,10 @@ leg2_4state <- readRDS(file = "data_working/marss_fits/fit_091923_4state_po4_2yl
 # 2y legacy, 1 state
 leg2_1state <- readRDS(file = "data_working/marss_fits/fit_091923_1state_po4_2ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg2_4state, leg2_1state)
-#             dAIC df
-# leg2_1state  0.0 31
-# leg2_4state 94.2 25
+MARSSaic(leg2_4state, output = c("AICc")) # 1134.938  
+MARSSaic(leg2_1state, output = c("AICc")) # 1042.246 
 
-broom::glance(leg2_4state) # AICc 1134.938
-stats4::BIC(leg2_4state) # BIC 1238.166
-
-broom::glance(leg2_1state) # AICc 1042.246 
-stats4::BIC(leg2_1state) # BIC 1169.431
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
@@ -2342,18 +2252,10 @@ leg3_4state <- readRDS(file = "data_working/marss_fits/fit_091923_4state_po4_3yl
 # 3y legacy, 1 state
 leg3_1state <- readRDS(file = "data_working/marss_fits/fit_091923_1state_po4_3ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg3_4state, leg3_1state)
-#             dAIC df
-# leg3_1state  0.0 31
-# leg3_4state 96.7 25
+MARSSaic(leg3_4state, output = c("AICc")) # 1137.524  
+MARSSaic(leg3_1state, output = c("AICc")) # 1042.314 
 
-broom::glance(leg3_4state) # AICc 1137.524
-stats4::BIC(leg3_4state) # BIC 1240.753
-
-broom::glance(leg3_1state) # AICc 1042.314 
-stats4::BIC(leg3_1state) # BIC 1169.499
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
@@ -2363,18 +2265,10 @@ leg4_4state <- readRDS(file = "data_working/marss_fits/fit_091923_4state_po4_4yl
 # 4y legacy, 1 state
 leg4_1state <- readRDS(file = "data_working/marss_fits/fit_091923_1state_po4_4ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg4_4state, leg4_1state)
-#             dAIC df
-# leg4_1state  0.0 31
-# leg4_4state 95.9 25
+MARSSaic(leg4_4state, output = c("AICc")) # 1138.763  
+MARSSaic(leg4_1state, output = c("AICc")) # 1044.281 
 
-broom::glance(leg4_4state) # AICc 1138.763
-stats4::BIC(leg4_4state) # BIC 1241.992
-
-broom::glance(leg4_1state) # AICc 1044.281  
-stats4::BIC(leg4_1state) # BIC 1171.466
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
@@ -2384,29 +2278,21 @@ leg5_4state <- readRDS(file = "data_working/marss_fits/fit_091923_4state_po4_5yl
 # 5y legacy, 1 state
 leg5_1state <- readRDS(file = "data_working/marss_fits/fit_091923_1state_po4_5ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg5_4state, leg5_1state)
-#             dAIC df
-# leg5_1state  0.0 31
-# leg5_4state 90.3 25
+MARSSaic(leg5_4state, output = c("AICc")) # 1132.859  
+MARSSaic(leg5_1state, output = c("AICc")) # 1044
 
-broom::glance(leg5_4state) # AICc 1132.859
-stats4::BIC(leg5_4state) # BIC 1236.088
-
-broom::glance(leg5_1state) # AICc 1044  
-stats4::BIC(leg5_1state) # BIC 1171.186
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # So, it would seem the 1 "state" model structure wins out every time.
 
-stats4::BIC(noleg_1state) # BIC 1172.202
-stats4::BIC(leg1_1state) # BIC 1168.764
-stats4::BIC(leg2_1state) # BIC 1169.431
-stats4::BIC(leg3_1state) # BIC 1169.499
-stats4::BIC(leg4_1state) # BIC 1171.466
-stats4::BIC(leg5_1state) # BIC 1171.186
+MARSSaic(noleg_1state, output = c("AICc")) # 1045.017 
+MARSSaic(leg1_1state, output = c("AICc")) # 1041.579   
+MARSSaic(leg2_1state, output = c("AICc")) # 1042.246   
+MARSSaic(leg3_1state, output = c("AICc")) # 1042.314   
+MARSSaic(leg4_1state, output = c("AICc")) # 1044.281   
+MARSSaic(leg5_1state, output = c("AICc")) # 1044   
 
 # And when comparing all models, the 1 year window/lag is most parsimonious.
 
@@ -2432,7 +2318,7 @@ noleg_CI = data.frame(
   "Upper" = noleg_est$par.upCI$U)
 noleg_CI$Parameter = rownames(noleg_CI)
 noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
-noleg_CI$Model = "0 year window"
+noleg_CI$Model = "immediate window"
 
 leg1y_CI = data.frame(
   "Est." = leg1y_est$par$U,
@@ -2514,7 +2400,13 @@ CIs <- CIs %>%
                                   Lower < 0 & 
                                   Upper < 0 ~ "sig_neg",
                                 TRUE ~ "not_sig"), 
-                      levels = c("sig_pos", "not_sig", "sig_neg")))
+                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+  mutate(model = factor(Model, levels = c("immediate window",
+                                           "1 year window",
+                                           "2 year window",
+                                           "3 year window",
+                                           "4 year window",
+                                           "5 year window")))
 
 my_palette <- c("black", "white", "black")
 
@@ -2544,10 +2436,10 @@ my_palette <- c("black", "white", "black")
          fill = "Significance") +
     theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
     guides(shape = guide_legend("Stream"), fill = "none") +
-    facet_grid(.~Model))
+    facet_grid(.~model))
 
 # Export plot.
-# ggsave(("MARSS_PO4_091923.png"),
+# ggsave(("MARSS_PO4_092023.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 12,
