@@ -22,14 +22,15 @@ library(broom)
 #### Summary Stats ####
 
 # load data with fire x ppt interactions and legacy effects
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # Create summary table.
 dat_summary <- dat %>%
   summarize(min_NO3 = min(vwm_no3, na.rm = TRUE),
             max_NO3 = max(vwm_no3, na.rm = TRUE),
             mean_NO3 = mean(vwm_no3, na.rm = TRUE),
-            sd_NO3 = sd(vwm_no3, na.rm = TRUE)) %>%
+            sd_NO3 = sd(vwm_no3, na.rm = TRUE),
+            med_NO3 = median(vwm_no3, na.rm = TRUE)) %>%
   ungroup()
 
 #### 0y legacy, 4 state ####
@@ -42,7 +43,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -147,7 +148,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_4state_no3_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_no3_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -184,13 +185,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0.0 25
-# null.fit 97.7 13
-
-stats4::BIC(fit) # BIC 1357.378
-stats4::BIC(null.fit) # BIC 1404.249
+MARSSaic(fit, output = c("AICc")) # 1256.801
+MARSSaic(null.fit, output = c("AICc")) # 1351.672  
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -219,7 +215,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -332,7 +328,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_1state_no3_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_no3_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -369,13 +365,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0.0 31
-# null.fit 40.4 19
-
-stats4::BIC(fit) # BIC 1373.553
-stats4::BIC(null.fit) # BIC 1363.161
+MARSSaic(fit, output = c("AICc")) # 1248.232 
+MARSSaic(null.fit, output = c("AICc")) # 1286.679   
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -390,12 +381,9 @@ autoplot.marssMLE(fit)
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Very few
 
-# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (a.k.a. straight line)? Yes
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (a.k.a. straight line)? Yes except RS02 looking weird...
 
 # Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No 
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 1y legacy, 4 state ####
 
@@ -407,7 +395,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -512,7 +500,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_4state_no3_1ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_no3_1ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -549,13 +537,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC  df
-# fit        0.0 25
-# null.fit 118.9 13
-
-stats4::BIC(fit) # BIC 1336.162
-stats4::BIC(null.fit) # BIC 1404.249
+MARSSaic(fit, output = c("AICc")) # 1236.057
+MARSSaic(null.fit, output = c("AICc")) # 1351.672   
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -584,7 +567,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -697,7 +680,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_1state_no3_1ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_no3_1ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -734,13 +717,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0   31
-# null.fit 59   19
-
-stats4::BIC(fit) # BIC 1355.001
-stats4::BIC(null.fit) # BIC 1363.161
+MARSSaic(fit, output = c("AICc")) # 1230.332 
+MARSSaic(null.fit, output = c("AICc")) # 1286.679 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -769,7 +747,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -875,7 +853,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_4state_no3_2ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_no3_2ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -912,13 +890,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit        0  25
-# null.fit 127  13
-
-stats4::BIC(fit) # BIC 1328.123
-stats4::BIC(null.fit) # BIC 1404.249
+MARSSaic(fit, output = c("AICc")) # 1228.118 
+MARSSaic(null.fit, output = c("AICc")) # 1351.672 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -947,7 +920,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -1061,7 +1034,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_1state_no3_2ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_no3_2ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1098,13 +1071,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0.0 31
-# null.fit 69.1 19
-
-stats4::BIC(fit) # BIC 1344.9
-stats4::BIC(null.fit) # BIC 1363.161
+MARSSaic(fit, output = c("AICc")) # 1220.442 
+MARSSaic(null.fit, output = c("AICc")) # 1286.679 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1133,7 +1101,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -1239,7 +1207,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_4state_no3_3ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_no3_3ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1276,13 +1244,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC  df
-# fit        0.0 25
-# null.fit 128.8 13
-
-stats4::BIC(fit) # BIC 1326.239
-stats4::BIC(null.fit) # BIC 1404.249
+MARSSaic(fit, output = c("AICc")) # 1226.098 
+MARSSaic(null.fit, output = c("AICc")) # 1351.672 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1311,7 +1274,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -1425,7 +1388,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_1state_no3_3ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_no3_3ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1462,13 +1425,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0.0 31
-# null.fit 73.2 19
-
-stats4::BIC(fit) # BIC 1340.842
-stats4::BIC(null.fit) # BIC 1363.161
+MARSSaic(fit, output = c("AICc")) # 1216.468 
+MARSSaic(null.fit, output = c("AICc")) # 1286.679 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1497,7 +1455,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -1603,7 +1561,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_4state_no3_4ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_no3_4ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1640,13 +1598,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC  df
-# fit        0.0 25
-# null.fit 125.9 13
-
-stats4::BIC(fit) # BIC 1329.193 
-stats4::BIC(null.fit) # BIC 1404.249
+MARSSaic(fit, output = c("AICc")) # 1228.865 
+MARSSaic(null.fit, output = c("AICc")) # 1351.672
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1675,7 +1628,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -1789,7 +1742,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_1state_no3_4ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_no3_4ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1826,13 +1779,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0.0 31
-# null.fit 66.9 19
-
-stats4::BIC(fit) # BIC 1347.123
-stats4::BIC(null.fit) # BIC 1363.161
+MARSSaic(fit, output = c("AICc")) # 1222.313 
+MARSSaic(null.fit, output = c("AICc")) # 1286.679 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1861,7 +1809,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -1967,7 +1915,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_4state_no3_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_no3_5ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -2004,13 +1952,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC  df
-# fit        0.0 25
-# null.fit 122.3 13
-
-stats4::BIC(fit) # BIC 1332.793
-stats4::BIC(null.fit) # BIC 1404.249
+MARSSaic(fit, output = c("AICc")) # 1238.472 
+MARSSaic(null.fit, output = c("AICc")) # 1351.672 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2025,7 +1968,7 @@ autoplot.marssMLE(fit)
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Very few
 
-# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straigh lines)? Yes
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straigh lines)? Yes except Gaviota is giving some weirdness
 
 # Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
@@ -2039,7 +1982,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_no3 <- dat %>%
@@ -2153,7 +2096,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091423_1state_no3_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_no3_5ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -2190,13 +2133,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0   31
-# null.fit 60   19
-
-stats4::BIC(fit) # BIC 1354.037
-stats4::BIC(null.fit) # BIC 1363.161
+MARSSaic(fit, output = c("AICc")) # 1228.927 
+MARSSaic(null.fit, output = c("AICc")) # 1286.679 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2215,183 +2153,108 @@ autoplot.marssMLE(fit)
 
 # Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
-#### IC Comparisons ####
+#### AICc Comparisons ####
 
 # Compare all model fits for each legacy window to see which state 
 # configuration was best.
 
-# Presented here are three information criterion:
-# AIC - Akaike Information Criterion
+# Presented here are the information criterion:
 # AICc - Akaike Information Criterion adjusted for small sample sizes
-# BIC - Bayesian Information Criterion
-
-# Per the recommendations found in Brewer et al. 2016 (doi: 10.1111/2041-210X.12541) 
-# we will be using BIC for most parsimonious model selection, although
-# all three are displayed here for transparency/comparison.
 
 # no legacy, 4 state
-noleg_4state <- readRDS(file = "data_working/marss_fits/fit_091423_4state_no3_mBFGS.rds")
+noleg_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_no3_mBFGS.rds")
 
 # no legacy, 1 state
-noleg_1state <- readRDS(file = "data_working/marss_fits/fit_091423_1state_no3_mBFGS.rds")
+noleg_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_no3_mBFGS.rds")
 
-bbmle::AICtab(noleg_4state, noleg_1state)
+MARSSaic(noleg_4state, output = c("AICc")) # 1256.801 
+MARSSaic(noleg_1state, output = c("AICc")) # 1248.232 
 
-#              dAIC df
-# noleg_1state  0.0 31
-# noleg_4state  9.2 25
-
-broom::glance(noleg_4state) # AICc 1254.149
-stats4::BIC(noleg_4state) # BIC 1357.378
-
-broom::glance(noleg_1state) # AICc 1246.367
-stats4::BIC(noleg_1state) # BIC 1373.553
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC
-# value, 4-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 1y legacy, 4 state
-leg1_4state <- readRDS(file = "data_working/marss_fits/fit_091423_4state_no3_1ylegacy_mBFGS.rds")
+leg1_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_no3_1ylegacy_mBFGS.rds")
 
 # 1y legacy, 1 state
-leg1_1state <- readRDS(file = "data_working/marss_fits/fit_091423_1state_no3_1ylegacy_mBFGS.rds")
+leg1_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_no3_1ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg1_4state, leg1_1state)
+MARSSaic(leg1_4state, output = c("AICc")) # 1236.057 
+MARSSaic(leg1_1state, output = c("AICc")) # 1230.332 
 
-#             dAIC df
-# leg1_1state  0.0 31
-# leg1_4state  6.6 25
-
-broom::glance(leg1_4state) # AICc 1232.933
-stats4::BIC(leg1_4state) # BIC 1336.162
-
-broom::glance(leg1_1state) # AICc 1227.816
-stats4::BIC(leg1_1state) # BIC 1355.001
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC
-# value, 4-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 2y legacy, 4 state
-leg2_4state <- readRDS(file = "data_working/marss_fits/fit_091423_4state_no3_2ylegacy_mBFGS.rds")
+leg2_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_no3_2ylegacy_mBFGS.rds")
 
 # 2y legacy, 1 state
-leg2_1state <- readRDS(file = "data_working/marss_fits/fit_091423_1state_no3_2ylegacy_mBFGS.rds")
+leg2_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_no3_2ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg2_4state, leg2_1state)
+MARSSaic(leg2_4state, output = c("AICc")) # 1228.118 
+MARSSaic(leg2_1state, output = c("AICc")) # 1220.442 
 
-#             dAIC df
-# leg2_1state  0.0 31
-# leg2_4state  8.6 25
-
-broom::glance(leg2_4state) # AICc 1224.894
-stats4::BIC(leg2_4state) # BIC 1328.123
-
-broom::glance(leg2_1state) # AICc 1217.714
-stats4::BIC(leg2_1state) # BIC 1344.9
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC
-# value, 4-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 3y legacy, 4 state
-leg3_4state <- readRDS(file = "data_working/marss_fits/fit_091423_4state_no3_3ylegacy_mBFGS.rds")
+leg3_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_no3_3ylegacy_mBFGS.rds")
 
 # 3y legacy, 1 state
-leg3_1state <- readRDS(file = "data_working/marss_fits/fit_091423_1state_no3_3ylegacy_mBFGS.rds")
+leg3_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_no3_3ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg3_4state, leg3_1state)
+MARSSaic(leg3_4state, output = c("AICc")) # 1226.098 
+MARSSaic(leg3_1state, output = c("AICc")) # 1216.468 
 
-#             dAIC df
-# leg3_1state  0.0 31
-# leg3_4state 10.8 25
-
-broom::glance(leg3_4state) # AICc 1223.01
-stats4::BIC(leg3_4state) # BIC 1326.239
-
-broom::glance(leg3_1state) # AICc 1213.657
-stats4::BIC(leg3_1state) # BIC 1340.842
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC
-# value, 4-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 4y legacy, 4 state
-leg4_4state <- readRDS(file = "data_working/marss_fits/fit_091423_4state_no3_4ylegacy_mBFGS.rds")
+leg4_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_no3_4ylegacy_mBFGS.rds")
 
 # 4y legacy, 1 state
-leg4_1state <- readRDS(file = "data_working/marss_fits/fit_091423_1state_no3_4ylegacy_mBFGS.rds")
+leg4_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_no3_4ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg4_4state, leg4_1state)
+MARSSaic(leg4_4state, output = c("AICc")) # 1228.865
+MARSSaic(leg4_1state, output = c("AICc")) # 1222.313 
 
-#             dAIC df
-# leg4_1state  0.0 31
-# leg4_4state  7.5 25
-
-broom::glance(leg4_4state) # AICc 1225.964
-stats4::BIC(leg4_4state) # BIC 1329.193
-
-broom::glance(leg4_1state) # AICc 1219.937
-stats4::BIC(leg4_1state) # BIC 1347.123
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC
-# value, 4-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 5y legacy, 4 state
-leg5_4state <- readRDS(file = "data_working/marss_fits/fit_091423_4state_no3_5ylegacy_mBFGS.rds")
+leg5_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_no3_5ylegacy_mBFGS.rds")
 
 # 5y legacy, 1 state
-leg5_1state <- readRDS(file = "data_working/marss_fits/fit_091423_1state_no3_5ylegacy_mBFGS.rds")
+leg5_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_no3_5ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg5_4state, leg5_1state)
+MARSSaic(leg5_4state, output = c("AICc")) # 1238.472 
+MARSSaic(leg5_1state, output = c("AICc")) # 1228.927 
 
-#             dAIC df
-# leg5_1state  0.0 31
-# leg5_4state  4.2 25
-
-broom::glance(leg5_4state) # AICc 1229.564
-stats4::BIC(leg5_4state) # BIC 1332.793
-
-broom::glance(leg5_1state) # AICc 1226.851
-stats4::BIC(leg5_1state) # BIC 1354.037
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC
-# value, 4-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
-# So, it would seem the 4 "state" model structure wins out.
-
-stats4::BIC(noleg_4state) # BIC 1357.378
-stats4::BIC(leg1_4state) # BIC 1336.162
-stats4::BIC(leg2_4state) # BIC 1328.123
-stats4::BIC(leg3_4state) # BIC 1326.239
-stats4::BIC(leg4_4state) # BIC 1329.193
-stats4::BIC(leg5_4state) # BIC 1332.793
-
-# And when comparing all models, the 3 year window/lag is most parsimonious.
+# So, it would seem the 1 "state" model structure wins out.
 
 #### Results Figure ####
 
 # For presentation consistency, I will only be creating figures with a
 # single state configuration, whichever yielded the most parsimonious
-# models. So, in this case, all NO3 figures will represent the "4 state"
+# models. So, in this case, all NO3 figures will represent the "1 state"
 # scenario.
 
 # Extract necessary confidence interval info
-noleg_est <- MARSSparamCIs(noleg_4state)
-leg1y_est <- MARSSparamCIs(leg1_4state)
-leg2y_est <- MARSSparamCIs(leg2_4state)
-leg3y_est <- MARSSparamCIs(leg3_4state)
-leg4y_est <- MARSSparamCIs(leg4_4state)
-leg5y_est <- MARSSparamCIs(leg5_4state)
+noleg_est <- MARSSparamCIs(noleg_1state)
+leg1y_est <- MARSSparamCIs(leg1_1state)
+leg2y_est <- MARSSparamCIs(leg2_1state)
+leg3y_est <- MARSSparamCIs(leg3_1state)
+leg4y_est <- MARSSparamCIs(leg4_1state)
+leg5y_est <- MARSSparamCIs(leg5_1state)
 
 # Format confidence intervals into dataframes
 noleg_CI = data.frame(
@@ -2400,7 +2263,7 @@ noleg_CI = data.frame(
   "Upper" = noleg_est$par.upCI$U)
 noleg_CI$Parameter = rownames(noleg_CI)
 noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
-noleg_CI$Model = "0 year window"
+noleg_CI$Model = "immediate window"
 
 leg1y_CI = data.frame(
   "Est." = leg1y_est$par$U,
@@ -2482,7 +2345,13 @@ CIs <- CIs %>%
                                   Lower < 0 & 
                                   Upper < 0 ~ "sig_neg",
                                 TRUE ~ "not_sig"), 
-                      levels = c("sig_pos", "not_sig", "sig_neg")))
+                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+  mutate(model = factor(Model, levels = c("immediate window",
+                                          "1 year window",
+                                          "2 year window",
+                                          "3 year window",
+                                          "4 year window",
+                                          "5 year window")))
 
 my_palette <- c("black", "white", "black")
 
@@ -2512,10 +2381,10 @@ my_palette <- c("black", "white", "black")
          fill = "Significance") +
     theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
     guides(shape = guide_legend("Stream"), fill = "none") +
-    facet_grid(.~Model))
+    facet_grid(.~model))
 
 # Export plot.
-# ggsave(("MARSS_NO3_091423.png"),
+# ggsave(("MARSS_NO3_092123.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 12,
