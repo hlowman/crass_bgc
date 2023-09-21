@@ -5,7 +5,9 @@
 # The following script will be used to create the timeseries figures
 # for conductivity NH4.
 
-# Setup
+#### Setup ####
+
+# Load packages
 library(tidyverse)
 library(lubridate)
 library(MARSS)
@@ -15,7 +17,7 @@ library(calecopal)
 library(patchwork)
 
 # Load in data used for MARSS models.
-df <- readRDS("data_working/marss_data_sb_080823.rds")
+df <- readRDS("data_working/marss_data_sb_092123.rds")
 df_cond <- readRDS("data_working/marss_data_sb_vc_nolegacies_081123.rds")
 
 #### NH4 ####
@@ -53,9 +55,9 @@ df <- df %>%
         strip.background = element_rect(colour="white", fill="white")))
 
 # Export plot.
-# ggsave(("TS_SB_NH4_081523.png"),
+# ggsave(("TS_SB_NH4_092123.png"),
 #        path = "figures",
-#        width = 30,
+#        width = 60,
 #        height = 30,
 #        units = "cm"
 # )
