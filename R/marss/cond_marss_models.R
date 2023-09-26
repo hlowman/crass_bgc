@@ -25,12 +25,12 @@ library(broom)
 dat <- readRDS("data_working/marss_data_sb_vc_091123.rds")
 
 # select sites
-# include these sites only (8 total - these have the longest most complete ts 
+# include these sites only (7 total - these have the longest most complete ts 
 # for SpC and have SpC data coverage before and after fires):
 # AB00, GV01, HO00, & RS02 = SB
-# EFJ, RED, RSA, & RSAW = VC
+# EFJ, RED, & RSAW = VC
 sitez = c("AB00", "GV01", "HO00", "RS02",
-          "EFJ", "RED", "RSA", "RSAW")
+          "EFJ", "RED", "RSAW")
 dat = dat[dat$site %in% sitez,]
 
 # Create summary table.
@@ -39,7 +39,8 @@ dat_summary <- dat %>%
   summarize(min_cond = min(mean_cond_uScm, na.rm = TRUE),
             max_cond = max(mean_cond_uScm, na.rm = TRUE),
             mean_cond = mean(mean_cond_uScm, na.rm = TRUE),
-            sd_cond = sd(mean_cond_uScm, na.rm = TRUE)) %>%
+            sd_cond = sd(mean_cond_uScm, na.rm = TRUE),
+            med_cond = median(mean_cond_uScm, na.rm = TRUE)) %>%
   ungroup()
 
 #### 0y legacy, 7 states ####

@@ -18,7 +18,7 @@ library(patchwork)
 
 # Load in data used for MARSS models.
 df <- readRDS("data_working/marss_data_sb_092123.rds")
-df_cond <- readRDS("data_working/marss_data_sb_vc_nolegacies_081123.rds")
+df_cond <- readRDS("data_working/marss_data_sb_vc_091123.rds")
 
 #### NH4 ####
 
@@ -67,6 +67,8 @@ df <- df %>%
 # Need to make new columns for designating pre- and post-fire dates
 # for plotting purposes.
 df_cond <- df_cond %>%
+  filter(site %in% c("AB00", "GV01", "HO00", "RS02",
+                     "EFJ", "RED", "RSAW")) %>%
   mutate(day = 1) %>%
   mutate(date = make_date(year, month, day)) %>%
   # if multiple fires in a watershed occurred, I am coloring based
@@ -77,11 +79,10 @@ df_cond <- df_cond %>%
                                  site == "RS02" & date > as.Date("2008-11-01") |
                                  site == "EFJ" & date > as.Date("2011-06-26") |
                                  site == "RED" & date > as.Date("2013-05-31") |
-                                 site == "RSA" & date > as.Date("2011-06-26") |
                                  site == "RSAW" & date > as.Date("2011-06-26") ~ "A",
                                TRUE ~ "B")) %>%
   # and re-order sites for better plotting of sequential fires
-  mutate(site_factor = factor(site, levels = c("EFJ", "RSA", "RSAW", "RED", 
+  mutate(site_factor = factor(site, levels = c("EFJ", "RSAW", "RED", 
                                                "GV01", "HO00", "RS02", "AB00")))
 
 # Create figure.
@@ -90,22 +91,6 @@ df_cond <- df_cond %>%
                        aes(x = date, y = mean_cond_uScm, alpha = post_fire)) +
     geom_point(size = 5, color = "#92A587") +
     geom_line(color = "#92A587") +
-    scale_alpha_manual(values = c(1, 0.3), guide = "none") +
-    labs(x = "Date", 
-         y = "Mean Monthly Specific Conductivity") +
-    facet_grid(site_factor~.) +
-    theme_bw() +
-    theme(axis.title = element_text(size = 24),
-          axis.text = element_text(size = 20),
-          strip.text.x = element_text(size = 24),
-          strip.text.y = element_text(size = 24),
-          strip.background = element_rect(colour="white", fill="white")))
-
-(cond_fig_sb <- ggplot(df_cond %>%
-                         filter(region == "SB"), 
-                       aes(x = date, y = mean_cond_uScm, alpha = post_fire)) +
-    geom_point(size = 5, color = "#6592D6") +
-    geom_line(color = "#6592D6") +
     scale_alpha_manual(values = c(1, 0.3), guide = "none") +
     labs(x = "Date") +
     facet_grid(site_factor~.) +
@@ -117,10 +102,33 @@ df_cond <- df_cond %>%
           strip.text.y = element_text(size = 24),
           strip.background = element_rect(colour="white", fill="white")))
 
-(cond_fig <- cond_fig_vc + cond_fig_sb)
+(cond_fig_sb <- ggplot(df_cond %>%
+                         filter(region == "SB"), 
+                       aes(x = date, y = mean_cond_uScm, alpha = post_fire)) +
+    geom_point(size = 5, color = "#6592D6") +
+    geom_line(color = "#6592D6") +
+    scale_alpha_manual(values = c(1, 0.3), guide = "none") +
+    labs(x = "Date", 
+         y = "Mean Monthly Specific Conductivity") +
+    facet_grid(site_factor~.) +
+    theme_bw() +
+    theme(axis.title = element_text(size = 24),
+          axis.text = element_text(size = 20),
+          strip.text.x = element_text(size = 24),
+          strip.text.y = element_text(size = 24),
+          strip.background = element_rect(colour="white", fill="white")))
+
+design <- "AAABBB
+           AAABBB
+           AAABBB
+           AAABBB
+           AAA###"
+
+(cond_fig <- cond_fig_sb + cond_fig_vc +
+    plot_layout(design = design))
 
 # Export plot.
-# ggsave(("TS_SB_VC_SpCond_081523.png"),
+# ggsave(("TS_SB_VC_SpCond_092623.png"),
 #        path = "figures",
 #        width = 60,
 #        height = 30,
