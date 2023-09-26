@@ -3080,7 +3080,7 @@ autoplot.marssMLE(fit)
 
 # Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No except RSAW eee
 
-#### 5y legacy, 8 states ####
+#### 5y legacy, 6 states ####
 
 # remove data
 rm(list=ls())
@@ -3092,12 +3092,12 @@ is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 dat = readRDS("data_working/marss_data_sb_vc_091123.rds")
 
 # select sites
-# include these sites only (8 total - these have the longest most
+# include these sites only (6 total - these have the longest most
 # complete ts for SpC and have SpC data coverage before and after fires):
 # AB00, GV01, HO00, & RS02 = SB
-# RED, RSA, & RSAW = VC
+# RED, & RSAW = VC
 sitez = c("AB00", "GV01", "HO00", "RS02",
-          "RED", "RSA", "RSAW")
+          "RED", "RSAW")
 dat = dat[dat$site %in% sitez,]
 table(dat$site)
 
@@ -3117,16 +3117,16 @@ dat_cond <- dat %>%
 
 # indicate column #s of response and predictor vars
 names(dat_cond)
-resp_cols = c(2:8)
-cov_cols = c(9:29)
+resp_cols = c(2:7)
+cov_cols = c(8:25)
 
 # log and scale transform response var
 dat_cond_log = dat_cond
 dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
 dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
 # check for NaNs (not allowed) and NAs (allowed in response but not predictors)
-sum(is.nan(dat_cond_log[,resp_cols])) #0
-sum(is.na(dat_cond_log[,resp_cols])) #508
+sum(is.nan(dat_cond_log[,resp_cols])) # 0
+sum(is.na(dat_cond_log[,resp_cols])) # 392
 range(dat_cond_log[,resp_cols], na.rm = T)
 
 # Pull out only response var
@@ -3155,38 +3155,34 @@ any(colSums(dat_cov)==0) # FALSE
 # make C matrix
 CC <- matrix(list( 
   # precip by site: cumulative_precip_mm
-  "cumulative_precip_mm_AB00",0,0,0,0,0,0,
-  0,"cumulative_precip_mm_GV01",0,0,0,0,0,
-  0,0,"cumulative_precip_mm_HO00",0,0,0,0,
-  0,0,0,"cumulative_precip_mm_RS02",0,0,0,
-  0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
-  0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
-  0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  "cumulative_precip_mm_AB00",0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,
+  0,0,0,0,"cumulative_precip_mm_RSAW",0,
+  0,0,0,0,0,"cumulative_precip_mm_RED" ,
   # fire_perc_ws_5ylegacy
-  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,
-  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,
-  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,
-  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,
-  0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RED",
   # fire_perc_ws_ppt_5ylegacy
-  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,
-  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,
-  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,
-  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,
-  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 7, 21)
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 6, 18)
 
 # Make R matrix
-RR <- matrix(list("v1",0,0,0,0,0,0,
-                  0,"v1",0,0,0,0,0,
-                  0,0,"v1",0,0,0,0,
-                  0,0,0,"v1",0,0,0,
-                  0,0,0,0,"v2",0,0,
-                  0,0,0,0,0,"v2",0,
-                  0,0,0,0,0,0,"v2"), 7, 7)
+RR <- matrix(list("v1",0,0,0,0,0,
+                  0,"v1",0,0,0,0,
+                  0,0,"v1",0,0,0,
+                  0,0,0,"v1",0,0,
+                  0,0,0,0,"v2",0,
+                  0,0,0,0,0,"v2"), 6, 6)
 
 # Model setup for MARSS
 
@@ -3220,7 +3216,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091523_8state_cond_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092523_6state_cond_5ylegacy_mBFGS.rds")
 
 # DIAGNOSES 
 ## check for hidden errors
@@ -3256,13 +3252,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC  df
-# fit        0.0 44
-# null.fit 201.9 23
-
-stats4::BIC(fit) # BIC 1843.557
-stats4::BIC(null.fit) # BIC 1948.245
+MARSSaic(fit) # AICc 1506.619
+MARSSaic(null.fit) #AICc 1698.884
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -3293,12 +3284,12 @@ is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 dat = readRDS("data_working/marss_data_sb_vc_091123.rds")
 
 # select sites
-# include these sites only (8 total - these have the longest most
+# include these sites only (6 total - these have the longest most
 # complete ts for SpC and have SpC data coverage before and after fires):
 # AB00, GV01, HO00, & RS02 = SB
-# RED, RSA, & RSAW = VC
+# RED, & RSAW = VC
 sitez = c("AB00", "GV01", "HO00", "RS02",
-          "RED", "RSA", "RSAW")
+          "RED", "RSAW")
 dat = dat[dat$site %in% sitez,]
 table(dat$site)
 
@@ -3318,16 +3309,16 @@ dat_cond <- dat %>%
 
 # indicate column #s of response and predictor vars
 names(dat_cond)
-resp_cols = c(2:8)
-cov_cols = c(9:29)
+resp_cols = c(2:7)
+cov_cols = c(8:25)
 
 # log and scale transform response var
 dat_cond_log = dat_cond
 dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
 dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
 # check for NaNs (not allowed) and NAs (allowed in response but not predictors)
-sum(is.nan(dat_cond_log[,resp_cols])) #0
-sum(is.na(dat_cond_log[,resp_cols])) #508
+sum(is.nan(dat_cond_log[,resp_cols])) # 0
+sum(is.na(dat_cond_log[,resp_cols])) # 392
 range(dat_cond_log[,resp_cols], na.rm = T)
 
 # Pull out only response var
@@ -3356,47 +3347,42 @@ any(colSums(dat_cov)==0) # FALSE
 # make C matrix
 CC <- matrix(list( 
   # precip by site: cumulative_precip_mm
-  "cumulative_precip_mm_AB00",0,0,0,0,0,0,
-  0,"cumulative_precip_mm_GV01",0,0,0,0,0,
-  0,0,"cumulative_precip_mm_HO00",0,0,0,0,
-  0,0,0,"cumulative_precip_mm_RS02",0,0,0,
-  0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
-  0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
-  0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  "cumulative_precip_mm_AB00",0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,
+  0,0,0,0,"cumulative_precip_mm_RSAW",0,
+  0,0,0,0,0,"cumulative_precip_mm_RED",
   # fire_perc_ws_5ylegacy
-  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,
-  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,
-  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,
-  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,
-  0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RED",
   # fire_perc_ws_ppt_5ylegacy
-  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,
-  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,
-  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,
-  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,
-  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 7, 21)
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 6, 18)
 
 # make Q matrix
-QQ <- matrix(list("s1","b12","b13","b14",0,    0,    0,    
-                  "b12","s2","b23","b24",0,    0,    0,    
-                  "b13","b23","s3","b34",0,    0,    0,    
-                  "b14","b24","b34","s4",0,    0,    0,    
-                  0,    0,    0,    0,"s5","b56","b57",
-                  0,    0,    0,    0,"b56","s6","b67",
-                  0,    0,    0,    0,"b57","b67","s7"), 7, 7)
+QQ <- matrix(list("s1","b12","b13","b14",0,    0,   
+                  "b12","s2","b23","b24",0,    0,   
+                  "b13","b23","s3","b34",0,    0,  
+                  "b14","b24","b34","s4",0,    0,   
+                  0,    0,    0,    0,"s5","b56",
+                  0,    0,    0,    0,"b56","s6"), 6, 6)
 
 # Make R matrix
-RR <- matrix(list("v1",0,0,0,0,0,0,
-                  0,"v1",0,0,0,0,0,
-                  0,0,"v1",0,0,0,0,
-                  0,0,0,"v1",0,0,0,
-                  0,0,0,0,"v2",0,0,
-                  0,0,0,0,0,"v2",0,
-                  0,0,0,0,0,0,"v2"), 7, 7)
+RR <- matrix(list("v1",0,0,0,0,0,
+                  0,"v1",0,0,0,0,
+                  0,0,"v1",0,0,0,
+                  0,0,0,"v1",0,0,
+                  0,0,0,0,"v2",0,
+                  0,0,0,0,0,"v2"), 6, 6)
 
 # Model setup for MARSS
 
@@ -3430,7 +3416,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091523_2state_cond_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092523_2state_cond_5ylegacy_mBFGS.rds")
 
 # DIAGNOSES 
 ## check for hidden errors
@@ -3466,13 +3452,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC df
-# fit       0   53
-# null.fit 96   32
-
-stats4::BIC(fit) # BIC 1852.66
-stats4::BIC(null.fit) # BIC 1851.435
+MARSSaic(fit) # AICc 1483.119
+MARSSaic(null.fit) # AICc 1571.249
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -3503,12 +3484,12 @@ is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 dat = readRDS("data_working/marss_data_sb_vc_091123.rds")
 
 # select sites
-# include these sites only (8 total - these have the longest most
+# include these sites only (6 total - these have the longest most
 # complete ts for SpC and have SpC data coverage before and after fires):
 # AB00, GV01, HO00, & RS02 = SB
-# RED, RSA, & RSAW = VC
+# RED, & RSAW = VC
 sitez = c("AB00", "GV01", "HO00", "RS02",
-          "RED", "RSA", "RSAW")
+          "RED", "RSAW")
 dat = dat[dat$site %in% sitez,]
 table(dat$site)
 
@@ -3528,16 +3509,16 @@ dat_cond <- dat %>%
 
 # indicate column #s of response and predictor vars
 names(dat_cond)
-resp_cols = c(2:8)
-cov_cols = c(9:29)
+resp_cols = c(2:7)
+cov_cols = c(8:25)
 
 # log and scale transform response var
 dat_cond_log = dat_cond
 dat_cond_log[,resp_cols] = log10(dat_cond_log[,resp_cols])
 dat_cond_log[,resp_cols] = scale(dat_cond_log[,resp_cols])
 # check for NaNs (not allowed) and NAs (allowed in response but not predictors)
-sum(is.nan(dat_cond_log[,resp_cols])) #0
-sum(is.na(dat_cond_log[,resp_cols])) #508
+sum(is.nan(dat_cond_log[,resp_cols])) # 0
+sum(is.na(dat_cond_log[,resp_cols])) # 392
 range(dat_cond_log[,resp_cols], na.rm = T)
 
 # Pull out only response var
@@ -3566,47 +3547,42 @@ any(colSums(dat_cov)==0) # FALSE
 # make C matrix
 CC <- matrix(list( 
   # precip by site: cumulative_precip_mm
-  "cumulative_precip_mm_AB00",0,0,0,0,0,0,
-  0,"cumulative_precip_mm_GV01",0,0,0,0,0,
-  0,0,"cumulative_precip_mm_HO00",0,0,0,0,
-  0,0,0,"cumulative_precip_mm_RS02",0,0,0,
-  0,0,0,0,"cumulative_precip_mm_RSAW",0,0,
-  0,0,0,0,0,"cumulative_precip_mm_RSA" ,0,
-  0,0,0,0,0,0,"cumulative_precip_mm_RED" ,
+  "cumulative_precip_mm_AB00",0,0,0,0,0,
+  0,"cumulative_precip_mm_GV01",0,0,0,0,
+  0,0,"cumulative_precip_mm_HO00",0,0,0,
+  0,0,0,"cumulative_precip_mm_RS02",0,0,
+  0,0,0,0,"cumulative_precip_mm_RSAW",0,
+  0,0,0,0,0,"cumulative_precip_mm_RED" ,
   # fire_perc_ws_5ylegacy
-  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,0,
-  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,0,
-  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,0,
-  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,0,
-  0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,"fire_perc_ws_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
+  "fire_perc_ws_1ylegacy_AB00",0,0,0,0,0,
+  0,"fire_perc_ws_1ylegacy_GV01",0,0,0,0,
+  0,0,"fire_perc_ws_1ylegacy_HO00",0,0,0,
+  0,0,0,"fire_perc_ws_1ylegacy_RS02",0,0,
+  0,0,0,0,"fire_perc_ws_1ylegacy_RSAW",0,
+  0,0,0,0,0,"fire_perc_ws_1ylegacy_RED" ,
   # fire_perc_ws_ppt_5ylegacy
-  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,0,
-  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,0,
-  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,0,
-  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,0,
-  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,0,
-  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSA" ,0,
-  0,0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 7, 21)
+  "fire_perc_ws_ppt_1ylegacy_AB00",0,0,0,0,0,
+  0,"fire_perc_ws_ppt_1ylegacy_GV01",0,0,0,0,
+  0,0,"fire_perc_ws_ppt_1ylegacy_HO00",0,0,0,
+  0,0,0,"fire_perc_ws_ppt_1ylegacy_RS02",0,0,
+  0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RSAW",0,
+  0,0,0,0,0,"fire_perc_ws_ppt_1ylegacy_RED" ), 6, 18)
 
 # make Q matrix
-QQ <- matrix(list("s1","b12","b13","b14","b15","b16","b17",
-                  "b12","s2","b23","b24","b25","b26","b27",
-                  "b13","b23","s3","b34","b35","b36","b37",
-                  "b14","b24","b34","s4","b45","b46","b47",
-                  "b15","b25","b35","b45","s5","b56","b57",
-                  "b16","b26","b36","b46","b56","s6","b67",
-                  "b17","b27","b37","b47","b57","b67","s7"), 7, 7)
+QQ <- matrix(list("s1","b12","b13","b14","b15","b16",
+                  "b12","s2","b23","b24","b25","b26",
+                  "b13","b23","s3","b34","b35","b36",
+                  "b14","b24","b34","s4","b45","b46",
+                  "b15","b25","b35","b45","s5","b56",
+                  "b16","b26","b36","b46","b56","s6"), 6, 6)
 
 # Make R matrix
-RR <- matrix(list("v1",0,0,0,0,0,0,
-                  0,"v1",0,0,0,0,0,
-                  0,0,"v1",0,0,0,0,
-                  0,0,0,"v1",0,0,0,
-                  0,0,0,0,"v2",0,0,
-                  0,0,0,0,0,"v2",0,
-                  0,0,0,0,0,0,"v2"), 7, 7)
+RR <- matrix(list("v1",0,0,0,0,0,
+                  0,"v1",0,0,0,0,
+                  0,0,"v1",0,0,0,
+                  0,0,0,"v1",0,0,
+                  0,0,0,0,"v2",0,
+                  0,0,0,0,0,"v2"), 6, 6)
 
 # Model setup for MARSS
 
@@ -3640,7 +3616,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_091523_1state_cond_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092523_1state_cond_5ylegacy_mBFGS.rds")
 
 # DIAGNOSES 
 ## check for hidden errors
@@ -3676,13 +3652,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-#          dAIC  df
-# fit        0.0 65
-# null.fit 103.7 44
-
-stats4::BIC(fit) # BIC 1898.838
-stats4::BIC(null.fit) # BIC 1905.325
+MARSSaic(fit) # AICc 1487.4
+MARSSaic(null.fit) # AICc 1582.582
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -3702,209 +3673,117 @@ autoplot.marssMLE(fit)
 
 # Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
-#### IC Comparisons ####
+#### AICc Comparisons ####
 
 # Compare all model fits for each legacy window to see which state 
 # configuration was best.
 
-# Presented here are three information criterion:
-# AIC - Akaike Information Criterion
+# Presented here are the information criterion:
 # AICc - Akaike Information Criterion adjusted for small sample sizes
-# BIC - Bayesian Information Criterion
-
-# Per the recommendations found in Brewer et al. 2016 (doi: 10.1111/2041-210X.12541) 
-# we will be using BIC for most parsimonious model selection, although
-# all three are displayed here for transparency/comparison.
 
 # no legacy, 8 state
-noleg_8state <- readRDS(file = "data_working/marss_fits/fit_091523_8state_cond_mBFGS.rds")
+noleg_7state <- readRDS(file = "data_working/marss_fits/fit_092523_7state_cond_mBFGS.rds")
 
 # no legacy, 2 state
-noleg_2state <- readRDS(file = "data_working/marss_fits/fit_091523_2state_cond_mBFGS.rds")
+noleg_2state <- readRDS(file = "data_working/marss_fits/fit_092523_2state_cond_mBFGS.rds")
 
 # no legacy, 1 state
-noleg_1state <- readRDS(file = "data_working/marss_fits/fit_091523_1state_cond_mBFGS.rds")
+noleg_1state <- readRDS(file = "data_working/marss_fits/fit_092523_1state_cond_mBFGS.rds")
 
-bbmle::AICtab(noleg_8state, noleg_2state, noleg_1state)
+MARSSaic(noleg_7state) # AICc 1623.89
+MARSSaic(noleg_2state) # AICc 1600.19
+MARSSaic(noleg_1state) # AICc 1597.105
 
-#              dAIC df
-# noleg_1state  0.0 78
-# noleg_2state 21.9 62
-# noleg_8state 70.7 50
-
-broom::glance(noleg_8state) # AICc 1759.363
-stats4::BIC(noleg_8state) # BIC 1990.375
-
-broom::glance(noleg_2state) # AICc 1714.104
-stats4::BIC(noleg_2state) # BIC 1998.553
-
-broom::glance(noleg_1state) # AICc 1698.215
-stats4::BIC(noleg_1state) # BIC 2052.584
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC values
-# 8-state wins.
+# So, based on lowest AICc values, 1-state wins.
 
 ###
 
-# 1y legacy, 8 state
-leg1_8state <- readRDS(file = "data_working/marss_fits/fit_091523_8state_cond_1ylegacy_mBFGS.rds")
+# 1y legacy, 7 state
+leg1_7state <- readRDS(file = "data_working/marss_fits/fit_092523_7state_cond_1ylegacy_mBFGS.rds")
 
 # 1y legacy, 2 state
-leg1_2state <- readRDS(file = "data_working/marss_fits/fit_091523_2state_cond_1ylegacy_mBFGS.rds")
+leg1_2state <- readRDS(file = "data_working/marss_fits/fit_092523_2state_cond_1ylegacy_mBFGS.rds")
 
 # 1y legacy, 1 state
-leg1_1state <- readRDS(file = "data_working/marss_fits/fit_091523_1state_cond_1ylegacy_mBFGS.rds")
+leg1_1state <- readRDS(file = "data_working/marss_fits/fit_092523_1state_cond_1ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg1_8state, leg1_2state, leg1_1state)
+MARSSaic(leg1_7state) # AICc 1616.927
+MARSSaic(leg1_2state) # AICc 1587.286
+MARSSaic(leg1_1state) # AICc 1591.56
 
-#             dAIC df
-# leg1_1state  0.0 78
-# leg1_2state 22.3 62
-# leg1_8state 65.8 50
-
-broom::glance(leg1_8state) # AICc 1748.059
-stats4::BIC(leg1_8state) # BIC 1979.071
-
-broom::glance(leg1_2state) # AICc 1708.087
-stats4::BIC(leg1_2state) # BIC 1992.536
-
-broom::glance(leg1_1state) # AICc 1691.794    
-stats4::BIC(leg1_1state) # BIC 2046.163
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC values
-# 8-state wins.
+# So, based on lowest AICc values, 2-state wins.
 
 ###
 
-# 2y legacy, 8 state
-leg2_8state <- readRDS(file = "data_working/marss_fits/fit_091523_8state_cond_2ylegacy_mBFGS.rds")
+# 2y legacy, 7 state
+leg2_7state <- readRDS(file = "data_working/marss_fits/fit_092523_7state_cond_2ylegacy_mBFGS.rds")
 
 # 2y legacy, 2 state
-leg2_2state <- readRDS(file = "data_working/marss_fits/fit_091523_2state_cond_2ylegacy_mBFGS.rds")
+leg2_2state <- readRDS(file = "data_working/marss_fits/fit_092523_2state_cond_2ylegacy_mBFGS.rds")
 
 # 2y legacy, 1 state
-leg2_1state <- readRDS(file = "data_working/marss_fits/fit_091523_1state_cond_2ylegacy_mBFGS.rds")
+leg2_1state <- readRDS(file = "data_working/marss_fits/fit_092523_1state_cond_2ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg2_8state, leg2_2state, leg2_1state)
+MARSSaic(leg2_7state) # AICc 1613.598
+MARSSaic(leg2_2state) # AICc 1578.748
+MARSSaic(leg2_1state) # AICc 1592.993
 
-#             dAIC df
-# leg2_1state  0.0 78
-# leg2_2state  5.2 62
-# leg2_8state 63.5 50
-
-broom::glance(leg2_8state) # AICc 1747.78 
-stats4::BIC(leg2_8state) # BIC 1978.793
-
-broom::glance(leg2_2state) # AICc 1693.022
-stats4::BIC(leg2_2state) # BIC 1977.471
-
-broom::glance(leg2_1state) # AICc 1693.854
-stats4::BIC(leg2_1state) # BIC 2048.223
-
-# So, based on lowest AIC values, 1-state wins, based on lowest AICc and BIC values, 2-state wins.
+# So, based on lowest AICc values, 2-state wins.
 
 ###
 
 # 3y legacy, 8 state
-leg3_8state <- readRDS(file = "data_working/marss_fits/fit_091523_8state_cond_3ylegacy_mBFGS.rds")
+leg3_7state <- readRDS(file = "data_working/marss_fits/fit_092523_7state_cond_3ylegacy_mBFGS.rds")
 
 # 3y legacy, 2 state
-leg3_2state <- readRDS(file = "data_working/marss_fits/fit_091523_2state_cond_3ylegacy_mBFGS.rds")
+leg3_2state <- readRDS(file = "data_working/marss_fits/fit_092523_2state_cond_3ylegacy_mBFGS.rds")
 
 # 3y legacy, 1 state
-leg3_1state <- readRDS(file = "data_working/marss_fits/fit_091523_1state_cond_3ylegacy_mBFGS.rds")
+leg3_1state <- readRDS(file = "data_working/marss_fits/fit_092523_1state_cond_3ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg3_8state, leg3_2state, leg3_1state)
+MARSSaic(leg3_7state) # AICc 1610.204
+MARSSaic(leg3_2state) # AICc 1574.025
+MARSSaic(leg3_1state) # AICc 1584.687
 
-#             dAIC df
-# leg3_1state  0.0 78
-# leg3_2state 17.3 62
-# leg3_8state 75.5 50
-
-broom::glance(leg3_8state) # AICc 1749.08
-stats4::BIC(leg3_8state) # BIC 1980.092
-
-broom::glance(leg3_2state) # AICc 1694.34 
-stats4::BIC(leg3_2state) # BIC 1978.789
-
-broom::glance(leg3_1state) # AICc 1683.116 
-stats4::BIC(leg3_1state) # BIC 2037.484
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC values, 
-# 2-state wins.
+# So, based on lowest AICc values, 2-state wins.
 
 ###
 
 # 4y legacy, 8 state
-leg4_8state <- readRDS(file = "data_working/marss_fits/fit_091523_8state_cond_4ylegacy_mBFGS.rds")
+leg4_7state <- readRDS(file = "data_working/marss_fits/fit_092523_7state_cond_4ylegacy_mBFGS.rds")
 
 # 4y legacy, 2 state
-leg4_2state <- readRDS(file = "data_working/marss_fits/fit_091523_2state_cond_4ylegacy_mBFGS.rds")
+leg4_2state <- readRDS(file = "data_working/marss_fits/fit_092523_2state_cond_4ylegacy_mBFGS.rds")
 
 # 4y legacy, 1 state
-leg4_1state <- readRDS(file = "data_working/marss_fits/fit_091523_1state_cond_4ylegacy_mBFGS.rds")
+leg4_1state <- readRDS(file = "data_working/marss_fits/fit_092523_1state_cond_4ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg4_8state, leg4_2state, leg4_1state)
+MARSSaic(leg4_7state) # AICc 1605.075
+MARSSaic(leg4_2state) # AICc 1566.696
+MARSSaic(leg4_1state) # AICc 1572.164
 
-#             dAIC df
-# leg4_1state  0.0 78
-# leg4_2state  7.4 62
-# leg4_8state 70.5 50
-
-broom::glance(leg4_8state) # AICc 1743.898
-stats4::BIC(leg4_8state) # BIC 1974.91
-
-broom::glance(leg4_2state) # AICc 1684.337 
-stats4::BIC(leg4_2state) # BIC 1968.786
-
-broom::glance(leg4_1state) # AICc 1682.939 
-stats4::BIC(leg4_1state) # BIC 2037.307
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC values, 
-# 2-state wins.
+# So, based on lowest AICc values, 2-state wins.
 
 ###
 
-# 5y legacy, 8 state
-leg5_8state <- readRDS(file = "data_working/marss_fits/fit_091523_8state_cond_5ylegacy_mBFGS.rds")
+# 5y legacy, 6 state
+leg5_6state <- readRDS(file = "data_working/marss_fits/fit_092523_6state_cond_5ylegacy_mBFGS.rds")
 
 # 5y legacy, 2 state
-leg5_2state <- readRDS(file = "data_working/marss_fits/fit_091523_2state_cond_5ylegacy_mBFGS.rds")
+leg5_2state <- readRDS(file = "data_working/marss_fits/fit_092523_2state_cond_5ylegacy_mBFGS.rds")
 
 # 5y legacy, 1 state
-leg5_1state <- readRDS(file = "data_working/marss_fits/fit_091523_1state_cond_5ylegacy_mBFGS.rds")
+leg5_1state <- readRDS(file = "data_working/marss_fits/fit_092523_1state_cond_5ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg5_8state, leg5_2state, leg5_1state)
+MARSSaic(leg5_6state) # AICc 1506.619
+MARSSaic(leg5_2state) # AICc 1483.119
+MARSSaic(leg5_1state) # AICc 1487.4
 
-#             dAIC df
-# leg5_1state  0.0 65
-# leg5_2state  9.4 53
-# leg5_8state 42.0 44
-
-broom::glance(leg5_8state) # AICc 1645.361
-stats4::BIC(leg5_8state) # BIC 1843.557
-
-broom::glance(leg5_2state) # AICc 1615.364
-stats4::BIC(leg5_2state) # BIC 1852.66
-
-broom::glance(leg5_1state) # AICc 1610.242
-stats4::BIC(leg5_1state) # BIC 1898.838
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest BIC values, 
-# 8-state wins.
+# So, based on lowest AICc values, 2-state wins.
 
 ###
 
 # So, it would seem the 2 "state" model structure wins out.
-
-stats4::BIC(noleg_2state) # BIC 1998.553
-stats4::BIC(leg1_2state) # BIC 1992.536
-stats4::BIC(leg2_2state) # BIC 1977.471
-stats4::BIC(leg3_2state) # BIC 1978.789
-stats4::BIC(leg4_2state) # BIC 1968.786
-stats4::BIC(leg5_2state) # BIC 1852.66
-
-# And when comparing all models, the 5 year window/lag is most parsimonious.
 
 #### Results Figure ####
 
@@ -3928,7 +3807,7 @@ noleg_CI = data.frame(
   "Upper" = noleg_est$par.upCI$U)
 noleg_CI$Parameter = rownames(noleg_CI)
 noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
-noleg_CI$Model = "0 year window"
+noleg_CI$Model = "immediate window"
 
 leg1y_CI = data.frame(
   "Est." = leg1y_est$par$U,
@@ -3977,29 +3856,29 @@ CIs = rbind(noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI, leg4y_CI,leg5y_CI)
 CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
 
 # Simplify parameter names
-CIs$Parm_simple = c(rep("Ppt",8),
-                    rep("Perc. burn",8),
-                    rep("Ppt x Perc. burn",8),
-                    
-                    rep("Ppt",8),
-                    rep("Perc. burn",8),
-                    rep("Ppt x Perc. burn",8),
-                    
-                    rep("Ppt",8),
-                    rep("Perc. burn",8),
-                    rep("Ppt x Perc. burn",8),
-                    
-                    rep("Ppt",8),
-                    rep("Perc. burn",8),
-                    rep("Ppt x Perc. burn",8),
-                    
-                    rep("Ppt",8),
-                    rep("Perc. burn",8),
-                    rep("Ppt x Perc. burn",8),
+CIs$Parm_simple = c(rep("Ppt",7),
+                    rep("Perc. burn",7),
+                    rep("Ppt x Perc. burn",7),
                     
                     rep("Ppt",7),
                     rep("Perc. burn",7),
-                    rep("Ppt x Perc. burn",7))
+                    rep("Ppt x Perc. burn",7),
+                    
+                    rep("Ppt",7),
+                    rep("Perc. burn",7),
+                    rep("Ppt x Perc. burn",7),
+                    
+                    rep("Ppt",7),
+                    rep("Perc. burn",7),
+                    rep("Ppt x Perc. burn",7),
+                    
+                    rep("Ppt",7),
+                    rep("Perc. burn",7),
+                    rep("Ppt x Perc. burn",7),
+                    
+                    rep("Ppt",6),
+                    rep("Perc. burn",6),
+                    rep("Ppt x Perc. burn",6))
 
 # Add column to designate those sites at which effects are significant.
 CIs <- CIs %>%
@@ -4016,7 +3895,13 @@ CIs <- CIs %>%
                             TRUE ~ "Valles Caldera")) %>%
   mutate(site = factor(Stream,
                        levels = c("AB00", "GV01", "HO00", "RS02",
-                                  "EFJ", "RED", "RSA", "RSAW")))
+                                  "EFJ", "RED", "RSA", "RSAW"))) %>%
+  mutate(model = factor(Model, levels = c("immediate window",
+                                          "1 year window",
+                                          "2 year window",
+                                          "3 year window",
+                                          "4 year window",
+                                          "5 year window")))
 
 my_palette <- c("black", "white", "black")
 
@@ -4047,10 +3932,10 @@ my_palette <- c("black", "white", "black")
          fill = "Significance") +
     theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
     guides(shape = guide_legend("Stream"), fill = "none") +
-    facet_grid(region~Model))
+    facet_grid(region~model))
 
 # Export plot.
-# ggsave(("MARSS_SpCon_091523.png"),
+# ggsave(("MARSS_SpCon_092523.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 24,
