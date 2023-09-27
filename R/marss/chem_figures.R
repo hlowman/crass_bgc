@@ -12,7 +12,6 @@ library(tidyverse)
 library(lubridate)
 library(MARSS)
 library(naniar)
-library(emoGG)
 library(calecopal)
 library(patchwork)
 
@@ -142,14 +141,11 @@ df_sb <- df_cond %>%
   filter(region == "SB")
 
 df_sb_summary <- df_sb %>%
-  summarize(mean_cond = mean(mean_cond_uScm, na.rm = TRUE),
-            sd_cond = sd(mean_cond_uScm, na.rm = TRUE),
-            min_cond = min(mean_cond_uScm, na.rm = TRUE),
-            max_cond = max(mean_cond_uScm, na.rm = TRUE),
-            mean_ppt = mean(cumulative_precip_mm, na.rm = TRUE),
+  summarize(mean_ppt = mean(cumulative_precip_mm, na.rm = TRUE),
             sd_ppt = sd(cumulative_precip_mm, na.rm = TRUE),
             min_ppt = min(cumulative_precip_mm, na.rm = TRUE),
-            max_ppt = max(cumulative_precip_mm, na.rm = TRUE))
+            max_ppt = max(cumulative_precip_mm, na.rm = TRUE),
+            med_ppt = median(cumulative_precip_mm, na.rm = TRUE))
 
 unique(df_sb$fire_perc_ws) #  0.0 45.5  8.8 17.1  9.3 68.4
 
@@ -157,29 +153,12 @@ df_vc <- df_cond %>%
   filter(region == "VC")
 
 df_vc_summary <- df_vc %>%
-  summarize(mean_cond = mean(mean_cond_uScm, na.rm = TRUE),
-            sd_cond = sd(mean_cond_uScm, na.rm = TRUE),
-            min_cond = min(mean_cond_uScm, na.rm = TRUE),
-            max_cond = max(mean_cond_uScm, na.rm = TRUE),
-            mean_ppt = mean(cumulative_precip_mm, na.rm = TRUE),
+  summarize(mean_ppt = mean(cumulative_precip_mm, na.rm = TRUE),
             sd_ppt = sd(cumulative_precip_mm, na.rm = TRUE),
             min_ppt = min(cumulative_precip_mm, na.rm = TRUE),
-            max_ppt = max(cumulative_precip_mm, na.rm = TRUE))
+            max_ppt = max(cumulative_precip_mm, na.rm = TRUE),
+            med_ppt = median(cumulative_precip_mm, na.rm = TRUE))
 
 unique(df_vc$fire_perc_ws) #  0.0 37.0 21.7 42.8  7.8 79.9 93.5
-
-df_summary <- df %>%
-  summarize(mean_NH4 = mean(vwm_nh4, na.rm = TRUE),
-            sd_NH4 = sd(vwm_nh4, na.rm = TRUE),
-            min_NH4 = min(vwm_nh4, na.rm = TRUE),
-            max_NH4 = max(vwm_nh4, na.rm = TRUE),
-            mean_NO3 = mean(vwm_no3, na.rm = TRUE),
-            sd_NO3 = sd(vwm_no3, na.rm = TRUE),
-            min_NO3 = min(vwm_no3, na.rm = TRUE),
-            max_NO3 = max(vwm_no3, na.rm = TRUE),
-            mean_PO4 = mean(vwm_po4, na.rm = TRUE),
-            sd_PO4 = sd(vwm_po4, na.rm = TRUE),
-            min_PO4 = min(vwm_po4, na.rm = TRUE),
-            max_PO4 = max(vwm_po4, na.rm = TRUE))
 
 # End of script.
