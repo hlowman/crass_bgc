@@ -4,7 +4,7 @@
 # Script started August 8, 2023 by Heili Lowman
 
 # This script will run 12 PO4 MARSS models.
-# Note, each model fit will remove all stored data, until you reach the AIC
+# Note, each model fit will remove all stored data, until you reach the IC
 # portion of this script.
 
 #### Setup ####
@@ -17,18 +17,20 @@ library(naniar)
 library(here)
 library(bbmle)
 library(broom)
+library(stats4)
 
 #### Summary Stats ####
 
 # load data with fire x ppt interactions and legacy effects
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # Create summary table.
 dat_summary <- dat %>%
   summarize(min_PO4 = min(vwm_po4, na.rm = TRUE),
             max_PO4 = max(vwm_po4, na.rm = TRUE),
             mean_PO4 = mean(vwm_po4, na.rm = TRUE),
-            sd_PO4 = sd(vwm_po4, na.rm = TRUE)) %>%
+            sd_PO4 = sd(vwm_po4, na.rm = TRUE),
+            med_PO4 = median(vwm_po4, na.rm = TRUE)) %>%
   ungroup()
 
 #### 0y legacy, 4 state ####
@@ -42,7 +44,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -128,13 +130,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -152,7 +154,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_4state_po4_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_po4_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -176,7 +178,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -189,12 +191,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit  99.8 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1130.87 
+MARSSaic(null.fit, output = c("AICc")) # 1219.442
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -203,20 +201,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yes!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # These look AHmazing!
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 0y legacy, 1 state ####
 
@@ -229,7 +224,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -323,13 +318,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -347,7 +342,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_1state_po4_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_po4_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -371,7 +366,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -384,12 +379,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 30
-# null.fit    57 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1050.342  
+MARSSaic(null.fit, output = c("AICc")) # 1099.397 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -398,20 +389,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes fall within CIs
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yes all zero
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes fall within CIs
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks fine
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # These look great still!
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 1y legacy, 4 state ####
 
@@ -424,7 +412,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -505,13 +493,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -529,7 +517,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_4state_po4_1ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_po4_1ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -553,7 +541,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -566,12 +554,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit 108.6 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1128.132  
+MARSSaic(null.fit, output = c("AICc")) # 1219.442
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -580,20 +564,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). All do.
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Look just fine.
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
-# Look fine.
+# Look great!
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 1y legacy, 1 state ####
 
@@ -606,7 +587,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -694,13 +675,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -718,7 +699,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_1state_po4_1ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_po4_1ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -742,7 +723,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -755,12 +736,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 30
-# null.fit  70.4 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1047.465   
+MARSSaic(null.fit, output = c("AICc")) # 1099.397 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -769,20 +746,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No; Yes
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). All zero.
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No; Yes
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looking fine.
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
-# Also look fine.
+# Also look good!
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 2y legacy, 4 state ####
 
@@ -795,7 +769,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -877,13 +851,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -901,7 +875,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_4state_po4_2ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_po4_2ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -925,7 +899,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -938,12 +912,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit  98.9 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1136.633  
+MARSSaic(null.fit, output = c("AICc")) # 1219.442
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -952,20 +922,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No and Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yes.
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No and Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look good.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 2y legacy, 1 state ####
 
@@ -978,7 +945,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -1068,13 +1035,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1092,7 +1059,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_1state_po4_2ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_po4_2ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1116,7 +1083,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1129,12 +1096,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 30
-# null.fit  66.9 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1047.971
+MARSSaic(null.fit, output = c("AICc")) # 1099.397 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1143,20 +1106,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No and Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yes.
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No and Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Look ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look fine.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 3y legacy, 4 state ####
 
@@ -1170,7 +1130,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -1252,13 +1212,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1276,7 +1236,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_4state_po4_3ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_po4_3ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1300,7 +1260,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1313,12 +1273,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit  96.4 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1139.1 
+MARSSaic(null.fit, output = c("AICc")) # 1219.442 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1327,20 +1283,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look good.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns. HO00 still a lag at 11?
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 3y legacy, 1 state ####
 
@@ -1354,7 +1307,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -1444,13 +1397,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1468,7 +1421,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_1state_po4_3ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_po4_3ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1492,7 +1445,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1505,12 +1458,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 30
-# null.fit  66.3 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1047.9   
+MARSSaic(null.fit, output = c("AICc")) # 1099.397 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1519,20 +1468,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look good.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
-# No discernible patterns. HO00 still a lag at 11?
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# No discernible patterns.
 
 #### 4y legacy, 4 state ####
 
@@ -1546,7 +1492,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -1634,7 +1580,7 @@ mod_list <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1652,7 +1598,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_4state_po4_4ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_po4_4ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1676,7 +1622,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1689,12 +1635,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit  94.9 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1140.334   
+MARSSaic(null.fit, output = c("AICc")) # 1219.442 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1703,20 +1645,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look fantastic, per usual.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 4y legacy, 1 state ####
 
@@ -1730,7 +1669,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -1820,13 +1759,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1844,7 +1783,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_1state_po4_4ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_po4_4ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1868,7 +1807,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1881,12 +1820,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 30
-# null.fit  64.8 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1048.699   
+MARSSaic(null.fit, output = c("AICc")) # 1099.397 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1895,20 +1830,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look fantastic, per usual.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 5y legacy, 4 state ####
 
@@ -1920,7 +1852,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -2002,13 +1934,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -2026,7 +1958,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_4state_po4_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_po4_5ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -2050,7 +1982,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -2063,12 +1995,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit 100.3 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1134.422   
+MARSSaic(null.fit, output = c("AICc")) # 1219.442 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2077,20 +2005,17 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look fantastic, per usual.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 5y legacy, 1 state ####
 
@@ -2102,7 +2027,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat = readRDS("data_working/marss_data_sb_080823.rds")
+dat = readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_po4 <- dat %>%
@@ -2192,13 +2117,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -2216,7 +2141,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_080823_1state_po4_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_po4_5ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -2240,7 +2165,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -2253,12 +2178,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 30
-# null.fit  64.7 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1048.394  
+MARSSaic(null.fit, output = c("AICc")) # 1099.397 
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2267,177 +2188,105 @@ autoplot.marssMLE(fit)
 
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): These should all equal zero because we have nothing in the observation model (it is "turned off"). Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? Do 95% of resids fall withing the CIs? No temporal patterns, Yes most fall within CIs.
 
-# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok!
+# Plot 5 (std.state.resids.xtT): These residuals can be used to detect outliers. Looks ok! RS02 a bit flat
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal?
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal?
 # These are qq plots that should look like a straight line. Datasets with many missing values will not be normal - this isn't a violation per se, but rather you must look at residuals with those associated with missing values removed. 
 # Look fantastic, per usual.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation?
 # What you don't want is a consistent lag, esp at 1, 6, or 12. Patterns are bad (esp. sinusoidal), random is good. Patterns suggest a seasonal effect is needed.
 # No discernible patterns.
 
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+#### AICc Comparisons ####
 
-#### IC Comparisons ####
-
-# Compare all model fits for each legacy window to see which state 
+# Compare all model fits for each legacy window to see which Q matrix 
 # configuration was best.
 
-# Presented here are three information criterion:
-# AIC - Akaike Information Criterion
+# Presented here are the information criterion:
 # AICc - Akaike Information Criterion adjusted for small sample sizes
-# BIC - Bayesian Information Criterion
-
-# Per the recommendations found in Brewer et al. 2016 (doi: 10.1111/2041-210X.12541) 
-# we will be using BIC for most parsimonious model selection, although
-# all three are displayed here for transparency/comparison.
 
 # no legacy, 4 state
-noleg_4state <- readRDS(file = "data_working/marss_fits/fit_080823_4state_po4_mBFGS.rds")
+noleg_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_po4_mBFGS.rds")
 
 # no legacy, 1 state
-noleg_1state <- readRDS(file = "data_working/marss_fits/fit_080823_1state_po4_mBFGS.rds")
+noleg_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_po4_mBFGS.rds")
 
-bbmle::AICtab(noleg_4state, noleg_1state)
+MARSSaic(noleg_4state, output = c("AICc")) # 1130.87 
+MARSSaic(noleg_1state, output = c("AICc")) # 1050.342 
 
-#              dAIC df
-# noleg_1state  0.0 30
-# noleg_4state 77.3 24
-
-broom::glance(noleg_4state) # AICc 1134.227
-stats4::BIC(noleg_4state) # BIC 1233.431
-
-broom::glance(noleg_1state) # AICc 1058.336  
-stats4::BIC(noleg_1state) # BIC 1181.552
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 1y legacy, 4 state
-leg1_4state <- readRDS(file = "data_working/marss_fits/fit_080823_4state_po4_1ylegacy_mBFGS.rds")
+leg1_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_po4_1ylegacy_mBFGS.rds")
 
 # 1y legacy, 1 state
-leg1_1state <- readRDS(file = "data_working/marss_fits/fit_080823_1state_po4_1ylegacy_mBFGS.rds")
+leg1_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_po4_1ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg1_4state, leg1_1state)
+MARSSaic(leg1_4state, output = c("AICc")) # 1128.132  
+MARSSaic(leg1_1state, output = c("AICc")) # 1047.465 
 
-#             dAIC df
-# leg1_1state  0   30
-# leg1_4state 82   24
-
-broom::glance(leg1_4state) # AICc 1125.449
-stats4::BIC(leg1_4state) # BIC 1224.653
-
-broom::glance(leg1_1state) # AICc 1044.882 
-stats4::BIC(leg1_1state) # BIC 1168.098
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 2y legacy, 4 state
-leg2_4state <- readRDS(file = "data_working/marss_fits/fit_080823_4state_po4_2ylegacy_mBFGS.rds")
+leg2_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_po4_2ylegacy_mBFGS.rds")
 
 # 2y legacy, 1 state
-leg2_1state <- readRDS(file = "data_working/marss_fits/fit_080823_1state_po4_2ylegacy_mBFGS.rds")
+leg2_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_po4_2ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg2_4state, leg2_1state)
+MARSSaic(leg2_4state, output = c("AICc")) # 1136.633  
+MARSSaic(leg2_1state, output = c("AICc")) # 1047.971 
 
-#             dAIC df
-# leg2_1state  0.0 30
-# leg2_4state 88.1 24
-
-broom::glance(leg2_4state) # AICc 1135.085
-stats4::BIC(leg2_4state) # BIC 1234.288
-
-broom::glance(leg2_1state) # AICc 1048.343
-stats4::BIC(leg2_1state) # BIC 1171.559
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 3y legacy, 4 state
-leg3_4state <- readRDS(file = "data_working/marss_fits/fit_080823_4state_po4_3ylegacy_mBFGS.rds")
+leg3_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_po4_3ylegacy_mBFGS.rds")
 
 # 3y legacy, 1 state
-leg3_1state <- readRDS(file = "data_working/marss_fits/fit_080823_1state_po4_3ylegacy_mBFGS.rds")
+leg3_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_po4_3ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg3_4state, leg3_1state)
+MARSSaic(leg3_4state, output = c("AICc")) # 1139.1  
+MARSSaic(leg3_1state, output = c("AICc")) # 1047.9 
 
-#             dAIC df
-# leg3_1state  0   30
-# leg3_4state 90   24
-
-broom::glance(leg3_4state) # AICc 1137.615
-stats4::BIC(leg3_4state) # BIC 1236.819
-
-broom::glance(leg3_1state) # AICc 1048.984
-stats4::BIC(leg3_1state) # BIC 1172.2
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 4y legacy, 4 state
-leg4_4state <- readRDS(file = "data_working/marss_fits/fit_080823_4state_po4_4ylegacy_mBFGS.rds")
+leg4_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_po4_4ylegacy_mBFGS.rds")
 
 # 4y legacy, 1 state
-leg4_1state <- readRDS(file = "data_working/marss_fits/fit_080823_1state_po4_4ylegacy_mBFGS.rds")
+leg4_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_po4_4ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg4_4state, leg4_1state)
+MARSSaic(leg4_4state, output = c("AICc")) # 1140.334 
+MARSSaic(leg4_1state, output = c("AICc")) # 1048.699 
 
-#             dAIC df
-# leg4_1state  0   30
-# leg4_4state 90   24
-
-broom::glance(leg4_4state) # AICc 1139.077
-stats4::BIC(leg4_4state) # BIC 1238.281
-
-broom::glance(leg4_1state) # AICc 1050.51
-stats4::BIC(leg4_1state) # BIC 1173.727
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # 5y legacy, 4 state
-leg5_4state <- readRDS(file = "data_working/marss_fits/fit_080823_4state_po4_5ylegacy_mBFGS.rds")
+leg5_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_po4_5ylegacy_mBFGS.rds")
 
 # 5y legacy, 1 state
-leg5_1state <- readRDS(file = "data_working/marss_fits/fit_080823_1state_po4_5ylegacy_mBFGS.rds")
+leg5_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_po4_5ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg5_4state, leg5_1state)
+MARSSaic(leg5_4state, output = c("AICc")) # 1134.422  
+MARSSaic(leg5_1state, output = c("AICc")) # 1048.394
 
-#             dAIC df
-# leg5_1state  0.0 30
-# leg5_4state 84.5 24
-
-broom::glance(leg5_4state) # AICc 1133.672 
-stats4::BIC(leg5_4state) # BIC 1232.875
-
-broom::glance(leg5_1state) # AICc 1050.579   
-stats4::BIC(leg5_1state) # BIC 1173.795
-
-# So, based on lowest AIC, AICc, and BIC values, 1-state wins.
+# So, based on lowest AICc value, 1-state wins.
 
 ###
 
 # So, it would seem the 1 "state" model structure wins out every time.
-
-stats4::BIC(noleg_1state) # BIC 1181.552
-stats4::BIC(leg1_1state) # BIC 1168.098
-stats4::BIC(leg2_1state) # BIC 1171.559
-stats4::BIC(leg3_1state) # BIC 1172.2
-stats4::BIC(leg4_1state) # BIC 1173.727
-stats4::BIC(leg5_1state) # BIC 1173.795
-
-# And when comparing all models, the 1 year window/lag is most parsimonious.
 
 #### Results Figure ####
 
@@ -2461,7 +2310,7 @@ noleg_CI = data.frame(
   "Upper" = noleg_est$par.upCI$U)
 noleg_CI$Parameter = rownames(noleg_CI)
 noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
-noleg_CI$Model = "0 year window"
+noleg_CI$Model = "immediate window"
 
 leg1y_CI = data.frame(
   "Est." = leg1y_est$par$U,
@@ -2543,7 +2392,13 @@ CIs <- CIs %>%
                                   Lower < 0 & 
                                   Upper < 0 ~ "sig_neg",
                                 TRUE ~ "not_sig"), 
-                      levels = c("sig_pos", "not_sig", "sig_neg")))
+                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+  mutate(model = factor(Model, levels = c("immediate window",
+                                           "1 year window",
+                                           "2 year window",
+                                           "3 year window",
+                                           "4 year window",
+                                           "5 year window")))
 
 my_palette <- c("black", "white", "black")
 
@@ -2573,10 +2428,10 @@ my_palette <- c("black", "white", "black")
          fill = "Significance") +
     theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
     guides(shape = guide_legend("Stream"), fill = "none") +
-    facet_grid(.~Model))
+    facet_grid(.~model))
 
 # Export plot.
-# ggsave(("MARSS_PO4_080923.png"),
+# ggsave(("MARSS_PO4_092123.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 12,

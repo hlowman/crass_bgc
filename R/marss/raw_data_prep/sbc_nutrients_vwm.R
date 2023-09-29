@@ -51,6 +51,22 @@ Qmc <- rockynook %>%
 # Load full chemistry dataset.
 chem_reg <- read_csv("data_raw/sbclter_stream_chemistry_allyears_registered_stations_20190628.csv")
 
+# What % of measurements are above L.O.D.?
+chem_4 <- chem_reg %>%
+  dplyr::filter(site_code %in% c("AB00", "GV01", "HO00", "RS02"))
+
+chem_nh4_lod <- chem_4 %>%
+  dplyr::filter(nh4_uM != -999.0) %>% # 7992
+  dplyr::filter(nh4_uM >= 0.3) # 3468 (43%)
+
+chem_no3_lod <- chem_4 %>%
+  dplyr::filter(no3_uM != -999.0) %>% # 8022
+  dplyr::filter(no3_uM >= 0.5) # 6957 (87%)
+
+chem_po4_lod <- chem_4 %>%
+  dplyr::filter(po4_uM != -999.0) %>% # 8011
+  dplyr::filter(po4_uM >= 0.3) # 6595 (82%)
+
 # Load Rosana's chemistry datasets.
 nh4_storm <- read_xlsx("data_raw/SB_VWM_Storm_Conc/NH4stormfluxes.xlsx")
 no3_storm <- read_xlsx("data_raw/SB_VWM_Storm_Conc/NO3stormfluxes.xlsx")
@@ -62,41 +78,41 @@ po4_storm <- read_xlsx("data_raw/SB_VWM_Storm_Conc/PO4stormfluxes.xlsx")
 # a.k.a. take daily averages.
 
 Qab_daily <- Qab %>%
-  mutate(timestamp_date = date(timestamp_local)) %>%
-  filter(discharge_lps != -999.0) %>%
-  group_by(timestamp_date) %>%
-  summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
+  dplyr::mutate(timestamp_date = date(timestamp_local)) %>%
+  dplyr::filter(discharge_lps != -999.0) %>%
+  dplyr::group_by(timestamp_date) %>%
+  dplyr::summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
                                   digits = 4)) %>%
   ungroup() %>%
   mutate(site_code = "AB00")
 
 Qgv_daily <- Qgv %>%
-  mutate(timestamp_date = date(timestamp_local)) %>%
-  filter(discharge_lps != -999.0) %>%
-  group_by(timestamp_date) %>%
-  summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
+  dplyr::mutate(timestamp_date = date(timestamp_local)) %>%
+  dplyr::filter(discharge_lps != -999.0) %>%
+  dplyr::group_by(timestamp_date) %>%
+  dplyr::summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
                                   digits = 4)) %>%
   ungroup() %>%
   mutate(site_code = "GV01")
 
 Qho_daily <- Qho %>%
-  mutate(timestamp_date = date(timestamp_local)) %>%
-  filter(discharge_lps != -999.0) %>%
-  group_by(timestamp_date) %>%
-  summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
+  dplyr::mutate(timestamp_date = date(timestamp_local)) %>%
+  dplyr::filter(discharge_lps != -999.0) %>%
+  dplyr::group_by(timestamp_date) %>%
+  dplyr::summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
                                   digits = 4)) %>%
   ungroup() %>%
   mutate(site_code = "HO00")
 
 Qmc_daily <- Qmc %>%
   mutate(site_code = "MC06") %>%
-  rename("timestamp_date" = "Date")
+  dplyr::rename("timestamp_date" = "Date")
 
 Qrs_daily <- Qrs %>%
-  mutate(timestamp_date = date(timestamp_local)) %>%
-  filter(discharge_lps != -999.0) %>%
-  group_by(timestamp_date) %>%
-  summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
+  dplyr::mutate(timestamp_date = date(timestamp_local)) %>%
+  dplyr::filter(discharge_lps != -999.0) %>%
+  dplyr::group_by(timestamp_date) %>%
+  dplyr::summarize(discharge_lps = round(mean(discharge_lps, na.rm = TRUE),
                                   digits = 4)) %>%
   ungroup() %>%
   mutate(site_code = "RS02")
@@ -153,7 +169,7 @@ nh4_site_storms <- nh4_storm_filtered %>%
 # ALSO I need to edit records below L.O.D.
 nh4_chem_filtered <- all_chem_filtered %>%
   select(site_code, timestamp_local, nh4_uM) %>%
-  mutate(nh4_uM_lod = ifelse(nh4_uM < 0.25, 0.25, nh4_uM)) %>% # NH4 LOD = 0.5uM
+  mutate(nh4_uM_lod = ifelse(nh4_uM < 0.3, 0.15, nh4_uM)) %>% # NH4 LOD = 0.3uM
   mutate(date = as_datetime(as.character(date(timestamp_local))))
 
 # Iterate over sites and then over intervals
@@ -336,7 +352,7 @@ no3_site_storms <- no3_storm_filtered %>%
 # ALSO I need to edit records below L.O.D.
 no3_chem_filtered <- all_chem_filtered %>%
   select(site_code, timestamp_local, no3_uM) %>% 
-  mutate(no3_uM_lod = ifelse(no3_uM < 0.25, 0.25, no3_uM)) %>% # NO3 LOD = 0.5uM
+  mutate(no3_uM_lod = ifelse(no3_uM < 0.5, 0.25, no3_uM)) %>% # NO3 LOD = 0.5uM
   mutate(date = as_datetime(as.character(date(timestamp_local))))
 
 # Iterate over sites and then over intervals
@@ -512,7 +528,7 @@ po4_site_storms <- po4_storm_filtered %>%
 # ALSO I need to filter for below L.O.D.
 po4_chem_filtered <- all_chem_filtered %>%
   select(site_code, timestamp_local, po4_uM) %>% 
-  mutate(po4_uM_lod = ifelse(po4_uM < 0.15, 0.15, po4_uM)) %>% # PO4 LOD = 0.3uM
+  mutate(po4_uM_lod = ifelse(po4_uM < 0.3, 0.15, po4_uM)) %>% # PO4 LOD = 0.3uM
   mutate(date = as_datetime(as.character(date(timestamp_local))))
 
 # Iterate over sites and then over intervals
@@ -670,8 +686,8 @@ po4_all <- po4_all %>%
 #### Export data ####
 
 # Export all three datasets for use in MARSS models.
-write_csv(nh4_all, "data_working/SB_NH4_VWM_011723.csv")
-write_csv(no3_all, "data_working/SB_NO3_VWM_011723.csv")
-write_csv(po4_all, "data_working/SB_PO4_VWM_011723.csv")
+write_csv(nh4_all, "data_working/SB_NH4_VWM_092123.csv")
+write_csv(no3_all, "data_working/SB_NO3_VWM_092123.csv")
+write_csv(po4_all, "data_working/SB_PO4_VWM_092123.csv")
 
 # End of script.

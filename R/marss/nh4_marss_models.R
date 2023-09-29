@@ -1,10 +1,11 @@
 # Nutrient MARSS models
 # with fire x ppt interactions and legacy effects
 # as well as 4 state structure for CA sites
+# and observation error
 # Script started August 9, 2023 by Heili Lowman
 
 # This script will run 12 NH4 MARSS models.
-# Note, each model fit will remove all stored data, until you reach the AIC
+# Note, each model fit will remove all stored data, until you reach the IC
 # portion of this script.
 
 #### Setup ####
@@ -17,18 +18,20 @@ library(naniar)
 library(here)
 library(bbmle)
 library(broom)
+library(stats4)
 
 #### Summary Stats ####
 
 # load data with fire x ppt interactions and legacy effects
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # Create summary table.
 dat_summary <- dat %>%
   summarize(min_NH4 = min(vwm_nh4, na.rm = TRUE),
             max_NH4 = max(vwm_nh4, na.rm = TRUE),
             mean_NH4 = mean(vwm_nh4, na.rm = TRUE),
-            sd_NH4 = sd(vwm_nh4, na.rm = TRUE)) %>%
+            sd_NH4 = sd(vwm_nh4, na.rm = TRUE),
+            med_NH4 = median(vwm_nh4, na.rm = TRUE)) %>%
   ungroup()
 
 #### 0y legacy, 4 state ####
@@ -41,7 +44,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 # selecting interaction term with no lag
@@ -123,13 +126,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -147,7 +150,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_4state_nh4_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_nh4_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -165,13 +168,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 states
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -184,12 +187,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0.0 24
-# null.fit 79.6 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1200.804 
+MARSSaic(null.fit, output = c("AICc")) # 1307.385
 
 ### Autoplot diagnoses ###
 autoplot.marssMLE(fit)
@@ -199,17 +198,15 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yess!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
 
-# Plot 5 (std.state.resids.xtT): Any outliers? Looks fine
+# Plot 5 (std.state.resids.xtT): Any outliers? Looks alright
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Eh, HO00
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Eh, HO00
 # doesn't look great, but not much we can do there.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 0y legacy, 1 state ####
 
@@ -221,7 +218,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 # selecting interaction term with no lag
@@ -311,13 +308,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -335,7 +332,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_1state_nh4_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_nh4_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -359,7 +356,7 @@ mod_list_null <- list(
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -372,12 +369,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0.0 30
-# null.fit 62.4 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1187.583 
+MARSSaic(null.fit, output = c("AICc")) # 1275.519
 
 ### Autoplot diagnoses ###
 autoplot.marssMLE(fit)
@@ -387,18 +380,16 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yess!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks fine
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Eh, HO00
-# still doesn't look great.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Eh, HO00
+# still doesn't look great but better!
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? Some
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? Some
 # weirdness happening at HO00.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 1y legacy, 4 state ####
 
@@ -410,7 +401,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -491,13 +482,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -515,7 +506,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_4state_nh4_1ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_nh4_1ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -533,13 +524,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -552,12 +543,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit  69.9 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1228.187 
+MARSSaic(null.fit, output = c("AICc")) # 1307.385
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -567,17 +554,15 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yes
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
 
-# Plot 5 (std.state.resids.xtT): Any outliers? Very few
+# Plot 5 (std.state.resids.xtT): Any outliers? HO00 weird again
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Eh.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Eh.
 # HO00 still wonky.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 1y legacy, 1 state ####
 
@@ -589,7 +574,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -678,13 +663,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -702,7 +687,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_1state_nh4_1ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_nh4_1ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -720,13 +705,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -739,12 +724,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0   30
-# null.fit  56   18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1221.692
+MARSSaic(null.fit, output = c("AICc")) # 1275.519
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -754,18 +735,15 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yes
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Very few
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Eh.
-# HO00 still wonky.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Yes.
 
 # Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? 
-# May be some issues at HO00 again.
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# For the most part.
 
 #### 2y legacy, 4 state ####
 
@@ -777,7 +755,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -859,13 +837,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -883,7 +861,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_4state_nh4_2ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_nh4_2ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -901,13 +879,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -920,12 +898,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 24
-# null.fit  53.8 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1265.013 
+MARSSaic(null.fit, output = c("AICc")) # 1307.385
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -935,16 +909,14 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
 
-# Plot 5 (std.state.resids.xtT): Any outliers? Looks ok!
+# Plot 5 (std.state.resids.xtT): Any outliers? Ho00 looks bad again.
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00 still bad.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00 still bad.
 
 # Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
 
 #### 2y legacy, 1 state ####
 
@@ -956,7 +928,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -1046,13 +1018,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1070,7 +1042,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_1state_nh4_2ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_nh4_2ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1088,13 +1060,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1107,12 +1079,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#           dAIC df
-# fit        0.0 30
-# null.fit  47.7 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1253.181 
+MARSSaic(null.fit, output = c("AICc")) # 1275.519
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1122,16 +1090,14 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00 still worst.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Looks ok!
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 3y legacy, 4 state ####
 
@@ -1143,7 +1109,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -1225,13 +1191,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1249,7 +1215,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_4state_nh4_3ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_nh4_3ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1267,13 +1233,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1286,12 +1252,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0   24
-# null.fit 65   12
-# RESULT: covar model is better than null, thank goodness
+MARSSaic(fit, output = c("AICc")) # 1264.527
+MARSSaic(null.fit, output = c("AICc")) # 1307.385
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1301,16 +1263,14 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): DDo resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes.
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks alright!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal? HO00 still worst.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal? HO00 still worst but fine.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No.
 
 #### 3y legacy, 1 state ####
 
@@ -1322,7 +1282,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -1412,13 +1372,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1436,7 +1396,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_1state_nh4_3ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_nh4_3ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1454,13 +1414,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1473,12 +1433,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0.0 30
-# null.fit 59.6 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1252.593 
+MARSSaic(null.fit, output = c("AICc")) # 1275.519
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1488,16 +1444,14 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks alright!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal? HO00 still worst.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal? Ok.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No.
 
 #### 4y legacy, 4 state ####
 
@@ -1509,7 +1463,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -1591,13 +1545,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # observation error turned on
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1615,7 +1569,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_4state_nh4_4ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_nh4_4ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1633,13 +1587,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error turned on 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1652,12 +1606,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0.0 24
-# null.fit 65.7 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1263.847 
+MARSSaic(null.fit, output = c("AICc")) # 1307.385
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1667,17 +1617,15 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes 
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes 
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00
 # still meh, all others fine.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 4y legacy, 1 state ####
 
@@ -1689,7 +1637,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -1779,13 +1727,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1803,7 +1751,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_1state_nh4_4ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_nh4_4ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -1821,13 +1769,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -1840,12 +1788,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0.0 30
-# null.fit 59.2 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1255.154 
+MARSSaic(null.fit, output = c("AICc")) # 1275.519
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -1855,17 +1799,15 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes 
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00
 # still meh, all others fine.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 5y legacy, 4 state ####
 
@@ -1877,7 +1819,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -1959,13 +1901,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -1983,7 +1925,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_4state_nh4_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_4state_nh4_5ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -2001,13 +1943,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = "diagonal and unequal", 
+  Q = "diagonal and unequal", # 4 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error 
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -2020,12 +1962,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0.0 24
-# null.fit 60.4 12
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1265.634
+MARSSaic(null.fit, output = c("AICc")) # 1307.385
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2035,17 +1973,14 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00
-# not great, others are fine.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Fine.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
-
-### Overall ###
-# None of these diagnoses look prohibitively bad.
+# Plot 8 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
 
 #### 5y legacy, 1 state ####
 
@@ -2057,7 +1992,7 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 is.infinite.data.frame <- function(x) do.call(cbind, lapply(x, is.infinite))
 
 # load data with fire x ppt interactions and legacy effects for selected sites
-dat <- readRDS("data_working/marss_data_sb_080823.rds")
+dat <- readRDS("data_working/marss_data_sb_092123.rds")
 
 # pivot wider for MARSS format
 dat_nh4 <- dat %>%
@@ -2147,13 +2082,13 @@ mod_list <- list(
   U = "zero",
   C = CC, 
   c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error 
   ### initial conditions ###
   #x0 = matrix(x0_fixed),
   V0="zero" ,
@@ -2171,7 +2106,7 @@ fit <- MARSS(y = dat_dep, model = mod_list,
 
 # export model fit
 saveRDS(fit, 
-        file = "data_working/marss_fits/fit_081023_1state_nh4_5ylegacy_mBFGS.rds")
+        file = "data_working/marss_fits/fit_092123_1state_nh4_5ylegacy_mBFGS.rds")
 
 ##### Diagnoses 
 
@@ -2189,13 +2124,13 @@ mod_list_null <- list(
   U = "zero",
   #C = CC, 
   #c = dat_cov,
-  Q = QQ, 
+  Q = QQ, # 1 state
   ### inputs to observation model ###
   Z='identity', 
   A="zero",
   D="zero" ,
   d="zero",
-  R = "zero", 
+  R = "diagonal and equal", # obs. error
   ### initial conditions ###
   #x0 = matrix("x0"),
   V0="zero" ,
@@ -2208,12 +2143,8 @@ null.kemfit <- MARSS(y = dat_dep, model = mod_list_null,
 null.fit <- MARSS(y = dat_dep, model = mod_list_null,
                   control = list(maxit = 5000), method = "BFGS", inits=null.kemfit$par)
 
-bbmle::AICtab(fit, null.fit)
-
-#          dAIC df
-# fit       0.0 30
-# null.fit 49.6 18
-# RESULT: covar model is better than null
+MARSSaic(fit, output = c("AICc")) # 1262.697 
+MARSSaic(null.fit, output = c("AICc")) # 1275.519
 
 ### **** Autoplot diagnoses: VIEW AND RESPOND TO Qs BELOW **** ###
 autoplot.marssMLE(fit)
@@ -2223,194 +2154,117 @@ autoplot.marssMLE(fit)
 # Plot 3 (model.resids.ytt1): Do resids have temporal patterns? No
 # Do 95% of resids fall withing the CIs? Yes most fall within CIs.
 
-# Plot 4 (std.model.resids.ytT): Do all equal zero because we have nothing in the observation model? Yep!
+# Plot 4 (std.model.resids.ytT): Do resids have temporal patterns? No
+# Do 95% of resids fall withing the CIs? Yes most fall within CIs.
 
 # Plot 5 (std.state.resids.xtT): Any outliers? Looks ok!
 
-# Plot 6 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? HO00
-# not great, others are fine.
+# Plots 6 & 7 (qqplot.std.model.resids.ytt1: Are resids normal (straight lines)? Ok.
 
-# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No
+# Plot 7 (acf.std.model.resids.ytt1): Do resids have temporal autocorrelation? No.
 
-### Overall ###
-# None of these diagnoses look prohibitively bad.
-
-#### IC Comparisons ####
+#### AICc Comparisons ####
 
 # Compare all model fits for each legacy window to see which state 
 # configuration was best.
 
-# Presented here are three information criterion:
-# AIC - Akaike Information Criterion
+# Presented here are the information criterion:
 # AICc - Akaike Information Criterion adjusted for small sample sizes
-# BIC - Bayesian Information Criterion
-
-# Per the recommendations found in Brewer et al. 2016 (doi: 10.1111/2041-210X.12541) 
-# we will be using BIC for most parsimonious model selection, although
-# all three are displayed here for transparency/comparison.
 
 # no legacy, 4 state
-noleg_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_mBFGS.rds")
+noleg_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_nh4_mBFGS.rds")
 
 # no legacy, 1 state
-noleg_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_mBFGS.rds")
+noleg_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_nh4_mBFGS.rds")
 
-bbmle::AICtab(noleg_4state, noleg_1state)
+MARSSaic(noleg_4state, output = c("AICc")) # 1200.804 
+MARSSaic(noleg_1state, output = c("AICc")) # 1187.583
 
-#              dAIC df
-# noleg_4state  0.0 24
-# noleg_1state  0.9 30
-
-broom::glance(noleg_4state) # AICc 1276.321 
-stats4::BIC(noleg_4state) # BIC 1375.263
-
-broom::glance(noleg_1state) # AICc 1278.631
-stats4::BIC(noleg_1state) # BIC 1401.511
-
-# So, based on lowest AIC, AICc, and BIC values, 4-state wins.
+# So, based on lowest AICc values, 1-state wins.
 
 ###
 
 # 1y legacy, 4 state
-leg1_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_1ylegacy_mBFGS.rds")
+leg1_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_nh4_1ylegacy_mBFGS.rds")
 
 # 1y legacy, 1 state
-leg1_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_1ylegacy_mBFGS.rds")
+leg1_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_nh4_1ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg1_4state, leg1_1state)
+MARSSaic(leg1_4state, output = c("AICc")) # 1228.187
+MARSSaic(leg1_1state, output = c("AICc")) # 1221.692
 
-#             dAIC df
-# leg1_1state  0.0 30
-# leg1_4state  2.7 24
-
-broom::glance(leg1_4state) # AICc 1286.261
-stats4::BIC(leg1_4state) # BIC 1385.203
-
-broom::glance(leg1_1state) # AICc 1285.03 
-stats4::BIC(leg1_1state) # BIC 1407.91
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest
-# BIC value, 4-state wins.
+# So, based on lowest AICc values, 1-state wins.
 
 ###
 
 # 2y legacy, 4 state
-leg2_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_2ylegacy_mBFGS.rds")
+leg2_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_nh4_2ylegacy_mBFGS.rds")
 
 # 2y legacy, 1 state
-leg2_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_2ylegacy_mBFGS.rds")
+leg2_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_nh4_2ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg2_4state, leg2_1state)
+MARSSaic(leg2_4state, output = c("AICc")) # 1265.013
+MARSSaic(leg2_1state, output = c("AICc")) # 1253.181
 
-#             dAIC df
-# leg2_1state  0.0 30
-# leg2_4state 10.2 24
-
-broom::glance(leg2_4state) # AICc 1302.065
-stats4::BIC(leg2_4state) # BIC 1401.007
-
-broom::glance(leg2_1state) # AICc 1293.296 
-stats4::BIC(leg2_1state) # BIC 1416.176
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest
-# BIC value, 4-state wins.
+# So, based on lowest AICc values, 1-state wins.
 
 ###
 
 # 3y legacy, 4 state
-leg3_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_3ylegacy_mBFGS.rds")
+leg3_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_nh4_3ylegacy_mBFGS.rds")
 
 # 3y legacy, 1 state
-leg3_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_3ylegacy_mBFGS.rds")
+leg3_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_nh4_3ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg3_4state, leg3_1state)
+MARSSaic(leg3_4state, output = c("AICc")) # 1264.527
+MARSSaic(leg3_1state, output = c("AICc")) # 1252.593
 
-#             dAIC df
-# leg3_1state  0.0 30
-# leg3_4state 10.9 24
-
-broom::glance(leg3_4state) # AICc 1290.902
-stats4::BIC(leg3_4state) # BIC 1389.844
-
-broom::glance(leg3_1state) # AICc 1281.426 
-stats4::BIC(leg3_1state) # BIC 1404.306
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest
-# BIC value, 4-state wins.
+# So, based on lowest AICc values, 1-state wins.
 
 ###
 
 # 4y legacy, 4 state
-leg4_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_4ylegacy_mBFGS.rds")
+leg4_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_nh4_4ylegacy_mBFGS.rds")
 
 # 4y legacy, 1 state
-leg4_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_4ylegacy_mBFGS.rds")
+leg4_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_nh4_4ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg4_4state, leg4_1state)
+MARSSaic(leg4_4state, output = c("AICc")) # 1263.847
+MARSSaic(leg4_1state, output = c("AICc")) # 1255.154
 
-#             dAIC df
-# leg4_1state  0.0 30
-# leg4_4state  9.9 24
-
-broom::glance(leg4_4state) # AICc 1290.209
-stats4::BIC(leg4_4state) # BIC 1389.151
-
-broom::glance(leg4_1state) # AICc 1281.761 
-stats4::BIC(leg4_1state) # BIC 1404.641
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest
-# BIC value, 4-state wins.
+# So, based on lowest AICc values, 1-state wins.
 
 ###
 
 # 5y legacy, 4 state
-leg5_4state <- readRDS(file = "data_working/marss_fits/fit_081023_4state_nh4_5ylegacy_mBFGS.rds")
+leg5_4state <- readRDS(file = "data_working/marss_fits/fit_092123_4state_nh4_5ylegacy_mBFGS.rds")
 
 # 5y legacy, 1 state
-leg5_1state <- readRDS(file = "data_working/marss_fits/fit_081023_1state_nh4_5ylegacy_mBFGS.rds")
+leg5_1state <- readRDS(file = "data_working/marss_fits/fit_092123_1state_nh4_5ylegacy_mBFGS.rds")
 
-bbmle::AICtab(leg5_4state, leg5_1state)
+MARSSaic(leg5_4state, output = c("AICc")) # 1265.634
+MARSSaic(leg5_1state, output = c("AICc")) # 1262.697
 
-#             dAIC df
-# leg5_1state  0.0 30
-# leg5_4state  5.5 24
-
-broom::glance(leg5_4state) # AICc 1295.486
-stats4::BIC(leg5_4state) # BIC 1394.428
-
-broom::glance(leg5_1state) # AICc 1291.442
-stats4::BIC(leg5_1state) # BIC 1414.322
-
-# So, based on lowest AIC and AICc values, 1-state wins, but based on lowest
-# BIC value, 4-state wins.
+# So, based on lowest AICc values, 1-state wins.
 
 ###
 
-# So, based on BIC values, it would seem the 4 "state" model structure wins out.
-
-stats4::BIC(noleg_4state) # BIC 1375.263
-stats4::BIC(leg1_4state) # BIC 1385.203
-stats4::BIC(leg2_4state) # BIC 1401.007
-stats4::BIC(leg3_4state) # BIC 1389.844
-stats4::BIC(leg4_4state) # BIC 1389.151
-stats4::BIC(leg5_4state) # BIC 1394.428
-
-# And when comparing all models, the 0 year window/lag is most parsimonious.
+# So, based on AICc values, it would seem the 1 "state" model structure wins out.
 
 #### Results Figure ####
 
 # For presentation consistency, I will only be creating figures with a
 # single state configuration, whichever yielded the most parsimonious
-# models. So, in this case, all NH4 figures will represent the "4 state"
+# models. So, in this case, all NH4 figures will represent the "1 state"
 # scenario.
 
 # Extract necessary confidence interval info
-noleg_est <- MARSSparamCIs(noleg_4state)
-leg1y_est <- MARSSparamCIs(leg1_4state)
-leg2y_est <- MARSSparamCIs(leg2_4state)
-leg3y_est <- MARSSparamCIs(leg3_4state)
-leg4y_est <- MARSSparamCIs(leg4_4state)
-leg5y_est <- MARSSparamCIs(leg5_4state)
+noleg_est <- MARSSparamCIs(noleg_1state)
+leg1y_est <- MARSSparamCIs(leg1_1state)
+leg2y_est <- MARSSparamCIs(leg2_1state)
+leg3y_est <- MARSSparamCIs(leg3_1state)
+leg4y_est <- MARSSparamCIs(leg4_1state)
+leg5y_est <- MARSSparamCIs(leg5_1state)
 
 # Format confidence intervals into dataframes
 noleg_CI = data.frame(
@@ -2419,7 +2273,7 @@ noleg_CI = data.frame(
   "Upper" = noleg_est$par.upCI$U)
 noleg_CI$Parameter = rownames(noleg_CI)
 noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
-noleg_CI$Model = "0 year window"
+noleg_CI$Model = "immediate window"
 
 leg1y_CI = data.frame(
   "Est." = leg1y_est$par$U,
@@ -2501,7 +2355,13 @@ CIs <- CIs %>%
                                   Lower < 0 & 
                                   Upper < 0 ~ "sig_neg",
                                 TRUE ~ "not_sig"), 
-                      levels = c("sig_pos", "not_sig", "sig_neg")))
+                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+  mutate(model = factor(Model, levels = c("immediate window",
+                                          "1 year window",
+                                          "2 year window",
+                                          "3 year window",
+                                          "4 year window",
+                                          "5 year window")))
 
 my_palette <- c("black", "white", "black")
 
@@ -2531,10 +2391,10 @@ my_palette <- c("black", "white", "black")
          fill = "Significance") +
     theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
     guides(shape = guide_legend("Stream"), fill = "none") +
-    facet_grid(.~Model))
+    facet_grid(.~model))
 
 # Export plot.
-# ggsave(("MARSS_NH4_4state_083023.png"),
+# ggsave(("MARSS_NH4_1state_092123.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 12,

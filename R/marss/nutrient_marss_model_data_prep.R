@@ -19,9 +19,9 @@ is.nan.data.frame <- function(x) do.call(cbind, lapply(x, is.nan))
 # Load data.
 # Stream Chemistry - all SBC sites
 # see script "sbc_chem_vwm.R" for the code used to tidy/generate this dataset
-chem_nh4 <- read_csv("data_working/SB_NH4_VWM_011723.csv")
-chem_no3 <- read_csv("data_working/SB_NO3_VWM_011723.csv")
-chem_po4 <- read_csv("data_working/SB_PO4_VWM_011723.csv")
+chem_nh4 <- read_csv("data_working/SB_NH4_VWM_092123.csv")
+chem_no3 <- read_csv("data_working/SB_NO3_VWM_092123.csv")
+chem_po4 <- read_csv("data_working/SB_PO4_VWM_092123.csv")
 
 # Precipitation - all SBC sites
 precip <- readRDS("data_working/SBprecip_edited_120121.rds")
@@ -523,6 +523,6 @@ ggplot(chem_reg %>%
 
 #### Export data ready for modeling ####
 
-saveRDS(dat8, "data_working/marss_data_sb_080823.rds")
+saveRDS(dat8, "data_working/marss_data_sb_092123.rds")
 
 # End of script.
