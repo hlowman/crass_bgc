@@ -3794,12 +3794,12 @@ MARSSaic(leg5_1state) # AICc 1487.4
 # represent the "2 state" scenario.
 
 # Extract necessary confidence interval info
-noleg_est <- MARSSparamCIs(noleg_2state)
-leg1y_est <- MARSSparamCIs(leg1_2state)
-leg2y_est <- MARSSparamCIs(leg2_2state)
-leg3y_est <- MARSSparamCIs(leg3_2state)
-leg4y_est <- MARSSparamCIs(leg4_2state)
-leg5y_est <- MARSSparamCIs(leg5_2state)
+noleg_est <- MARSSparamCIs(noleg_2state, alpha = 0.01)
+leg1y_est <- MARSSparamCIs(leg1_2state, alpha = 0.01)
+leg2y_est <- MARSSparamCIs(leg2_2state, alpha = 0.01)
+leg3y_est <- MARSSparamCIs(leg3_2state, alpha = 0.01)
+leg4y_est <- MARSSparamCIs(leg4_2state, alpha = 0.01)
+leg5y_est <- MARSSparamCIs(leg5_2state, alpha = 0.01)
 
 # Format confidence intervals into dataframes
 noleg_CI = data.frame(
@@ -3936,7 +3936,7 @@ my_palette <- c("black", "white", "black")
     facet_grid(region~model))
 
 # Export plot.
-# ggsave(("MARSS_SpCon_092523.png"),
+# ggsave(("MARSS_SpCon_101023.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 24,

@@ -2249,12 +2249,12 @@ MARSSaic(leg5_1state, output = c("AICc")) # 1228.927
 # scenario.
 
 # Extract necessary confidence interval info
-noleg_est <- MARSSparamCIs(noleg_1state)
-leg1y_est <- MARSSparamCIs(leg1_1state)
-leg2y_est <- MARSSparamCIs(leg2_1state)
-leg3y_est <- MARSSparamCIs(leg3_1state)
-leg4y_est <- MARSSparamCIs(leg4_1state)
-leg5y_est <- MARSSparamCIs(leg5_1state)
+noleg_est <- MARSSparamCIs(noleg_1state, alpha = 0.01)
+leg1y_est <- MARSSparamCIs(leg1_1state, alpha = 0.01)
+leg2y_est <- MARSSparamCIs(leg2_1state, alpha = 0.01)
+leg3y_est <- MARSSparamCIs(leg3_1state, alpha = 0.01)
+leg4y_est <- MARSSparamCIs(leg4_1state, alpha = 0.01)
+leg5y_est <- MARSSparamCIs(leg5_1state, alpha = 0.01)
 
 # Format confidence intervals into dataframes
 noleg_CI = data.frame(
@@ -2382,6 +2382,8 @@ my_palette <- c("black", "white", "black")
     theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
     guides(shape = guide_legend("Stream"), fill = "none") +
     facet_grid(.~model))
+
+saveRDS(NO3_fig, "figures/MARSS_NO3_1state_101023.rds")
 
 # Export plot.
 # ggsave(("MARSS_NO3_092123.png"),

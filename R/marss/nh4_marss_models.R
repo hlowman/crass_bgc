@@ -2259,12 +2259,12 @@ MARSSaic(leg5_1state, output = c("AICc")) # 1262.697
 # scenario.
 
 # Extract necessary confidence interval info
-noleg_est <- MARSSparamCIs(noleg_1state)
-leg1y_est <- MARSSparamCIs(leg1_1state)
-leg2y_est <- MARSSparamCIs(leg2_1state)
-leg3y_est <- MARSSparamCIs(leg3_1state)
-leg4y_est <- MARSSparamCIs(leg4_1state)
-leg5y_est <- MARSSparamCIs(leg5_1state)
+noleg_est <- MARSSparamCIs(noleg_1state, alpha = 0.01)
+leg1y_est <- MARSSparamCIs(leg1_1state, alpha = 0.01)
+leg2y_est <- MARSSparamCIs(leg2_1state, alpha = 0.01)
+leg3y_est <- MARSSparamCIs(leg3_1state, alpha = 0.01)
+leg4y_est <- MARSSparamCIs(leg4_1state, alpha = 0.01)
+leg5y_est <- MARSSparamCIs(leg5_1state, alpha = 0.01)
 
 # Format confidence intervals into dataframes
 noleg_CI = data.frame(
@@ -2393,11 +2393,23 @@ my_palette <- c("black", "white", "black")
     guides(shape = guide_legend("Stream"), fill = "none") +
     facet_grid(.~model))
 
+saveRDS(NH4_fig, "figures/MARSS_NH4_1state_101023.rds")
+
+# Read in all three plots.
+nh4 <- readRDS("figures/MARSS_NH4_1state_101023.rds")
+no3 <- readRDS("figures/MARSS_NO3_1state_101023.rds")
+po4 <- readRDS("figures/MARSS_PO4_1state_101023.rds")
+
+# Combine into a single figure.
+(nuts <- nh4 + no3 + po4 +
+    plot_layout(nrow = 3) +
+    plot_annotation(tag_levels = 'A'))
+
 # Export plot.
-# ggsave(("MARSS_NH4_1state_092123.png"),
+# ggsave(("MARSS_nutrients_101023.png"),
 #        path = "figures",
 #        width = 65,
-#        height = 12,
+#        height = 50,
 #        units = "cm"
 # )
 
