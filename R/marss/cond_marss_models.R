@@ -3794,67 +3794,141 @@ MARSSaic(leg5_1state) # AICc 1487.4
 # represent the "2 state" scenario.
 
 # Extract necessary confidence interval info
-noleg_est <- MARSSparamCIs(noleg_2state, alpha = 0.01)
-leg1y_est <- MARSSparamCIs(leg1_2state, alpha = 0.01)
-leg2y_est <- MARSSparamCIs(leg2_2state, alpha = 0.01)
-leg3y_est <- MARSSparamCIs(leg3_2state, alpha = 0.01)
-leg4y_est <- MARSSparamCIs(leg4_2state, alpha = 0.01)
-leg5y_est <- MARSSparamCIs(leg5_2state, alpha = 0.01)
+# First for 99th percentile credible intervals.
+noleg_est99 <- MARSSparamCIs(noleg_2state, alpha = 0.01)
+leg1y_est99 <- MARSSparamCIs(leg1_2state, alpha = 0.01)
+leg2y_est99 <- MARSSparamCIs(leg2_2state, alpha = 0.01)
+leg3y_est99 <- MARSSparamCIs(leg3_2state, alpha = 0.01)
+leg4y_est99 <- MARSSparamCIs(leg4_2state, alpha = 0.01)
+leg5y_est99 <- MARSSparamCIs(leg5_2state, alpha = 0.01)
 
 # Format confidence intervals into dataframes
-noleg_CI = data.frame(
-  "Est." = noleg_est$par$U,
-  "Lower" = noleg_est$par.lowCI$U,
-  "Upper" = noleg_est$par.upCI$U)
-noleg_CI$Parameter = rownames(noleg_CI)
-noleg_CI[,1:3] = round(noleg_CI[,1:3], 3)
-noleg_CI$Model = "immediate window"
+noleg_CI99 = data.frame(
+  "Est." = noleg_est99$par$U,
+  "Lower" = noleg_est99$par.lowCI$U,
+  "Upper" = noleg_est99$par.upCI$U)
+noleg_CI99$Parameter = rownames(noleg_CI99)
+noleg_CI99[,1:3] = round(noleg_CI99[,1:3], 3)
+noleg_CI99$Model = "immediate window"
 
-leg1y_CI = data.frame(
-  "Est." = leg1y_est$par$U,
-  "Lower" = leg1y_est$par.lowCI$U,
-  "Upper" = leg1y_est$par.upCI$U)
-leg1y_CI$Parameter = rownames(leg1y_CI)
-leg1y_CI[,1:3] = round(leg1y_CI[,1:3], 3)
-leg1y_CI$Model = "1 year window"
+leg1y_CI99 = data.frame(
+  "Est." = leg1y_est99$par$U,
+  "Lower" = leg1y_est99$par.lowCI$U,
+  "Upper" = leg1y_est99$par.upCI$U)
+leg1y_CI99$Parameter = rownames(leg1y_CI99)
+leg1y_CI99[,1:3] = round(leg1y_CI99[,1:3], 3)
+leg1y_CI99$Model = "1 year window"
 
-leg2y_CI = data.frame(
-  "Est." = leg2y_est$par$U,
-  "Lower" = leg2y_est$par.lowCI$U,
-  "Upper" = leg2y_est$par.upCI$U)
-leg2y_CI$Parameter = rownames(leg2y_CI)
-leg2y_CI[,1:3] = round(leg2y_CI[,1:3], 3)
-leg2y_CI$Model = "2 year window"
+leg2y_CI99 = data.frame(
+  "Est." = leg2y_est99$par$U,
+  "Lower" = leg2y_est99$par.lowCI$U,
+  "Upper" = leg2y_est99$par.upCI$U)
+leg2y_CI99$Parameter = rownames(leg2y_CI99)
+leg2y_CI99[,1:3] = round(leg2y_CI99[,1:3], 3)
+leg2y_CI99$Model = "2 year window"
 
-leg3y_CI = data.frame(
-  "Est." = leg3y_est$par$U,
-  "Lower" = leg3y_est$par.lowCI$U,
-  "Upper" = leg3y_est$par.upCI$U)
-leg3y_CI$Parameter = rownames(leg3y_CI)
-leg3y_CI[,1:3] = round(leg3y_CI[,1:3], 3)
-leg3y_CI$Model = "3 year window"
+leg3y_CI99 = data.frame(
+  "Est." = leg3y_est99$par$U,
+  "Lower" = leg3y_est99$par.lowCI$U,
+  "Upper" = leg3y_est99$par.upCI$U)
+leg3y_CI99$Parameter = rownames(leg3y_CI99)
+leg3y_CI99[,1:3] = round(leg3y_CI99[,1:3], 3)
+leg3y_CI99$Model = "3 year window"
 
-leg4y_CI = data.frame(
-  "Est." = leg4y_est$par$U,
-  "Lower" = leg4y_est$par.lowCI$U,
-  "Upper" = leg4y_est$par.upCI$U)
-leg4y_CI$Parameter = rownames(leg4y_CI)
-leg4y_CI[,1:3] = round(leg4y_CI[,1:3], 3)
-leg4y_CI$Model = "4 year window"
+leg4y_CI99 = data.frame(
+  "Est." = leg4y_est99$par$U,
+  "Lower" = leg4y_est99$par.lowCI$U,
+  "Upper" = leg4y_est99$par.upCI$U)
+leg4y_CI99$Parameter = rownames(leg4y_CI99)
+leg4y_CI99[,1:3] = round(leg4y_CI99[,1:3], 3)
+leg4y_CI99$Model = "4 year window"
 
-leg5y_CI = data.frame(
-  "Est." = leg5y_est$par$U,
-  "Lower" = leg5y_est$par.lowCI$U,
-  "Upper" = leg5y_est$par.upCI$U)
-leg5y_CI$Parameter = rownames(leg5y_CI)
-leg5y_CI[,1:3] = round(leg5y_CI[,1:3], 3)
-leg5y_CI$Model = "5 year window"
+leg5y_CI99 = data.frame(
+  "Est." = leg5y_est99$par$U,
+  "Lower" = leg5y_est99$par.lowCI$U,
+  "Upper" = leg5y_est99$par.upCI$U)
+leg5y_CI99$Parameter = rownames(leg5y_CI99)
+leg5y_CI99[,1:3] = round(leg5y_CI99[,1:3], 3)
+leg5y_CI99$Model = "5 year window"
+
+# First for 99th percentile credible intervals.
+noleg_est95 <- MARSSparamCIs(noleg_2state, alpha = 0.05)
+leg1y_est95 <- MARSSparamCIs(leg1_2state, alpha = 0.05)
+leg2y_est95 <- MARSSparamCIs(leg2_2state, alpha = 0.05)
+leg3y_est95 <- MARSSparamCIs(leg3_2state, alpha = 0.05)
+leg4y_est95 <- MARSSparamCIs(leg4_2state, alpha = 0.05)
+leg5y_est95 <- MARSSparamCIs(leg5_2state, alpha = 0.05)
+
+# Format confidence intervals into dataframes
+noleg_CI95 = data.frame(
+  "Est." = noleg_est95$par$U,
+  "Lower" = noleg_est95$par.lowCI$U,
+  "Upper" = noleg_est95$par.upCI$U)
+noleg_CI95$Parameter = rownames(noleg_CI95)
+noleg_CI95[,1:3] = round(noleg_CI95[,1:3], 3)
+noleg_CI95$Model = "immediate window"
+
+leg1y_CI95 = data.frame(
+  "Est." = leg1y_est95$par$U,
+  "Lower" = leg1y_est95$par.lowCI$U,
+  "Upper" = leg1y_est95$par.upCI$U)
+leg1y_CI95$Parameter = rownames(leg1y_CI95)
+leg1y_CI95[,1:3] = round(leg1y_CI95[,1:3], 3)
+leg1y_CI95$Model = "1 year window"
+
+leg2y_CI95 = data.frame(
+  "Est." = leg2y_est95$par$U,
+  "Lower" = leg2y_est95$par.lowCI$U,
+  "Upper" = leg2y_est95$par.upCI$U)
+leg2y_CI95$Parameter = rownames(leg2y_CI95)
+leg2y_CI95[,1:3] = round(leg2y_CI95[,1:3], 3)
+leg2y_CI95$Model = "2 year window"
+
+leg3y_CI95 = data.frame(
+  "Est." = leg3y_est95$par$U,
+  "Lower" = leg3y_est95$par.lowCI$U,
+  "Upper" = leg3y_est95$par.upCI$U)
+leg3y_CI95$Parameter = rownames(leg3y_CI95)
+leg3y_CI95[,1:3] = round(leg3y_CI95[,1:3], 3)
+leg3y_CI95$Model = "3 year window"
+
+leg4y_CI95 = data.frame(
+  "Est." = leg4y_est95$par$U,
+  "Lower" = leg4y_est95$par.lowCI$U,
+  "Upper" = leg4y_est95$par.upCI$U)
+leg4y_CI95$Parameter = rownames(leg4y_CI95)
+leg4y_CI95[,1:3] = round(leg4y_CI95[,1:3], 3)
+leg4y_CI95$Model = "4 year window"
+
+leg5y_CI95 = data.frame(
+  "Est." = leg5y_est95$par$U,
+  "Lower" = leg5y_est95$par.lowCI$U,
+  "Upper" = leg5y_est95$par.upCI$U)
+leg5y_CI95$Parameter = rownames(leg5y_CI95)
+leg5y_CI95[,1:3] = round(leg5y_CI95[,1:3], 3)
+leg5y_CI95$Model = "5 year window"
 
 # Bind all together
-CIs = rbind(noleg_CI, leg1y_CI, leg2y_CI, leg3y_CI, leg4y_CI,leg5y_CI)
+CIs99 = rbind(noleg_CI99, leg1y_CI99, leg2y_CI99, 
+              leg3y_CI99, leg4y_CI99,leg5y_CI99)
+
+CIs95 = rbind(noleg_CI95, leg1y_CI95, leg2y_CI95, 
+              leg3y_CI95, leg4y_CI95,leg5y_CI95)
 
 # Add column for site names
-CIs$Stream = gsub("_","",str_sub(CIs$Parameter, start= -4))
+CIs99$Stream = gsub("_","",str_sub(CIs99$Parameter, start= -4))
+CIs95$Stream = gsub("_","",str_sub(CIs95$Parameter, start= -4))
+
+# Join both sets together
+CIs99 <- CIs99 %>%
+  rename(Lower99 = "Lower",
+         Upper99 = "Upper")
+
+CIs95 <- CIs95 %>%
+  rename(Lower95 = "Lower",
+         Upper95 = "Upper")
+
+CIs <- full_join(CIs99, CIs95)
 
 # Simplify parameter names
 CIs$Parm_simple = c(rep("Ppt",7),
@@ -3883,20 +3957,30 @@ CIs$Parm_simple = c(rep("Ppt",7),
 
 # Add column to designate those sites at which effects are significant.
 CIs <- CIs %>%
+  # make sure to go from most specific to least here, because the first
+  # assigned grouping will stick, making categorical assignment here challenging
   mutate(sig = factor(case_when(`Est.` > 0 & 
-                                  Lower > 0 & 
-                                  Upper > 0 ~ "sig_pos",
+                                  Lower95 > 0 & Lower99 > 0 & 
+                                  Upper95 > 0 & Upper99 > 0 ~ "sig_pos",
                                 `Est.` < 0 & 
-                                  Lower < 0 & 
-                                  Upper < 0 ~ "sig_neg",
+                                  Lower95 < 0 & Lower99 < 0 &
+                                  Upper95 < 0 & Upper99 < 0 ~ "sig_neg",
+                                `Est.` > 0 & 
+                                  Lower95 > 0 & 
+                                  Upper95 > 0  ~ "weak_sig_pos",
+                                `Est.` < 0 & 
+                                  Lower95 < 0 &
+                                  Upper95 < 0 ~ "weak_sig_neg",
                                 TRUE ~ "not_sig"), 
-                      levels = c("sig_pos", "not_sig", "sig_neg"))) %>%
+                      levels = c("weak_sig_pos", "sig_pos", 
+                                 "not_sig", 
+                                 "sig_neg", "weak_sig_neg"))) %>%
   mutate(region = case_when(Stream %in% c("AB00", "GV01", 
                                           "HO00", "RS02") ~ "Santa Barbara",
                             TRUE ~ "Valles Caldera")) %>%
   mutate(site = factor(Stream,
                        levels = c("AB00", "GV01", "HO00", "RS02",
-                                  "EFJ", "RED", "RSA", "RSAW"))) %>%
+                                  "EFJ", "RED", "RSAW"))) %>%
   mutate(model = factor(Model, levels = c("immediate window",
                                           "1 year window",
                                           "2 year window",
@@ -3904,21 +3988,20 @@ CIs <- CIs %>%
                                           "4 year window",
                                           "5 year window")))
 
-my_palette <- c("black", "white", "black")
-
 # Plot results
 (SpCond_fig <- ggplot(CIs, aes(x = factor(Parm_simple, 
                                        levels = c("Ppt x Perc. burn",
                                                   "Perc. burn",
                                                   "Ppt")),
                             y = Est., fill = sig, shape = site)) + 
-    geom_errorbar(aes(ymin = Lower, ymax = Upper),
+    # coloring by both percentiles but using 99th perc. error bars to be most conservative
+    geom_errorbar(aes(ymin = Lower99, ymax = Upper99),
                   position=position_dodge(width = 0.5), width = 0) +
-    geom_point(position=position_dodge(width = 0.5), 
+    geom_point(position = position_dodge(width = 0.5), 
                alpha = 0.8, size = 8) + 
     scale_shape_manual(values = c(21, 22, 23, 24,
-                                  21, 22, 23, 24)) +
-    scale_fill_manual(values = my_palette) +
+                                  21, 22, 23)) +
+    scale_fill_manual(values = c("gray50", "black", "white", "black", "gray50")) +
     theme_bw()+
     theme(axis.title = element_text(size = 24),
           axis.text = element_text(size = 20),
@@ -3936,7 +4019,7 @@ my_palette <- c("black", "white", "black")
     facet_grid(region~model))
 
 # Export plot.
-# ggsave(("MARSS_SpCon_101023.png"),
+# ggsave(("MARSS_SpCon_103023.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 24,
