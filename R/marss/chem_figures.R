@@ -161,4 +161,55 @@ df_vc_summary <- df_vc %>%
 
 unique(df_vc$fire_perc_ws) #  0.0 37.0 21.7 42.8  7.8 79.9 93.5
 
+#### Precip ####
+
+# Summary plots re: precipitation in both regions to quantitatively
+# describe hydroclimate.
+
+# First to examine seasonal variability
+precip_monthly <- df_cond %>%
+  group_by(region, month) %>%
+  # calculate average monthly cumulative precipitation across all sites
+  summarize(avg_cum_monthly = mean(cumulative_precip_mm)) %>%
+  mutate(month = factor(month)) %>%
+  ungroup()
+
+ggplot(precip_monthly, aes(month, avg_cum_monthly)) +
+  geom_col(aes(fill = region)) +
+  theme_bw() +
+  facet_grid(region~.)
+
+precip_SBseason <- df_cond %>%
+  filter(region == "SB") %>%
+  mutate(season = case_when(month %in% c(1,2,3,12) ~ "winter",
+                            month %in% c(6,7,8,9) ~ "summer",
+                            month %in% c(4,5) ~ "spring",
+                            month %in% c(10,11) ~ "fall")) %>%
+  group_by(season) %>%
+  summarize(avg_cum_monthly = mean(cumulative_precip_mm)) %>%
+  ungroup()
+
+precip_VCseason <- df_cond %>%
+  filter(region == "VC") %>%
+  mutate(season = case_when(month %in% c(1,12) ~ "winter",
+                            month %in% c(7,8,9) ~ "summer",
+                            month %in% c(2,3,4,5,6) ~ "spring",
+                            month %in% c(10,11) ~ "fall")) %>%
+  group_by(season) %>%
+  summarize(avg_cum_monthly = mean(cumulative_precip_mm)) %>%
+  ungroup()
+
+# Next to examine annual variability
+precip_annual <- df_cond %>%
+  mutate(wyear = case_when(month %in% c(10, 11, 12) ~ year+1,
+                           TRUE ~ year)) %>%
+  group_by(region, wyear, site) %>%
+  summarize(cumulative_precip_annual = sum(cumulative_precip_mm)) %>%
+  ungroup()
+
+ggplot(precip_annual, aes(region, cumulative_precip_annual)) +
+  geom_jitter(aes(color = region)) +
+  geom_boxplot(aes(fill = region), alpha = 0.5) +
+  theme_bw()
+
 # End of script.
