@@ -43,20 +43,74 @@ df <- df %>%
   scale_y_log10() +
   scale_alpha_manual(values = c(1, 0.3), guide = "none") +
   labs(x = "Date", 
-       y = "Volume-Weighted Mean Monthly Ammonium Concentration",
+       y = "Mean Monthly Ammonium Concentration (μM)",
        color = "Site") +
   facet_grid(site_factor~.) +
   theme_bw() +
-  theme(axis.title = element_text(size = 24),
-        axis.text = element_text(size = 20),
-        strip.text.x = element_text(size = 24),
-        strip.text.y = element_text(size = 24),
+  theme(axis.title = element_text(size = 30),
+        axis.text = element_text(size = 24),
+        strip.text.x = element_text(size = 30),
+        strip.text.y = element_text(size = 30),
         strip.background = element_rect(colour="white", fill="white")))
 
 # Export plot.
-# ggsave(("TS_SB_NH4_092123.png"),
+# ggsave(("TS_SB_NH4_103123.png"),
 #        path = "figures",
-#        width = 60,
+#        width = 40,
+#        height = 30,
+#        units = "cm"
+# )
+
+#### NO3 ####
+
+# Create figure.
+(no3_fig <- ggplot(df, aes(x = date, y = vwm_no3, alpha = post_fire)) +
+   geom_point(size = 5, color = "#6592D6") +
+   geom_line(color = "#6592D6") +
+   scale_y_log10() +
+   scale_alpha_manual(values = c(1, 0.3), guide = "none") +
+   labs(x = "Date", 
+        y = "Mean Monthly Nitrate Concentration (μM)",
+        color = "Site") +
+   facet_grid(site_factor~.) +
+   theme_bw() +
+   theme(axis.title = element_text(size = 30),
+         axis.text = element_text(size = 24),
+         strip.text.x = element_text(size = 30),
+         strip.text.y = element_text(size = 30),
+         strip.background = element_rect(colour="white", fill="white")))
+
+# Export plot.
+# ggsave(("TS_SB_NO3_103123.png"),
+#        path = "figures",
+#        width = 40,
+#        height = 30,
+#        units = "cm"
+# )
+
+#### PO4 ####
+
+# Create figure.
+(po4_fig <- ggplot(df, aes(x = date, y = vwm_po4, alpha = post_fire)) +
+   geom_point(size = 5, color = "#6592D6") +
+   geom_line(color = "#6592D6") +
+   scale_y_log10() +
+   scale_alpha_manual(values = c(1, 0.3), guide = "none") +
+   labs(x = "Date", 
+        y = "Mean Monthly Phosphate Concentration (μM)",
+        color = "Site") +
+   facet_grid(site_factor~.) +
+   theme_bw() +
+   theme(axis.title = element_text(size = 30),
+         axis.text = element_text(size = 24),
+         strip.text.x = element_text(size = 30),
+         strip.text.y = element_text(size = 30),
+         strip.background = element_rect(colour="white", fill="white")))
+
+# Export plot.
+# ggsave(("TS_SB_PO4_103123.png"),
+#        path = "figures",
+#        width = 40,
 #        height = 30,
 #        units = "cm"
 # )
@@ -91,14 +145,16 @@ df_cond <- df_cond %>%
     geom_point(size = 5, color = "#92A587") +
     geom_line(color = "#92A587") +
     scale_alpha_manual(values = c(1, 0.3), guide = "none") +
-    labs(x = "Date") +
+    labs(x = "Date", title = "Valles Caldera") +
     facet_grid(site_factor~.) +
     theme_bw() +
     theme(axis.title.y = element_blank(),
-          axis.title = element_text(size = 24),
-          axis.text = element_text(size = 20),
-          strip.text.x = element_text(size = 24),
-          strip.text.y = element_text(size = 24),
+          axis.title = element_text(size = 30),
+          axis.text = element_text(size = 24),
+          strip.text.x = element_text(size = 30),
+          strip.text.y = element_text(size = 30),
+          plot.title = element_text(hjust = 0.5),
+          title = element_text(size = 30),
           strip.background = element_rect(colour="white", fill="white")))
 
 (cond_fig_sb <- ggplot(df_cond %>%
@@ -108,13 +164,17 @@ df_cond <- df_cond %>%
     geom_line(color = "#6592D6") +
     scale_alpha_manual(values = c(1, 0.3), guide = "none") +
     labs(x = "Date", 
-         y = "Mean Monthly Specific Conductivity") +
+         title = "Santa Barbara") +
+    ylab(expression(paste("Mean Monthly Specific Conductance (μS ", 
+                          cm^{"-1"},")"))) +
     facet_grid(site_factor~.) +
     theme_bw() +
-    theme(axis.title = element_text(size = 24),
-          axis.text = element_text(size = 20),
-          strip.text.x = element_text(size = 24),
-          strip.text.y = element_text(size = 24),
+    theme(axis.title = element_text(size = 30),
+          axis.text = element_text(size = 24),
+          strip.text.x = element_text(size = 30),
+          strip.text.y = element_text(size = 30),
+          plot.title = element_text(hjust = 0.5),
+          title = element_text(size = 30),
           strip.background = element_rect(colour="white", fill="white")))
 
 design <- "AAABBB
@@ -127,7 +187,7 @@ design <- "AAABBB
     plot_layout(design = design))
 
 # Export plot.
-# ggsave(("TS_SB_VC_SpCond_092623.png"),
+# ggsave(("TS_SB_VC_SpCond_103123.png"),
 #        path = "figures",
 #        width = 60,
 #        height = 30,
