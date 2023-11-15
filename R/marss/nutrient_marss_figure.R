@@ -107,7 +107,7 @@ noleg_nh499 = data.frame(
   "Upper99" = noleg_nh499$par.upCI$U)
 noleg_nh499$Parameter = rownames(noleg_nh499)
 noleg_nh499[,1:3] = round(noleg_nh499[,1:3], 3)
-noleg_nh499$Model = "immediate window"
+noleg_nh499$Model = "immediate duration"
 noleg_nh499$Nutrient = "NH4"
 
 noleg_nh495 = data.frame(
@@ -116,7 +116,7 @@ noleg_nh495 = data.frame(
   "Upper95" = noleg_nh495$par.upCI$U)
 noleg_nh495$Parameter = rownames(noleg_nh495)
 noleg_nh495[,1:3] = round(noleg_nh495[,1:3], 3)
-noleg_nh495$Model = "immediate window"
+noleg_nh495$Model = "immediate duration"
 noleg_nh495$Nutrient = "NH4"
 
 noleg_no399 = data.frame(
@@ -125,7 +125,7 @@ noleg_no399 = data.frame(
   "Upper99" = noleg_no399$par.upCI$U)
 noleg_no399$Parameter = rownames(noleg_no399)
 noleg_no399[,1:3] = round(noleg_no399[,1:3], 3)
-noleg_no399$Model = "immediate window"
+noleg_no399$Model = "immediate duration"
 noleg_no399$Nutrient = "NO3"
 
 noleg_no395 = data.frame(
@@ -134,7 +134,7 @@ noleg_no395 = data.frame(
   "Upper95" = noleg_no395$par.upCI$U)
 noleg_no395$Parameter = rownames(noleg_no395)
 noleg_no395[,1:3] = round(noleg_no395[,1:3], 3)
-noleg_no395$Model = "immediate window"
+noleg_no395$Model = "immediate duration"
 noleg_no395$Nutrient = "NO3"
 
 noleg_po499 = data.frame(
@@ -143,7 +143,7 @@ noleg_po499 = data.frame(
   "Upper99" = noleg_po499$par.upCI$U)
 noleg_po499$Parameter = rownames(noleg_po499)
 noleg_po499[,1:3] = round(noleg_po499[,1:3], 3)
-noleg_po499$Model = "immediate window"
+noleg_po499$Model = "immediate duration"
 noleg_po499$Nutrient = "PO4"
 
 noleg_po495 = data.frame(
@@ -152,7 +152,7 @@ noleg_po495 = data.frame(
   "Upper95" = noleg_po495$par.upCI$U)
 noleg_po495$Parameter = rownames(noleg_po495)
 noleg_po495[,1:3] = round(noleg_po495[,1:3], 3)
-noleg_po495$Model = "immediate window"
+noleg_po495$Model = "immediate duration"
 noleg_po495$Nutrient = "PO4"
 
 leg1y_nh499 = data.frame(
@@ -161,7 +161,7 @@ leg1y_nh499 = data.frame(
   "Upper99" = leg1y_nh499$par.upCI$U)
 leg1y_nh499$Parameter = rownames(leg1y_nh499)
 leg1y_nh499[,1:3] = round(leg1y_nh499[,1:3], 3)
-leg1y_nh499$Model = "1 year window"
+leg1y_nh499$Model = "1 year duration"
 leg1y_nh499$Nutrient = "NH4"
 
 leg1y_nh495 = data.frame(
@@ -170,7 +170,7 @@ leg1y_nh495 = data.frame(
   "Upper95" = leg1y_nh495$par.upCI$U)
 leg1y_nh495$Parameter = rownames(leg1y_nh495)
 leg1y_nh495[,1:3] = round(leg1y_nh495[,1:3], 3)
-leg1y_nh495$Model = "1 year window"
+leg1y_nh495$Model = "1 year duration"
 leg1y_nh495$Nutrient = "NH4"
 
 leg1y_no399 = data.frame(
@@ -179,7 +179,7 @@ leg1y_no399 = data.frame(
   "Upper99" = leg1y_no399$par.upCI$U)
 leg1y_no399$Parameter = rownames(leg1y_no399)
 leg1y_no399[,1:3] = round(leg1y_no399[,1:3], 3)
-leg1y_no399$Model = "1 year window"
+leg1y_no399$Model = "1 year duration"
 leg1y_no399$Nutrient = "NO3"
 
 leg1y_no395 = data.frame(
@@ -188,7 +188,7 @@ leg1y_no395 = data.frame(
   "Upper95" = leg1y_no395$par.upCI$U)
 leg1y_no395$Parameter = rownames(leg1y_no395)
 leg1y_no395[,1:3] = round(leg1y_no395[,1:3], 3)
-leg1y_no395$Model = "1 year window"
+leg1y_no395$Model = "1 year duration"
 leg1y_no395$Nutrient = "NO3"
 
 leg1y_po499 = data.frame(
@@ -197,7 +197,7 @@ leg1y_po499 = data.frame(
   "Upper99" = leg1y_po499$par.upCI$U)
 leg1y_po499$Parameter = rownames(leg1y_po499)
 leg1y_po499[,1:3] = round(leg1y_po499[,1:3], 3)
-leg1y_po499$Model = "1 year window"
+leg1y_po499$Model = "1 year duration"
 leg1y_po499$Nutrient = "PO4"
 
 leg1y_po495 = data.frame(
@@ -206,7 +206,7 @@ leg1y_po495 = data.frame(
   "Upper95" = leg1y_po495$par.upCI$U)
 leg1y_po495$Parameter = rownames(leg1y_po495)
 leg1y_po495[,1:3] = round(leg1y_po495[,1:3], 3)
-leg1y_po495$Model = "1 year window"
+leg1y_po495$Model = "1 year duration"
 leg1y_po495$Nutrient = "PO4"
 
 leg2y_nh499 = data.frame(
@@ -215,7 +215,7 @@ leg2y_nh499 = data.frame(
   "Upper99" = leg2y_nh499$par.upCI$U)
 leg2y_nh499$Parameter = rownames(leg2y_nh499)
 leg2y_nh499[,1:3] = round(leg2y_nh499[,1:3], 3)
-leg2y_nh499$Model = "2 year window"
+leg2y_nh499$Model = "2 year duration"
 leg2y_nh499$Nutrient = "NH4"
 
 leg2y_nh495 = data.frame(
@@ -224,7 +224,7 @@ leg2y_nh495 = data.frame(
   "Upper95" = leg2y_nh495$par.upCI$U)
 leg2y_nh495$Parameter = rownames(leg2y_nh495)
 leg2y_nh495[,1:3] = round(leg2y_nh495[,1:3], 3)
-leg2y_nh495$Model = "2 year window"
+leg2y_nh495$Model = "2 year duration"
 leg2y_nh495$Nutrient = "NH4"
 
 leg2y_no399 = data.frame(
@@ -233,7 +233,7 @@ leg2y_no399 = data.frame(
   "Upper99" = leg2y_no399$par.upCI$U)
 leg2y_no399$Parameter = rownames(leg2y_no399)
 leg2y_no399[,1:3] = round(leg2y_no399[,1:3], 3)
-leg2y_no399$Model = "2 year window"
+leg2y_no399$Model = "2 year duration"
 leg2y_no399$Nutrient = "NO3"
 
 leg2y_no395 = data.frame(
@@ -242,7 +242,7 @@ leg2y_no395 = data.frame(
   "Upper95" = leg2y_no395$par.upCI$U)
 leg2y_no395$Parameter = rownames(leg2y_no395)
 leg2y_no395[,1:3] = round(leg2y_no395[,1:3], 3)
-leg2y_no395$Model = "2 year window"
+leg2y_no395$Model = "2 year duration"
 leg2y_no395$Nutrient = "NO3"
 
 leg2y_po499 = data.frame(
@@ -251,7 +251,7 @@ leg2y_po499 = data.frame(
   "Upper99" = leg2y_po499$par.upCI$U)
 leg2y_po499$Parameter = rownames(leg2y_po499)
 leg2y_po499[,1:3] = round(leg2y_po499[,1:3], 3)
-leg2y_po499$Model = "2 year window"
+leg2y_po499$Model = "2 year duration"
 leg2y_po499$Nutrient = "PO4"
 
 leg2y_po495 = data.frame(
@@ -260,7 +260,7 @@ leg2y_po495 = data.frame(
   "Upper95" = leg2y_po495$par.upCI$U)
 leg2y_po495$Parameter = rownames(leg2y_po495)
 leg2y_po495[,1:3] = round(leg2y_po495[,1:3], 3)
-leg2y_po495$Model = "2 year window"
+leg2y_po495$Model = "2 year duration"
 leg2y_po495$Nutrient = "PO4"
 
 leg3y_nh499 = data.frame(
@@ -269,7 +269,7 @@ leg3y_nh499 = data.frame(
   "Upper99" = leg3y_nh499$par.upCI$U)
 leg3y_nh499$Parameter = rownames(leg3y_nh499)
 leg3y_nh499[,1:3] = round(leg3y_nh499[,1:3], 3)
-leg3y_nh499$Model = "3 year window"
+leg3y_nh499$Model = "3 year duration"
 leg3y_nh499$Nutrient = "NH4"
 
 leg3y_nh495 = data.frame(
@@ -278,7 +278,7 @@ leg3y_nh495 = data.frame(
   "Upper95" = leg3y_nh495$par.upCI$U)
 leg3y_nh495$Parameter = rownames(leg3y_nh495)
 leg3y_nh495[,1:3] = round(leg3y_nh495[,1:3], 3)
-leg3y_nh495$Model = "3 year window"
+leg3y_nh495$Model = "3 year duration"
 leg3y_nh495$Nutrient = "NH4"
 
 leg3y_no399 = data.frame(
@@ -287,7 +287,7 @@ leg3y_no399 = data.frame(
   "Upper99" = leg3y_no399$par.upCI$U)
 leg3y_no399$Parameter = rownames(leg3y_no399)
 leg3y_no399[,1:3] = round(leg3y_no399[,1:3], 3)
-leg3y_no399$Model = "3 year window"
+leg3y_no399$Model = "3 year duration"
 leg3y_no399$Nutrient = "NO3"
 
 leg3y_no395 = data.frame(
@@ -296,7 +296,7 @@ leg3y_no395 = data.frame(
   "Upper95" = leg3y_no395$par.upCI$U)
 leg3y_no395$Parameter = rownames(leg3y_no395)
 leg3y_no395[,1:3] = round(leg3y_no395[,1:3], 3)
-leg3y_no395$Model = "3 year window"
+leg3y_no395$Model = "3 year duration"
 leg3y_no395$Nutrient = "NO3"
 
 leg3y_po499 = data.frame(
@@ -305,7 +305,7 @@ leg3y_po499 = data.frame(
   "Upper99" = leg3y_po499$par.upCI$U)
 leg3y_po499$Parameter = rownames(leg3y_po499)
 leg3y_po499[,1:3] = round(leg3y_po499[,1:3], 3)
-leg3y_po499$Model = "3 year window"
+leg3y_po499$Model = "3 year duration"
 leg3y_po499$Nutrient = "PO4"
 
 leg3y_po495 = data.frame(
@@ -314,7 +314,7 @@ leg3y_po495 = data.frame(
   "Upper95" = leg3y_po495$par.upCI$U)
 leg3y_po495$Parameter = rownames(leg3y_po495)
 leg3y_po495[,1:3] = round(leg3y_po495[,1:3], 3)
-leg3y_po495$Model = "3 year window"
+leg3y_po495$Model = "3 year duration"
 leg3y_po495$Nutrient = "PO4"
 
 leg4y_nh499 = data.frame(
@@ -323,7 +323,7 @@ leg4y_nh499 = data.frame(
   "Upper99" = leg4y_nh499$par.upCI$U)
 leg4y_nh499$Parameter = rownames(leg4y_nh499)
 leg4y_nh499[,1:3] = round(leg4y_nh499[,1:3], 3)
-leg4y_nh499$Model = "4 year window"
+leg4y_nh499$Model = "4 year duration"
 leg4y_nh499$Nutrient = "NH4"
 
 leg4y_nh495 = data.frame(
@@ -332,7 +332,7 @@ leg4y_nh495 = data.frame(
   "Upper95" = leg4y_nh495$par.upCI$U)
 leg4y_nh495$Parameter = rownames(leg4y_nh495)
 leg4y_nh495[,1:3] = round(leg4y_nh495[,1:3], 3)
-leg4y_nh495$Model = "4 year window"
+leg4y_nh495$Model = "4 year duration"
 leg4y_nh495$Nutrient = "NH4"
 
 leg4y_no399 = data.frame(
@@ -341,7 +341,7 @@ leg4y_no399 = data.frame(
   "Upper99" = leg4y_no399$par.upCI$U)
 leg4y_no399$Parameter = rownames(leg4y_no399)
 leg4y_no399[,1:3] = round(leg4y_no399[,1:3], 3)
-leg4y_no399$Model = "4 year window"
+leg4y_no399$Model = "4 year duration"
 leg4y_no399$Nutrient = "NO3"
 
 leg4y_no395 = data.frame(
@@ -350,7 +350,7 @@ leg4y_no395 = data.frame(
   "Upper95" = leg4y_no395$par.upCI$U)
 leg4y_no395$Parameter = rownames(leg4y_no395)
 leg4y_no395[,1:3] = round(leg4y_no395[,1:3], 3)
-leg4y_no395$Model = "4 year window"
+leg4y_no395$Model = "4 year duration"
 leg4y_no395$Nutrient = "NO3"
 
 leg4y_po499 = data.frame(
@@ -359,7 +359,7 @@ leg4y_po499 = data.frame(
   "Upper99" = leg4y_po499$par.upCI$U)
 leg4y_po499$Parameter = rownames(leg4y_po499)
 leg4y_po499[,1:3] = round(leg4y_po499[,1:3], 3)
-leg4y_po499$Model = "4 year window"
+leg4y_po499$Model = "4 year duration"
 leg4y_po499$Nutrient = "PO4"
 
 leg4y_po495 = data.frame(
@@ -368,7 +368,7 @@ leg4y_po495 = data.frame(
   "Upper95" = leg4y_po495$par.upCI$U)
 leg4y_po495$Parameter = rownames(leg4y_po495)
 leg4y_po495[,1:3] = round(leg4y_po495[,1:3], 3)
-leg4y_po495$Model = "4 year window"
+leg4y_po495$Model = "4 year duration"
 leg4y_po495$Nutrient = "PO4"
 
 leg5y_nh499 = data.frame(
@@ -377,7 +377,7 @@ leg5y_nh499 = data.frame(
   "Upper99" = leg5y_nh499$par.upCI$U)
 leg5y_nh499$Parameter = rownames(leg5y_nh499)
 leg5y_nh499[,1:3] = round(leg5y_nh499[,1:3], 3)
-leg5y_nh499$Model = "5 year window"
+leg5y_nh499$Model = "5 year duration"
 leg5y_nh499$Nutrient = "NH4"
 
 leg5y_nh495 = data.frame(
@@ -386,7 +386,7 @@ leg5y_nh495 = data.frame(
   "Upper95" = leg5y_nh495$par.upCI$U)
 leg5y_nh495$Parameter = rownames(leg5y_nh495)
 leg5y_nh495[,1:3] = round(leg5y_nh495[,1:3], 3)
-leg5y_nh495$Model = "5 year window"
+leg5y_nh495$Model = "5 year duration"
 leg5y_nh495$Nutrient = "NH4"
 
 leg5y_no399 = data.frame(
@@ -395,7 +395,7 @@ leg5y_no399 = data.frame(
   "Upper99" = leg5y_no399$par.upCI$U)
 leg5y_no399$Parameter = rownames(leg5y_no399)
 leg5y_no399[,1:3] = round(leg5y_no399[,1:3], 3)
-leg5y_no399$Model = "5 year window"
+leg5y_no399$Model = "5 year duration"
 leg5y_no399$Nutrient = "NO3"
 
 leg5y_no395 = data.frame(
@@ -404,7 +404,7 @@ leg5y_no395 = data.frame(
   "Upper95" = leg5y_no395$par.upCI$U)
 leg5y_no395$Parameter = rownames(leg5y_no395)
 leg5y_no395[,1:3] = round(leg5y_no395[,1:3], 3)
-leg5y_no395$Model = "5 year window"
+leg5y_no395$Model = "5 year duration"
 leg5y_no395$Nutrient = "NO3"
 
 leg5y_po499 = data.frame(
@@ -413,7 +413,7 @@ leg5y_po499 = data.frame(
   "Upper99" = leg5y_po499$par.upCI$U)
 leg5y_po499$Parameter = rownames(leg5y_po499)
 leg5y_po499[,1:3] = round(leg5y_po499[,1:3], 3)
-leg5y_po499$Model = "5 year window"
+leg5y_po499$Model = "5 year duration"
 leg5y_po499$Nutrient = "PO4"
 
 leg5y_po495 = data.frame(
@@ -422,7 +422,7 @@ leg5y_po495 = data.frame(
   "Upper95" = leg5y_po495$par.upCI$U)
 leg5y_po495$Parameter = rownames(leg5y_po495)
 leg5y_po495[,1:3] = round(leg5y_po495[,1:3], 3)
-leg5y_po495$Model = "5 year window"
+leg5y_po495$Model = "5 year duration"
 leg5y_po495$Nutrient = "PO4"
 
 #### Join data ####
@@ -555,12 +555,12 @@ nutCIs <- nutCIs %>%
                       levels = c("weak_sig_pos", "sig_pos", 
                                  "not_sig", 
                                  "sig_neg", "weak_sig_neg"))) %>%
-  mutate(model = factor(Model, levels = c("immediate window",
-                                          "1 year window",
-                                          "2 year window",
-                                          "3 year window",
-                                          "4 year window",
-                                          "5 year window")))
+  mutate(model = factor(Model, levels = c("immediate duration",
+                                          "1 year duration",
+                                          "2 year duration",
+                                          "3 year duration",
+                                          "4 year duration",
+                                          "5 year duration")))
 
 (all_nut_fig <- ggplot(nutCIs, aes(x = factor(Parm_simple, 
                                        levels = c("Ppt x Perc. burn",
@@ -590,7 +590,7 @@ nutCIs <- nutCIs %>%
     facet_grid(Nutrient~model))
 
 # Export plot.
-# ggsave(("MARSS_nuts_103023.png"),
+# ggsave(("MARSS_nuts_111523.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 36,

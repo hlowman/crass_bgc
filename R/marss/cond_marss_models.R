@@ -3809,7 +3809,7 @@ noleg_CI99 = data.frame(
   "Upper" = noleg_est99$par.upCI$U)
 noleg_CI99$Parameter = rownames(noleg_CI99)
 noleg_CI99[,1:3] = round(noleg_CI99[,1:3], 3)
-noleg_CI99$Model = "immediate window"
+noleg_CI99$Model = "immediate duration"
 
 leg1y_CI99 = data.frame(
   "Est." = leg1y_est99$par$U,
@@ -3817,7 +3817,7 @@ leg1y_CI99 = data.frame(
   "Upper" = leg1y_est99$par.upCI$U)
 leg1y_CI99$Parameter = rownames(leg1y_CI99)
 leg1y_CI99[,1:3] = round(leg1y_CI99[,1:3], 3)
-leg1y_CI99$Model = "1 year window"
+leg1y_CI99$Model = "1 year duration"
 
 leg2y_CI99 = data.frame(
   "Est." = leg2y_est99$par$U,
@@ -3825,7 +3825,7 @@ leg2y_CI99 = data.frame(
   "Upper" = leg2y_est99$par.upCI$U)
 leg2y_CI99$Parameter = rownames(leg2y_CI99)
 leg2y_CI99[,1:3] = round(leg2y_CI99[,1:3], 3)
-leg2y_CI99$Model = "2 year window"
+leg2y_CI99$Model = "2 year duration"
 
 leg3y_CI99 = data.frame(
   "Est." = leg3y_est99$par$U,
@@ -3833,7 +3833,7 @@ leg3y_CI99 = data.frame(
   "Upper" = leg3y_est99$par.upCI$U)
 leg3y_CI99$Parameter = rownames(leg3y_CI99)
 leg3y_CI99[,1:3] = round(leg3y_CI99[,1:3], 3)
-leg3y_CI99$Model = "3 year window"
+leg3y_CI99$Model = "3 year duration"
 
 leg4y_CI99 = data.frame(
   "Est." = leg4y_est99$par$U,
@@ -3841,7 +3841,7 @@ leg4y_CI99 = data.frame(
   "Upper" = leg4y_est99$par.upCI$U)
 leg4y_CI99$Parameter = rownames(leg4y_CI99)
 leg4y_CI99[,1:3] = round(leg4y_CI99[,1:3], 3)
-leg4y_CI99$Model = "4 year window"
+leg4y_CI99$Model = "4 year duration"
 
 leg5y_CI99 = data.frame(
   "Est." = leg5y_est99$par$U,
@@ -3849,9 +3849,9 @@ leg5y_CI99 = data.frame(
   "Upper" = leg5y_est99$par.upCI$U)
 leg5y_CI99$Parameter = rownames(leg5y_CI99)
 leg5y_CI99[,1:3] = round(leg5y_CI99[,1:3], 3)
-leg5y_CI99$Model = "5 year window"
+leg5y_CI99$Model = "5 year duration"
 
-# First for 99th percentile credible intervals.
+# Then for 95th percentile credible intervals.
 noleg_est95 <- MARSSparamCIs(noleg_2state, alpha = 0.05)
 leg1y_est95 <- MARSSparamCIs(leg1_2state, alpha = 0.05)
 leg2y_est95 <- MARSSparamCIs(leg2_2state, alpha = 0.05)
@@ -3866,7 +3866,7 @@ noleg_CI95 = data.frame(
   "Upper" = noleg_est95$par.upCI$U)
 noleg_CI95$Parameter = rownames(noleg_CI95)
 noleg_CI95[,1:3] = round(noleg_CI95[,1:3], 3)
-noleg_CI95$Model = "immediate window"
+noleg_CI95$Model = "immediate duration"
 
 leg1y_CI95 = data.frame(
   "Est." = leg1y_est95$par$U,
@@ -3874,7 +3874,7 @@ leg1y_CI95 = data.frame(
   "Upper" = leg1y_est95$par.upCI$U)
 leg1y_CI95$Parameter = rownames(leg1y_CI95)
 leg1y_CI95[,1:3] = round(leg1y_CI95[,1:3], 3)
-leg1y_CI95$Model = "1 year window"
+leg1y_CI95$Model = "1 year duration"
 
 leg2y_CI95 = data.frame(
   "Est." = leg2y_est95$par$U,
@@ -3882,7 +3882,7 @@ leg2y_CI95 = data.frame(
   "Upper" = leg2y_est95$par.upCI$U)
 leg2y_CI95$Parameter = rownames(leg2y_CI95)
 leg2y_CI95[,1:3] = round(leg2y_CI95[,1:3], 3)
-leg2y_CI95$Model = "2 year window"
+leg2y_CI95$Model = "2 year duration"
 
 leg3y_CI95 = data.frame(
   "Est." = leg3y_est95$par$U,
@@ -3890,7 +3890,7 @@ leg3y_CI95 = data.frame(
   "Upper" = leg3y_est95$par.upCI$U)
 leg3y_CI95$Parameter = rownames(leg3y_CI95)
 leg3y_CI95[,1:3] = round(leg3y_CI95[,1:3], 3)
-leg3y_CI95$Model = "3 year window"
+leg3y_CI95$Model = "3 year duration"
 
 leg4y_CI95 = data.frame(
   "Est." = leg4y_est95$par$U,
@@ -3898,7 +3898,7 @@ leg4y_CI95 = data.frame(
   "Upper" = leg4y_est95$par.upCI$U)
 leg4y_CI95$Parameter = rownames(leg4y_CI95)
 leg4y_CI95[,1:3] = round(leg4y_CI95[,1:3], 3)
-leg4y_CI95$Model = "4 year window"
+leg4y_CI95$Model = "4 year duration"
 
 leg5y_CI95 = data.frame(
   "Est." = leg5y_est95$par$U,
@@ -3906,7 +3906,7 @@ leg5y_CI95 = data.frame(
   "Upper" = leg5y_est95$par.upCI$U)
 leg5y_CI95$Parameter = rownames(leg5y_CI95)
 leg5y_CI95[,1:3] = round(leg5y_CI95[,1:3], 3)
-leg5y_CI95$Model = "5 year window"
+leg5y_CI95$Model = "5 year duration"
 
 # Bind all together
 CIs99 = rbind(noleg_CI99, leg1y_CI99, leg2y_CI99, 
@@ -3981,12 +3981,12 @@ CIs <- CIs %>%
   mutate(site = factor(Stream,
                        levels = c("AB00", "GV01", "HO00", "RS02",
                                   "EFJ", "RED", "RSAW"))) %>%
-  mutate(model = factor(Model, levels = c("immediate window",
-                                          "1 year window",
-                                          "2 year window",
-                                          "3 year window",
-                                          "4 year window",
-                                          "5 year window")))
+  mutate(model = factor(Model, levels = c("immediate duration",
+                                          "1 year duration",
+                                          "2 year duration",
+                                          "3 year duration",
+                                          "4 year duration",
+                                          "5 year duration")))
 
 # Plot results
 (SpCond_fig <- ggplot(CIs, aes(x = factor(Parm_simple, 
@@ -4019,7 +4019,7 @@ CIs <- CIs %>%
     facet_grid(region~model))
 
 # Export plot.
-# ggsave(("MARSS_SpCon_103023.png"),
+# ggsave(("MARSS_SpCon_111523.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 24,
