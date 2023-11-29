@@ -560,17 +560,24 @@ nutCIs <- nutCIs %>%
                                           "2 year duration",
                                           "3 year duration",
                                           "4 year duration",
-                                          "5 year duration")))
+                                          "5 year duration"))) %>%
+  mutate(stream = factor(Stream, levels = c("AB00", "GV01", "HO00", "RS02")))
+
+nut_labels <- as_labeller(c(NH4="NH[4]^`+`", 
+                            NO3="NO[3]^`-`", 
+                            PO4="PO[4]^-3"),
+                           default = label_parsed)
 
 (all_nut_fig <- ggplot(nutCIs, aes(x = factor(Parm_simple, 
                                        levels = c("Ppt x Perc. burn",
                                                   "Perc. burn",
                                                   "Ppt")),
-                            y = Est., fill = sig, shape = Stream)) + 
+                            y = Est., fill = sig, 
+                            shape = stream, group = desc(stream))) + 
+    geom_point(position = position_dodge(width = 0.5), 
+               alpha = 0.8, size = 8) + 
     geom_errorbar(aes(ymin = Lower99, ymax = Upper99),
                   position=position_dodge(width = 0.5), width = 0) +
-    geom_point(position=position_dodge(width = 0.5), 
-               alpha = 0.8, size = 8) + 
     scale_shape_manual(values = c(21, 22, 23, 24)) +
     scale_fill_manual(values = c("gray50", "black", "white", "black", "gray50")) +
     theme_bw()+
@@ -583,14 +590,13 @@ nutCIs <- nutCIs %>%
     geom_hline(aes(yintercept = 0), linetype = "dashed") +
     coord_flip(ylim = c(-1.0, 1.0)) + 
     labs(y = "Effect Size", 
-         x = "Covariates",
-         fill = "Significance") +
+         x = "Covariates") +
     theme(plot.margin = unit(c(.2,.2,.05,.05),"cm")) + 
     guides(shape = guide_legend("Stream"), fill = "none") +
-    facet_grid(Nutrient~model))
+    facet_grid(Nutrient~model, labeller = labeller(Nutrient = nut_labels)))
 
 # Export plot.
-# ggsave(("MARSS_nuts_111523.png"),
+# ggsave(("MARSS_nuts_112923.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 36,

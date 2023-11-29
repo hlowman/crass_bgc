@@ -3976,8 +3976,8 @@ CIs <- CIs %>%
                                  "not_sig", 
                                  "sig_neg", "weak_sig_neg"))) %>%
   mutate(region = case_when(Stream %in% c("AB00", "GV01", 
-                                          "HO00", "RS02") ~ "Santa Barbara",
-                            TRUE ~ "Valles Caldera")) %>%
+                                          "HO00", "RS02") ~ "Mediterranean",
+                            TRUE ~ "monsoonal")) %>%
   mutate(site = factor(Stream,
                        levels = c("AB00", "GV01", "HO00", "RS02",
                                   "EFJ", "RED", "RSAW"))) %>%
@@ -3993,7 +3993,8 @@ CIs <- CIs %>%
                                        levels = c("Ppt x Perc. burn",
                                                   "Perc. burn",
                                                   "Ppt")),
-                            y = Est., fill = sig, shape = site)) + 
+                            y = Est., fill = sig, 
+                            shape = site, group = desc(site))) + 
     # coloring by both percentiles but using 99th perc. error bars to be most conservative
     geom_errorbar(aes(ymin = Lower99, ymax = Upper99),
                   position=position_dodge(width = 0.5), width = 0) +
@@ -4019,7 +4020,7 @@ CIs <- CIs %>%
     facet_grid(region~model))
 
 # Export plot.
-# ggsave(("MARSS_SpCon_111523.png"),
+# ggsave(("MARSS_SpCon_112923.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 24,
