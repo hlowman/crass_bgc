@@ -145,7 +145,7 @@ df_cond <- df_cond %>%
     geom_point(size = 5, color = "#92A587") +
     geom_line(color = "#92A587") +
     scale_alpha_manual(values = c(1, 0.3), guide = "none") +
-    labs(x = "Date", title = "Valles Caldera") +
+    labs(x = "Date", title = "monsoonal") +
     facet_grid(site_factor~.) +
     theme_bw() +
     theme(axis.title.y = element_blank(),
@@ -164,7 +164,7 @@ df_cond <- df_cond %>%
     geom_line(color = "#6592D6") +
     scale_alpha_manual(values = c(1, 0.3), guide = "none") +
     labs(x = "Date", 
-         title = "Santa Barbara") +
+         title = "Mediterranean") +
     ylab(expression(paste("Mean Monthly Specific Conductance (μS ", 
                           cm^{"-1"},")"))) +
     facet_grid(site_factor~.) +
@@ -187,7 +187,7 @@ design <- "AAABBB
     plot_layout(design = design))
 
 # Export plot.
-# ggsave(("TS_SB_VC_SpCond_103123.png"),
+# ggsave(("TS_SB_VC_SpCond_120223.png"),
 #        path = "figures",
 #        width = 60,
 #        height = 30,
@@ -230,14 +230,40 @@ unique(df_vc$fire_perc_ws) #  0.0 37.0 21.7 42.8  7.8 79.9 93.5
 precip_monthly <- df_cond %>%
   group_by(region, month) %>%
   # calculate average monthly cumulative precipitation across all sites
-  summarize(avg_cum_monthly = mean(cumulative_precip_mm)) %>%
+  summarize(avg_cum_monthly = mean(cumulative_precip_mm),
+            sd_cum_monthly = sd(cumulative_precip_mm)) %>%
+  mutate(sd_max = avg_cum_monthly + sd_cum_monthly,
+         sd_min = avg_cum_monthly - sd_cum_monthly) %>%
+  mutate(sd_min_plot = case_when(sd_min > 0 ~ sd_min,
+                                 sd_min <= 0 ~ 0)) %>%
   mutate(month = factor(month)) %>%
+  mutate(Region = factor(case_when(region == "SB" ~ "Mediterranean",
+                                   region == "VC" ~ "monsoonal"),
+                         levels = c("Mediterranean", "monsoonal"))) %>%
   ungroup()
 
-ggplot(precip_monthly, aes(month, avg_cum_monthly)) +
-  geom_col(aes(fill = region)) +
+(fig_precip <- ggplot(precip_monthly, aes(x = month)) +
+  geom_col(aes(y = avg_cum_monthly, fill = Region), alpha = 0.5) +
+  scale_fill_manual(values = c("#6592D6","#92A587")) +
+  geom_linerange(aes(ymax = sd_max,
+                     ymin = sd_min_plot, 
+                     color = Region), linewidth = 1.5) +
+  scale_color_manual(values = c("#6592D6","#92A587")) +
+  labs(x = "Month",
+       y = "Cumulative Monthly Precipitation (mm)") +
   theme_bw() +
-  facet_grid(region~.)
+  facet_grid(Region~.) +
+  theme(legend.position = "none",
+        axis.title = element_text(size = 30),
+        axis.text = element_text(size = 24),
+        strip.text.y = element_text(size = 30),
+        strip.background = element_rect(colour="white", fill="white")))
+
+# ggsave(("Precip_SB_VC_120223.png"),
+#        path = "figures",
+#        width = 60,
+#        height = 30,
+#        units = "cm")
 
 precip_SBseason <- df_cond %>%
   filter(region == "SB") %>%
