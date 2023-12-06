@@ -217,6 +217,14 @@ nh4_chem_filtered <- arrange(nh4_chem_filtered, site_code)
 # Add results of for loop.
 nh4_chem_combined <- cbind(nh4_chem_filtered, overlap_nh4)
 
+# A quick calculation to see how much is storm vs. baseflow
+nh4_storm_base <- nh4_chem_combined[,1:6] %>%
+  group_by(overlap_storm) %>%
+  summarize(count = n())
+
+# n = 6,309 FALSE so 64% baseflow
+# n = 3,518 TRUE so 36% baseflow
+
 # Now to detect storm overlap with available discharge data.
 # Note, I'll be doing this separately for each analyte since the data/storms
 # in Rosana's dataset differ by analyte.
@@ -311,8 +319,12 @@ nh4_all$cum_Q_storms[is.na(nh4_all$cum_Q_storms)] <- 0
 
 # Omg, and is this the last calculation????
 # Calculate VOLUME WEIGHTED MEANS.
+# Using equation from Williams et al. 1997, bottom of pg. 209
 nh4_all <- nh4_all %>%
-  mutate(vwm_monthly = (cum_nh4_storms + c_x_Q)/(cum_Q_storms + cum_Q_L))
+  # sum of storm and non-storm C x Q values over...
+  mutate(vwm_monthly = (cum_nh4_storms + c_x_Q)/
+           # sum of storm and non-storm Q (discharge)
+           (cum_Q_storms + cum_Q_L))
 
 # Quick plot to see how this looks:
 (plot1 <- ggplot(nh4_all %>%
@@ -392,6 +404,14 @@ no3_chem_filtered <- arrange(no3_chem_filtered, site_code)
 
 # Add results of for loop.
 no3_chem_combined <- cbind(no3_chem_filtered, overlap_no3)
+
+# A quick calculation to see how much is storm vs. baseflow
+no3_storm_base <- no3_chem_combined[,1:6] %>%
+  group_by(overlap_storm) %>%
+  summarize(count = n())
+
+# n = 5,058 FALSE so 51% baseflow
+# n = 4,769 TRUE so 49% baseflow
 
 # Now to detect storm overlap with available discharge data.
 # Note, I'll be doing this separately for each analyte since the data/storms
@@ -568,6 +588,14 @@ po4_chem_filtered <- arrange(po4_chem_filtered, site_code)
 
 # Add results of for loop.
 po4_chem_combined <- cbind(po4_chem_filtered, overlap_po4)
+
+# A quick calculation to see how much is storm vs. baseflow
+po4_storm_base <- po4_chem_combined[,1:6] %>%
+  group_by(overlap_storm) %>%
+  summarize(count = n())
+
+# n = 5,254 FALSE so 53% baseflow
+# n = 4,573 TRUE so 47% baseflow
 
 # Now to detect storm overlap with available discharge data.
 # Note, I'll be doing this separately for each analyte since the data/storms
