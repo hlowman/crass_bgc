@@ -561,17 +561,20 @@ nutCIs <- nutCIs %>%
                                           "3 year duration",
                                           "4 year duration",
                                           "5 year duration"))) %>%
-  mutate(stream = factor(Stream, levels = c("AB00", "GV01", "HO00", "RS02")))
+  mutate(stream = factor(Stream, levels = c("AB00", "GV01", "HO00", "RS02"))) %>%
+  mutate(Parm_simple_f = factor(case_when(Parm_simple == "Ppt x Perc. burn" ~ "Ppt x % burn",
+                                          Parm_simple == "Perc. burn" ~ "% burn",
+                                          Parm_simple == "Ppt" ~ "Ppt"),
+                                levels = c("Ppt x % burn",
+                                           "% burn",
+                                           "Ppt")))
 
 nut_labels <- as_labeller(c(NH4="NH[4]^`+`", 
                             NO3="NO[3]^`-`", 
                             PO4="PO[4]^-3"),
                            default = label_parsed)
 
-(all_nut_fig <- ggplot(nutCIs, aes(x = factor(Parm_simple, 
-                                       levels = c("Ppt x Perc. burn",
-                                                  "Perc. burn",
-                                                  "Ppt")),
+(all_nut_fig <- ggplot(nutCIs, aes(x = Parm_simple_f, 
                             y = Est., fill = sig, 
                             shape = stream, group = desc(stream))) + 
     geom_point(position = position_dodge(width = 0.5), 
@@ -596,7 +599,7 @@ nut_labels <- as_labeller(c(NH4="NH[4]^`+`",
     facet_grid(Nutrient~model, labeller = labeller(Nutrient = nut_labels)))
 
 # Export plot.
-# ggsave(("MARSS_nuts_112923.png"),
+# ggsave(("MARSS_nuts_120823.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 36,

@@ -3977,7 +3977,7 @@ CIs <- CIs %>%
                                  "sig_neg", "weak_sig_neg"))) %>%
   mutate(region = case_when(Stream %in% c("AB00", "GV01", 
                                           "HO00", "RS02") ~ "Mediterranean",
-                            TRUE ~ "monsoonal")) %>%
+                            TRUE ~ "Monsoonal")) %>%
   mutate(site = factor(Stream,
                        levels = c("AB00", "GV01", "HO00", "RS02",
                                   "EFJ", "RED", "RSAW"))) %>%
@@ -3986,13 +3986,16 @@ CIs <- CIs %>%
                                           "2 year duration",
                                           "3 year duration",
                                           "4 year duration",
-                                          "5 year duration")))
+                                          "5 year duration"))) %>%
+  mutate(Parm_simple_f = factor(case_when(Parm_simple == "Ppt x Perc. burn" ~ "Ppt x % burn",
+                                          Parm_simple == "Perc. burn" ~ "% burn",
+                                          Parm_simple == "Ppt" ~ "Ppt"),
+                                levels = c("Ppt x % burn",
+                                           "% burn",
+                                           "Ppt")))
 
 # Plot results
-(SpCond_fig <- ggplot(CIs, aes(x = factor(Parm_simple, 
-                                       levels = c("Ppt x Perc. burn",
-                                                  "Perc. burn",
-                                                  "Ppt")),
+(SpCond_fig <- ggplot(CIs, aes(x = Parm_simple_f,
                             y = Est., fill = sig, 
                             shape = site, group = desc(site))) + 
     # coloring by both percentiles but using 99th perc. error bars to be most conservative
@@ -4020,7 +4023,7 @@ CIs <- CIs %>%
     facet_grid(region~model))
 
 # Export plot.
-# ggsave(("MARSS_SpCon_112923.png"),
+# ggsave(("MARSS_SpCon_120823.png"),
 #        path = "figures",
 #        width = 65,
 #        height = 24,

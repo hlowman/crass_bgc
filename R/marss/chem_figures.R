@@ -145,7 +145,7 @@ df_cond <- df_cond %>%
     geom_point(size = 5, color = "#92A587") +
     geom_line(color = "#92A587") +
     scale_alpha_manual(values = c(1, 0.3), guide = "none") +
-    labs(x = "Date", title = "monsoonal") +
+    labs(x = "Date", title = "Monsoonal") +
     facet_grid(site_factor~.) +
     theme_bw() +
     theme(axis.title.y = element_blank(),
@@ -187,7 +187,7 @@ design <- "AAABBB
     plot_layout(design = design))
 
 # Export plot.
-# ggsave(("TS_SB_VC_SpCond_120223.png"),
+# ggsave(("TS_SB_VC_SpCond_120823.png"),
 #        path = "figures",
 #        width = 60,
 #        height = 30,
@@ -238,8 +238,8 @@ precip_monthly <- df_cond %>%
                                  sd_min <= 0 ~ 0)) %>%
   mutate(month = factor(month)) %>%
   mutate(Region = factor(case_when(region == "SB" ~ "Mediterranean",
-                                   region == "VC" ~ "monsoonal"),
-                         levels = c("Mediterranean", "monsoonal"))) %>%
+                                   region == "VC" ~ "Monsoonal"),
+                         levels = c("Mediterranean", "Monsoonal"))) %>%
   ungroup()
 
 (fig_precip <- ggplot(precip_monthly, aes(x = month)) +
@@ -259,7 +259,7 @@ precip_monthly <- df_cond %>%
         strip.text.y = element_text(size = 30),
         strip.background = element_rect(colour="white", fill="white")))
 
-# ggsave(("Precip_SB_VC_120223.png"),
+# ggsave(("Precip_SB_VC_120823.png"),
 #        path = "figures",
 #        width = 60,
 #        height = 30,
