@@ -9,7 +9,7 @@ H.E. Lowman, J.R. Blaszczak, A. Cale, X. Dong, S. Earl, J. Grabow, N.B. Grimm, T
 **Please visit the Zenodo webpage for this project to access the most relevant and annotated versions of data and code - link forthcoming!**
 
 - The `data_raw` folder contains raw chemistry, discharge, precipitation, and watershed characteristic data from the Mediterranean (Santa Barbara, CA) and monsoonal (Valles Caldera, NM) stream locations.
-- The `data_working` folder contains the aggregated dataset used to fit the MARSS models as well as the MARSS model outputs.
+- The `data_working` folder contains the aggregated datasets used to fit the MARSS models as well as the MARSS model outputs.
 - The `figures` folder contains all versions of figures created in this project from initial data visualization and examination to final manuscript figures generated.
 - The `R` folder contains additional folders with scripts for initial data visualization (`data_vis`, `large_rivers`), sample collaborator scripts (`others_scripts`), and the MARSS model prep and fit scripts (`marss`) which are presented in more detail here:
   - Specific conductance data was prepped for modeling using `cond_marss_model_data_prep.R` and fit using `cond_marss_models.R`.
