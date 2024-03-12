@@ -11,6 +11,7 @@
 library(here)
 library(lubridate)
 library(tidyverse)
+library(calecopal)
 
 # Load data
 # Sonde data.
@@ -56,7 +57,7 @@ sdRSAW <- 24.41510
 sonde_qaqc <- sonde_trim %>%
   # First, removing all values equal to or less than 25 (not reasonable)
   filter(cond_uScm > 25) %>%
-  # And, filter out outliers.
+  # And, create new column with edited data.
   mutate(cond_uScm_ed = case_when(site_name == "EFJ" & cond_uScm >= meanEFJ+(4*sdEFJ) ~ NA,
                                   site_name == "EFJ" & cond_uScm <= meanEFJ-(4*sdEFJ) ~ NA,
                                   site_name == "RED" & cond_uScm >= meanRED+(4*sdRED) ~ NA,
@@ -68,6 +69,51 @@ sonde_qaqc <- sonde_trim %>%
                                   TRUE ~ cond_uScm)) %>%
   select(site_name, DateTime, cond_uScm_ed, source) %>%
   rename(cond_uScm = cond_uScm_ed)
+
+# Quick plot to examine outliers that may have been removed.
+(fig_out <- ggplot(sonde_trim %>%
+                     filter(site_name %in% c("EFJ", "RED", "RSAW")) %>%
+                     # removing one outrageous measure to plot better
+                     filter(cond_uScm < 1000), #%>%
+                     #filter(DateTime > as_datetime("01-01-2011 00:00")) %>%
+                     #filter(DateTime < as_datetime("01-01-2015 00:00")),
+                   aes(x = DateTime, 
+                       y = cond_uScm,
+                       color = site_name)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = (meanEFJ+(4*sdEFJ)), color = "pink") +
+  geom_hline(yintercept = (meanRED+(4*sdRED)), color = "lightgreen") +
+  geom_hline(yintercept = (meanRSAW+(4*sdRSAW)), color = "cornflowerblue") +
+  labs(x = "Date",
+       y = "Sonde SC",
+       color = "Stream") +
+  theme_bw())
+
+# Export.
+# ggsave(fig_out,
+#        filename = "figures/all_raw_sonde_w_outlierlines_031224.jpg",
+#        width = 30,
+#        height = 10,
+#        units = "cm")
+
+# Counting how many records each removes from the sites of interest
+# to address reviewer comments.
+sonde_no_out <- sonde_trim %>% 
+  # Select for sites of interest.
+  filter(site_name %in% c("EFJ", "RED", "RSAW")) %>% # 491,441 records
+  # First, removing all values equal to or less than 25 (not reasonable)
+  filter(cond_uScm > 25) %>% # 447,970 records (8.85% removed)
+  # And, actually filter out outliers.
+  mutate(cond_uScm_ed = case_when(site_name == "EFJ" & cond_uScm >= meanEFJ+(4*sdEFJ) ~ NA,
+                                  site_name == "EFJ" & cond_uScm <= meanEFJ-(4*sdEFJ) ~ NA,
+                                  site_name == "RED" & cond_uScm >= meanRED+(4*sdRED) ~ NA,
+                                  site_name == "RED" & cond_uScm <= meanRED-(4*sdRED) ~ NA,
+                                  site_name == "RSA" & cond_uScm >= meanRSA+(4*sdRSA) ~ NA,
+                                  site_name == "RSA" & cond_uScm <= meanRSA-(4*sdRSA) ~ NA,
+                                  site_name == "RSAW" & cond_uScm >= meanRSAW+(4*sdRSAW) ~ NA,
+                                  site_name == "RSAW" & cond_uScm <= meanRSAW-(4*sdRSAW) ~ NA,
+                                  TRUE ~ cond_uScm)) %>%
+  drop_na(cond_uScm_ed) # 447,111 records (0.19% removed)
 
 #### Trim sonde data ####
 
