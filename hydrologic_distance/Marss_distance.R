@@ -179,14 +179,11 @@ sbc_distances <- data.frame(site = c('bur', 'bur', 'gav', 'hon', 'rat'),
                         sampling_point_to_stream_m = c(sbc_point_to_stream_dist[3,1], sbc_point_to_stream_dist[3,1],
                                                        sbc_point_to_stream_dist[1,1], sbc_point_to_stream_dist[2,1],
                                                        sbc_point_to_stream_dist[4,1]),
-                        stream_distance_m = c(sample_to_17596123, sample_to_17596127, NA, NA, NA),
-                        distance_sampling_point_to_fire_m = c((sample_to_17596123 + sbc_point_to_stream_dist[3,1]),
-                                                              (sample_to_17596127+sbc_point_to_stream_dist[3,1]),
-                                                              NA, NA, NA),
+                        stream_distance_m = c(sample_to_17596123, sample_to_17596127, 0, 0, 0),
                         distance_sampling_point_to_fire_km = NA)
 
  
-sbc_distances$distance_sampling_point_to_fire_km <- sbc_distances$distance_sampling_point_to_fire_m/1000
+sbc_distances$distance_sampling_point_to_fire_km <- sbc_distances$stream_distance_m/1000
 
 
 
@@ -279,17 +276,11 @@ nm_distances <- data.frame(site = c('EFJ', 'EFJ','EFJ', 'EFJ', 'EFJ', 'EFJ', 'EF
                                                   sample_to_17827558, sample_to_17827556, sample_to_17825970, 
                                                   sample_to_17826016, sample_to_17825884, sample_to_17826052,
                                                   sample_to_17825904, sample_to_17825952, sample_to_17825980,
-                                                  sample_to_17826022, sample_to_17826090, sample_to_17826026, NA),
-                            distance_sampling_point_to_fire_m = c(sample_to_17826286+nm_point_to_stream_dist[2,1], sample_to_17826160+nm_point_to_stream_dist[2,1], sample_to_17827554+nm_point_to_stream_dist[2,1], sample_to_17826190+nm_point_to_stream_dist[2,1],
-                                                                   sample_to_17826216+nm_point_to_stream_dist[2,1], sample_to_17826086+nm_point_to_stream_dist[2,1], sample_to_17826188+nm_point_to_stream_dist[2,1], sample_to_17827550+nm_point_to_stream_dist[2,1],
-                                                                   sample_to_17827558+nm_point_to_stream_dist[2,1], sample_to_17827556+nm_point_to_stream_dist[2,1], sample_to_17825970+nm_point_to_stream_dist[1,1], 
-                                                                   sample_to_17826016+nm_point_to_stream_dist[1,1], sample_to_17825884+nm_point_to_stream_dist[1,1], sample_to_17826052+nm_point_to_stream_dist[1,1],
-                                                                   sample_to_17825904+nm_point_to_stream_dist[1,1], sample_to_17825952+nm_point_to_stream_dist[1,1], sample_to_17825980+nm_point_to_stream_dist[1,1],
-                                                                   sample_to_17826022+nm_point_to_stream_dist[1,1], sample_to_17826090+nm_point_to_stream_dist[1,1], sample_to_17826026+nm_point_to_stream_dist[1,1], NA),
+                                                  sample_to_17826022, sample_to_17826090, sample_to_17826026, 0),
                             distance_sampling_point_to_fire_km = NA)
 
 
-nm_distances$distance_sampling_point_to_fire_km <- nm_distances$distance_sampling_point_to_fire_m/1000
+nm_distances$distance_sampling_point_to_fire_km <- nm_distances$stream_distance_m/1000
 
 final_distance_df <- rbind(sbc_distances, nm_distances)
 
