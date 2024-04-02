@@ -416,7 +416,7 @@ rat <- sbc_lter_rat +
     xlim = c(-119.695, -119.690),
     ylim= c(34.46, 34.456),
     expand = FALSE) +
-  ggtitle('Rattlesnake')+
+  ggtitle('Rattlesnake EVENT ID CA3447411972520090505')+
   theme(legend.position = 'none',
         plot.title = element_text(hjust = 0.5))
   
