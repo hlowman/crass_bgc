@@ -108,8 +108,6 @@ sonde_no_out <- sonde_trim %>%
                                   site_name == "EFJ" & cond_uScm <= meanEFJ-(4*sdEFJ) ~ NA,
                                   site_name == "RED" & cond_uScm >= meanRED+(4*sdRED) ~ NA,
                                   site_name == "RED" & cond_uScm <= meanRED-(4*sdRED) ~ NA,
-                                  site_name == "RSA" & cond_uScm >= meanRSA+(4*sdRSA) ~ NA,
-                                  site_name == "RSA" & cond_uScm <= meanRSA-(4*sdRSA) ~ NA,
                                   site_name == "RSAW" & cond_uScm >= meanRSAW+(4*sdRSAW) ~ NA,
                                   site_name == "RSAW" & cond_uScm <= meanRSAW-(4*sdRSAW) ~ NA,
                                   TRUE ~ cond_uScm)) %>%
@@ -120,7 +118,8 @@ sonde_no_out <- sonde_trim %>%
 # First, we want to remove all dates for which we will not be using sonde data.
 # So, we need to keep:
 # (1) All EFJ sonde data.
-# (2) RED data after fire (before fire sonde data looks bad, likely due to sediment infill).
+# (2) RED data after fire (before fire sonde data looks bad, 
+# i.e. drops to zero lots, likely due to sediment infill).
 # (3) All RSA sonde data.
 # (4) All RSAW sonde data (only available post-fire, 
 # but picks up where grab samples left off).
