@@ -1,0 +1,10 @@
+{
+"type": "FeatureCollection",
+"name": "nm_points",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "Stream": "Redondo", "sitecode": "RED" }, "geometry": { "type": "Point", "coordinates": [ -106.59778, 35.86583 ] } },
+{ "type": "Feature", "properties": { "Stream": "Jemez", "sitecode": "EFJ" }, "geometry": { "type": "Point", "coordinates": [ -106.49067, 35.84845 ] } },
+{ "type": "Feature", "properties": { "Stream": "San Antonio (West)", "sitecode": "RSAW" }, "geometry": { "type": "Point", "coordinates": [ -106.59687, 35.97345 ] } }
+]
+}
