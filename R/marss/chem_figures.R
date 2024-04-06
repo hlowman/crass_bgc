@@ -203,6 +203,8 @@ df_sb <- df_cond %>%
 df_sb_summary <- df_sb %>%
   summarize(mean_ppt = mean(cumulative_precip_mm, na.rm = TRUE),
             sd_ppt = sd(cumulative_precip_mm, na.rm = TRUE),
+            se_ppt = (sd(cumulative_precip_mm, na.rm = TRUE)/
+                        sqrt(length(cumulative_precip_mm))),
             min_ppt = min(cumulative_precip_mm, na.rm = TRUE),
             max_ppt = max(cumulative_precip_mm, na.rm = TRUE),
             med_ppt = median(cumulative_precip_mm, na.rm = TRUE))
