@@ -1,0 +1,303 @@
+Dataset title: Data and Code for Lowman et al. "Persistent and lagged effects of fire on stream solutes linked to intermittent precipitation in arid lands" 
+
+Creators: Heili E. Lowman (Duke University), Joanna R. Blaszczak (University of Nevada Reno), Ashley Cale (University of Nevada Reno), Xiaoli Dong (University of California Davis), Stevan Earl (Arizona State University), Julia Grabow (Arizona State University), Nancy Grimm (Arizona State University), Tamara Harms (University of California Riverside), John Melack (University of California Santa Barbara), Ann Marie Reinhold (Montana State University), Betsy Summers (University of New Mexico), Alex Webster (University of New Mexico)
+
+Contact: Heili Lowman (heili.lowman@gmail.com)
+
+Keywords: Fire, arid lands, precipitation, stream, specific conductance, nutrients
+
+Funding: This research was supported by the National Science Foundation (awards #1457227, OIA-2019528, DEB-2224662, DEB-2320296, and #1914778) and via the “Interacting fire and precipitation regimes influence catchment biogeochemistry of arid lands” Synthesis Group supported through the Long-Term Ecological Research Network Office (LNO) and the National Center for Ecological Analysis and Synthesis, University of California Santa Barbara.
+
+Timeframe of Data: 2002 - 2021
+
+Geographic Location of Data: United States of America
+
+###
+
+Data Provenance: Data for this project were downloaded from multiple published data sources including:
+
+Aguilera R., Melack J.M. (2018) Concentration-discharge responses to storm events in coastal California watersheds. Water Resources Research 54(1):407–424. https://doi.org/10.1002/2017WR021578
+
+SBC LTER, Melack J.M. (2019a) Precipitation at Arroyo Hondo at Upper Outlaw Trail (HO202) ver 10. Environmental Data Initiative. https://doi.org/10.6073/pasta/128b6fc45f7d840a673b3c3b2f2eaa32
+
+SBC LTER, Melack J.M. (2019b) SBC LTER: Land: Hydrology: Santa Barbara County Flood Control District – Precipitation at Cater Water Treatment Plant (CaterWTP229). https://doi.org/10.6073/PASTA/8E12EFBC31D84DBED0C105F8C8A2486F
+
+SBC LTER, Melack J.M. (2019c) SBC LTER: Land: Hydrology: Santa Barbara County Flood Control District – Precipitation at El Deseo (ElDeseo255). https://doi.org/10.6073/PASTA/C5819A9D15A98696E65F0EFD8B45C14A
+
+SBC LTER, Melack J.M. (2019d) SBC LTER: Land: Hydrology: Stream discharge and associated parameters at Arroyo Burro Creek, Cliff Drive (AB00). https://doi.org/10.6073/PASTA/66F46E14C73B5CE07EF104B91C09360B
+
+SBC LTER, Melack J.M. (2019e) SBC LTER: Land: Hydrology: Stream discharge and associated parameters at Gaviota Creek, Hwy 101 South Rest Stop (GV01). https://doi.org/10.6073/PASTA/3CDF7FD60F88F0822ECFAD5A92EDF9D6
+
+SBC LTER, Melack J.M. (2019f) SBC LTER: Land: Hydrology: Stream discharge and associated parameters at Arroyo Hondo Creek , Upstream Side of 101 Bridge (HO00). https://doi.org/10.6073/PASTA/85F4639AC0AC76C1EB4B3A82842CE171
+
+SBC LTER, Melack J.M. (2019g) SBC LTER: Land: Hydrology: Stream discharge and associated parameters at Rattlesnake Creek, Las Canoas Rd (RS02). https://doi.org/10.6073/PASTA/00AD8507A9EED8E923867C67D907AF12
+
+SBC LTER, Melack J.M. (2020) SBC LTER: Land: Stream chemistry in the Santa Barbara Coastal drainage area, 2000-2018. https://doi.org/10.6073/pasta/ae8784dcba16a65aa3c8e44321b7c1bb 
+
+SBC LTER, Melack J.M. (2022) SBC LTER: Land: Hydrology: Precipitation at Gaviota at Las Cruces School (GV202). https://doi.org/10.6073/PASTA/9E655E16C8386E8A0CD475F9EB4A8FCD
+
+Western Regional Climate Center (2021) Valles Caldera National Preserve Climate Stations. https://wrcc.dri.edu/vallescaldera
+
+Data Availability: Due to the many intermediate steps, not all generated datasets have been archived in this project. Instead, here we provide an envisioned workflow (R scripts listed in the order in which they were run) and details regarding data availability for anyone planning to work through these scripts -- 
+
+Scripts have been titled according to their function (*_data_prep.R, *_models.R, or *_figures.R). The Valles Caldera raw chemistry data, the compiled raw data used to fit all MARSS models, and most parsimonious MARSS model fits are published here. If you would like copies of any of the remaining intermediate datasets or model fits or have any further questions, please do not hesitate to reach out to H. Lowman at the e-mail address listed above.
+
+###
+
+Data Files
+
+#
+File name: VCNP_grab.csv
+File description: Grab sample chemistry data from Valles Caldera stream sites.
+
+Column name | Description | Unit or Code explanation or date format | missing value code
+
+site_name | USGS NWIS Site Identifier | NA | NA
+date | Date | yyyy-mm-dd | NA
+GPP | Daily gross primary productivity estimates | gO2 m^-2 d^-1 | NA
+
+#
+File name: VCNP_sonde.rds
+File description: Specific conductance sonde data from Valles Caldera stream sites.
+
+Column name | Description | Unit or Code explanation or date format | missing value code
+
+r | Maximum growth rate parameter estimate | NA | NA
+lambda | Lambda parameter estimate | NA | NA
+s | Sensitivity parameter estimate | NA | NA
+
+#
+File name: marss_data_sb_vc_091123.rds
+File description: Compiled data used to fit MARSS models for specific conductance at Santa Barbara and Valles Caldera sites.
+
+Column name | Description | Unit or Code explanation or date format | missing value code
+
+site_name | USGS NWIS Site Identifier | NA | NA
+parameter | Site-level parameter estimated | NA | NA
+mean | Mean estimated parameter value | NA | NA
+
+#
+File name: marss_data_sb_092123.rds
+File description: Compiled data used to fit MARSS models for nutrients (NH4, NO3, PO4) at Santa Barbara sites.
+
+Column name | Description | Unit or Code explanation or date format | missing value code
+
+site_name | USGS NWIS Site Identifier | NA | NA
+parameter | Site-level parameter estimated | NA | NA
+mean | Mean estimated parameter value | NA | NA
+
+#
+File name: fit_092523_2state_cond_mBFGS.rds
+File description: Specific conductance MARSS model fit for immediate fire effect window and separate process variance by region.
+
+#
+File name: fit_092523_2state_cond_1ylegacy_mBFGS.rds
+File description: Specific conductance MARSS model fit for 1 year lagged fire effect window and separate process variance by region.
+
+#
+File name: fit_092523_2state_cond_2ylegacy_mBFGS.rds
+File description: Specific conductance MARSS model fit for 2 year lagged fire effect window and separate process variance by region.
+
+#
+File name: fit_092523_2state_cond_3ylegacy_mBFGS.rds
+File description: Specific conductance MARSS model fit for 3 year lagged fire effect window and separate process variance by region.
+
+# 
+File name: fit_092523_2state_cond_4ylegacy_mBFGS
+File description: Specific conductance MARSS model fit for 4 year lagged fire effect window and separate process variance by region.
+
+#
+File name: fit_031124_2state_cond_5ylegacy_mBFGS.rds
+File description: Specific conductance MARSS model fit for 5 year lagged fire effect window and separate process variance by region.
+
+#
+File name: fit_092123_1state_nh4_mBFGS.rds
+File description: Ammonium MARSS model fit for immediate fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_nh4_1ylegacy_mBFGS.rds
+File description: Ammonium MARSS model fit for 1 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_nh4_2ylegacy_mBFGS.rds
+File description: Ammonium MARSS model fit for 2 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_nh4_3ylegacy_mBFGS.rds
+File description: Ammonium MARSS model fit for 3 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_nh4_4ylegacy_mBFGS.rds
+File description: Ammonium MARSS model fit for 4 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_nh4_5ylegacy_mBFGS.rds
+File description: Ammonium MARSS model fit for 5 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_no3_mBFGS.rds
+File description: Nitrate MARSS model fit for immediate fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_no3_1ylegacy_mBFGS.rds
+File description: Nitrate MARSS model fit for 1 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_no3_2ylegacy_mBFGS.rds
+File description: Nitrate MARSS model fit for 2 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_no3_3ylegacy_mBFGS.rds
+File description: Nitrate MARSS model fit for 3 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_no3_4ylegacy_mBFGS.rds
+File description: Nitrate MARSS model fit for 4 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_no3_5ylegacy_mBFGS.rds
+File description: Nitrate MARSS model fit for 5 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_po4_mBFGS.rds
+File description: Phosphate MARSS model fit for immediate fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_po4_1ylegacy_mBFGS.rds
+File description: Phosphate MARSS model fit for 1 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_po4_2ylegacy_mBFGS.rds
+File description: Phosphate MARSS model fit for 2 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_po4_3ylegacy_mBFGS.rds
+File description: Phosphate MARSS model fit for 3 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_po4_4ylegacy_mBFGS.rds
+File description: Phosphate MARSS model fit for 4 year lagged fire effect window and shared process variance across all sites.
+
+#
+File name: fit_092123_1state_po4_5ylegacy_mBFGS.rds
+File description: Phosphate MARSS model fit for 5 year lagged fire effect window and shared process variance across all sites.
+
+###
+
+Code: All of the following scripts were written and run using R (version 4.3.1) in RStudio (version 2023.06.2+561).
+
+#
+File name: sbc_chem_compilation_data_prep.R
+File description: Code to QAQC published Santa Barbara stream chemistry data and calculate mean monthly concentrations.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: sbc_nutrients_vwm_data_prep.R
+File description: Code to import discharge data and combine published Santa Barbara stream chemistry data with Aguilera et al.'s volume-weighted concentrations during storms to calculate mean monthly volume-weighted concentrations for nutrients only.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: sbc_fire_compilation_data_prep.R
+File description: Code to compile fire time series using size and ignition date of each fire in each Santa Barbara watershed.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: sbc_ppt_compilation_data_prep.R
+File description: Code to compile precipitation data and calculate monthly cumulative precipitation in each Santa Barbara watershed.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: vcnp_chem_compilation_data_prep.R
+File description: Code to reformat Valles Caldera grab sample stream chemistry data.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: vcnp_cond_compilation_data_prep.R
+File description: Code to QAQC Valles Caldera sonde specific conductance data, combine with grab sample data, and generate mean monthly concentrations.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: vcnp_fire_compilation_data_prep.R
+File description:  Code to compile fire time series using size and ignition date of each fire in each Valles Caldera watershed.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: vcnp_ppt_compilation_data_prep.R
+File description: Code to compile precipitation data and calculate monthly cumulative precipitation in each Valles Caldera watershed.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: cond_marss_model_data_prep.R
+File description: Code to prepare data (i.e., add legacy effects and fire x precip interaction effect) to fit specific conductance MARSS models.
+Category: Data Preparation
+Scripting Language: R
+Data File Generated: marss_data_sb_vc_091123.rds
+
+#
+File name: nutrient_marss_model_data_prep.R
+File description: Code to prepare data (i.e., add legacy effects and fire x precip interaction effect) to fit nutrient MARSS models.
+Category: Data Preparation
+Scripting Language: R
+Data File Generated: marss_data_sb_092123.rds
+
+#
+File name: cond_marss_models.R
+File description: Code to fit specific conductance MARSS models for Santa Barbara and Valles Caldera stream data.
+Category: Model Fit
+Scripting Language: R
+Data Files Generated: fit_092523_2state_cond_mBFGS.rds, fit_092523_2state_cond_1ylegacy_mBFGS.rds, fit_092523_2state_cond_2ylegacy_mBFGS.rds, fit_092523_2state_cond_3ylegacy_mBFGS.rds, fit_092523_2state_cond_4ylegacy_mBFGS.rds, fit_031124_2state_cond_5ylegacy_mBFGS.rds
+
+#
+File name: nh4_marss_models.R
+File description: Code to fit ammonium MARSS models for Santa Barbara stream data.
+Category: Model Fit
+Scripting Language: R
+Data Files Generated: fit_092123_1state_nh4_mBFGS.rds, fit_092123_1state_nh4_1ylegacy_mBFGS.rds, fit_092123_1state_nh4_2ylegacy_mBFGS.rds, fit_092123_1state_nh4_3ylegacy_mBFGS.rds, fit_092123_1state_nh4_4ylegacy_mBFGS.rds, fit_092123_1state_nh4_5ylegacy_mBFGS.rds
+
+#
+File name: no3_marss_models.R
+File description: Code to fit nitrate MARSS models for Santa Barbara stream data.
+Category: Model Fit
+Scripting Language: R
+Data Files Generated: fit_092123_1state_no3_mBFGS.rds, fit_092123_1state_no3_1ylegacy_mBFGS.rds, fit_092123_1state_no3_2ylegacy_mBFGS.rds, fit_092123_1state_no3_3ylegacy_mBFGS.rds, fit_092123_1state_no3_4ylegacy_mBFGS.rds, fit_092123_1state_no3_5ylegacy_mBFGS.rds, 
+
+#
+File name: po4_marss_models.R
+File description: Code to fit phosphate MARSS models for Santa Barbara stream data.
+Category: Model Fit
+Scripting Language: R
+Data Files Generated: fit_092123_1state_po4_mBFGS.rds, fit_092123_1state_po4_1ylegacy_mBFGS.rds, fit_092123_1state_po4_2ylegacy_mBFGS.rds, fit_092123_1state_po4_3ylegacy_mBFGS.rds, fit_092123_1state_po4_4ylegacy_mBFGS.rds, fit_092123_1state_po4_5ylegacy_mBFGS.rds
+
+#
+File name: supp_marss_models.R
+File description: Code to re-fit specific conductance MARSS models for Santa Barbara and Valles Caldera stream data using binary covariate in place of percent of the watershed burned.
+Category: Model Fit
+Scripting Language: R
+
+#
+File name: nutrient_marss_figure.R
+File description: Code to create figure to display nutrient MARSS model results. Note, the code to generate the equivalent figure for the specific conductivity model fits may be found in the `cond_marss_models.R` file.
+Category: Figures
+Scripting Language: R
+
+# 
+File name: fire_stream_distance_data_prep.R
+File description: Code to calculate the hydrologic distance from the nearest point along the fire perimeter to the location of sampling along the stream's flow line. Spatial data used to run this script available upon request.
+Category: Data Preparation
+Scripting Language: R
+
+#
+File name: chem_figures.R
+File description: Code to generate time-series figures of monthly stream chemistry concentrations as well as precipitation for inclusion as Supplementary Figures in the manuscript.
+Category: Figures
+Scripting Language: R
+
+End of metadata file.
