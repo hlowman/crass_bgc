@@ -16,6 +16,7 @@ H.E. Lowman, J.R. Blaszczak, A. Cale, X. Dong, S. Earl, J. Grabow, N.B. Grimm, T
   - Nutrient (i.e., nitrate, ammonium, and phosphate) data was prepped for modeling using `nutrient_marss_model_data_prep.R` and fit using `no3_marss_models.R`, `nh4_marss_models.R`, and `po4_marss_models.R`. The final manuscript figure was assembled using `nutrient_marss_figure.R`.
   - Supplementary manuscript figures were created using `chem_figures.R`.
   - Additional MARSS models fit to satisfy reviewer comments may be found in `supp_marss_models.R`.
+- The `hydrologic_distance` folder contains scripts and figures generated to calculate proximity of fire perimeters to stream sampling locations.
  
 Data for this project were downloaded from multiple published data sources including:
 
