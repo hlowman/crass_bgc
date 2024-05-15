@@ -6,7 +6,7 @@ Scripts, data, and figures for Collaborative for Research in Arid Stream Systems
 
 H.E. Lowman, J.R. Blaszczak, A. Cale, X. Dong, S. Earl, J. Grabow, N.B. Grimm, T.K. Harms, J.M. Melack, A.M. Reinhold, B. Summers, A. Webster. *Accepted at Biogeochemistry Letters*. Persistent and lagged effects of fire on stream solutes linked to intermittent precipitation in arid lands.
 
-**Please visit the Zenodo webpage for this project to access the most relevant versions of data and code - DOI: [10.5281/zenodo.11199122](https://doi.org/10.5281/zenodo.11199122).**
+**Please visit the Zenodo webpage to access the most relevant versions of data and code - DOI: [10.5281/zenodo.11199122](https://doi.org/10.5281/zenodo.11199122).**
 
 - The `data_raw` folder contains raw chemistry, discharge, precipitation, and watershed characteristic data from the Mediterranean (Santa Barbara, CA) and monsoonal (Valles Caldera, NM) stream locations.
 - The `data_working` folder contains the aggregated datasets used to fit the MARSS models as well as the MARSS model outputs.
