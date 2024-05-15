@@ -4,9 +4,9 @@
 
 Scripts, data, and figures for Collaborative for Research in Arid Stream Systems Biogeochemistry working group. Note, these resources were created primarily to support the following manuscript, but they also contain data and analysis scripts for other projects:
 
-H.E. Lowman, J.R. Blaszczak, A. Cale, X. Dong, S. Earl, J. Grabow, N.B. Grimm, T.K. Harms, J.M. Melack, A.M. Reinhold, B. Summers, A. Webster. *In Review at Biogeochemistry Letters*. Persistent and lagged effects of fire on stream solutes linked to intermittent precipitation in arid lands.
+H.E. Lowman, J.R. Blaszczak, A. Cale, X. Dong, S. Earl, J. Grabow, N.B. Grimm, T.K. Harms, J.M. Melack, A.M. Reinhold, B. Summers, A. Webster. *Accepted at Biogeochemistry Letters*. Persistent and lagged effects of fire on stream solutes linked to intermittent precipitation in arid lands.
 
-**Please visit the Zenodo webpage for this project to access the most relevant and annotated versions of data and code - link forthcoming!**
+**Please visit the Zenodo webpage for this project to access the most relevant versions of data and code - DOI: [10.5281/zenodo.11199122](https://doi.org/10.5281/zenodo.11199122).**
 
 - The `data_raw` folder contains raw chemistry, discharge, precipitation, and watershed characteristic data from the Mediterranean (Santa Barbara, CA) and monsoonal (Valles Caldera, NM) stream locations.
 - The `data_working` folder contains the aggregated datasets used to fit the MARSS models as well as the MARSS model outputs.
@@ -33,6 +33,4 @@ Data for this project were downloaded from multiple published data sources inclu
 
 Stream chemistry data for the monsoonal sites located in the Valles Caldera National Preserve were provided by L. Crossey, C. McGibbon, and M. Albonico; it is in the process of being made publicly available by the National Parks Service at [https://irma.nps.gov/aqwebportal](https://irma.nps.gov/aqwebportal).
 
-At sites monitored by the USGS, discharge data was downloaded using the `dataRetrieval` package in R.
-
-For additional information regarding this project, please contact Heili at heili.lowman _at_ duke.edu or Tamara at tharms _at_ ucr.edu
+For additional information, please contact Heili at heili.lowman _at_ duke.edu or Tamara at tharms _at_ ucr.edu
