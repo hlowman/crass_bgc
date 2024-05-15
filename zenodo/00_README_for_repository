@@ -47,7 +47,7 @@ Scripts have been titled according to their function (*_data_prep.R, *_models.R,
 Data Files
 
 #
-File name: VCNP_grab.csv
+File name: VCNP_grab.rds
 File description: Grab sample chemistry data from Valles Caldera stream sites.
 
 #
@@ -64,99 +64,99 @@ File description: Compiled data used to fit MARSS models for nutrients (NH4, NO3
 
 #
 File name: fit_092523_2state_cond_mBFGS.rds
-File description: Specific conductance MARSS model fit for immediate fire effect window and separate process variance by region.
+File description: Specific conductance MARSS model fit for immediate fire effect window and separate process error variance by region.
 
 #
 File name: fit_092523_2state_cond_1ylegacy_mBFGS.rds
-File description: Specific conductance MARSS model fit for 1 year lagged fire effect window and separate process variance by region.
+File description: Specific conductance MARSS model fit for 1 year lagged fire effect window and separate process error variance by region.
 
 #
 File name: fit_092523_2state_cond_2ylegacy_mBFGS.rds
-File description: Specific conductance MARSS model fit for 2 year lagged fire effect window and separate process variance by region.
+File description: Specific conductance MARSS model fit for 2 year lagged fire effect window and separate process error variance by region.
 
 #
 File name: fit_092523_2state_cond_3ylegacy_mBFGS.rds
-File description: Specific conductance MARSS model fit for 3 year lagged fire effect window and separate process variance by region.
+File description: Specific conductance MARSS model fit for 3 year lagged fire effect window and separate process error variance by region.
 
 # 
 File name: fit_092523_2state_cond_4ylegacy_mBFGS
-File description: Specific conductance MARSS model fit for 4 year lagged fire effect window and separate process variance by region.
+File description: Specific conductance MARSS model fit for 4 year lagged fire effect window and separate process error variance by region.
 
 #
 File name: fit_031124_2state_cond_5ylegacy_mBFGS.rds
-File description: Specific conductance MARSS model fit for 5 year lagged fire effect window and separate process variance by region.
+File description: Specific conductance MARSS model fit for 5 year lagged fire effect window and separate process error variance by region.
 
 #
 File name: fit_092123_1state_nh4_mBFGS.rds
-File description: Ammonium MARSS model fit for immediate fire effect window and shared process variance across all sites.
+File description: Ammonium MARSS model fit for immediate fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_nh4_1ylegacy_mBFGS.rds
-File description: Ammonium MARSS model fit for 1 year lagged fire effect window and shared process variance across all sites.
+File description: Ammonium MARSS model fit for 1 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_nh4_2ylegacy_mBFGS.rds
-File description: Ammonium MARSS model fit for 2 year lagged fire effect window and shared process variance across all sites.
+File description: Ammonium MARSS model fit for 2 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_nh4_3ylegacy_mBFGS.rds
-File description: Ammonium MARSS model fit for 3 year lagged fire effect window and shared process variance across all sites.
+File description: Ammonium MARSS model fit for 3 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_nh4_4ylegacy_mBFGS.rds
-File description: Ammonium MARSS model fit for 4 year lagged fire effect window and shared process variance across all sites.
+File description: Ammonium MARSS model fit for 4 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_nh4_5ylegacy_mBFGS.rds
-File description: Ammonium MARSS model fit for 5 year lagged fire effect window and shared process variance across all sites.
+File description: Ammonium MARSS model fit for 5 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_no3_mBFGS.rds
-File description: Nitrate MARSS model fit for immediate fire effect window and shared process variance across all sites.
+File description: Nitrate MARSS model fit for immediate fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_no3_1ylegacy_mBFGS.rds
-File description: Nitrate MARSS model fit for 1 year lagged fire effect window and shared process variance across all sites.
+File description: Nitrate MARSS model fit for 1 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_no3_2ylegacy_mBFGS.rds
-File description: Nitrate MARSS model fit for 2 year lagged fire effect window and shared process variance across all sites.
+File description: Nitrate MARSS model fit for 2 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_no3_3ylegacy_mBFGS.rds
-File description: Nitrate MARSS model fit for 3 year lagged fire effect window and shared process variance across all sites.
+File description: Nitrate MARSS model fit for 3 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_no3_4ylegacy_mBFGS.rds
-File description: Nitrate MARSS model fit for 4 year lagged fire effect window and shared process variance across all sites.
+File description: Nitrate MARSS model fit for 4 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_no3_5ylegacy_mBFGS.rds
-File description: Nitrate MARSS model fit for 5 year lagged fire effect window and shared process variance across all sites.
+File description: Nitrate MARSS model fit for 5 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_po4_mBFGS.rds
-File description: Phosphate MARSS model fit for immediate fire effect window and shared process variance across all sites.
+File description: Phosphate MARSS model fit for immediate fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_po4_1ylegacy_mBFGS.rds
-File description: Phosphate MARSS model fit for 1 year lagged fire effect window and shared process variance across all sites.
+File description: Phosphate MARSS model fit for 1 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_po4_2ylegacy_mBFGS.rds
-File description: Phosphate MARSS model fit for 2 year lagged fire effect window and shared process variance across all sites.
+File description: Phosphate MARSS model fit for 2 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_po4_3ylegacy_mBFGS.rds
-File description: Phosphate MARSS model fit for 3 year lagged fire effect window and shared process variance across all sites.
+File description: Phosphate MARSS model fit for 3 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_po4_4ylegacy_mBFGS.rds
-File description: Phosphate MARSS model fit for 4 year lagged fire effect window and shared process variance across all sites.
+File description: Phosphate MARSS model fit for 4 year lagged fire effect window and shared process error variance across all sites.
 
 #
 File name: fit_092123_1state_po4_5ylegacy_mBFGS.rds
-File description: Phosphate MARSS model fit for 5 year lagged fire effect window and shared process variance across all sites.
+File description: Phosphate MARSS model fit for 5 year lagged fire effect window and shared process error variance across all sites.
 
 ###
 
